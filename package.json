@@ -1,0 +1,17 @@
+{
+  "name": "fortunate-maps",
+  "version": "1.0.0",
+  "description": "A TagPro Map Hosting Site",
+  "main": "index.js",
+  "scripts": {
+    "test": "nodemon"
+  },
+  "author": "Electro",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "ejs": "^3.1.3",
+    "express": "^4.17.1",
+    "mongoose": "^5.9.25"
+  }
+}

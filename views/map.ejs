@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<%- include('head') %>
+
+		<link rel="stylesheet" type="text/css" href="/css/map.css">
+
+		<title>Fortunate Maps - Map</title>
+	</head>
+	<body>
+		<%- include('nav'); %>
+
+		<main role="main" class="container">
+			<div class="row">
+				<div class="col-8">
+					<div class="card">
+						<img src="http://unfortunate-maps.jukejuice.com/static/previews/60095.png" class="card-img-top" alt="...">
+						<div class="card-body">
+							<div class="text-center">
+								<h5 class="card-title"><b>Emerald</b> by <b>Ball-E</b></h5>
+								<p class="card-text">Look at this map.</p>
+							</div>
+							<hr>
+							<div class="btn-group w-100" role="group" aria-label="Basic example">
+								<button type="button" class="btn btn-primary">Test</button>
+								<button type="button" class="btn btn-primary">Fullsize Preview</button>
+								<button type="button" class="btn btn-primary">.PNG</button>
+								<button type="button" class="btn btn-primary">.JSON</button>
+								<button type="button" class="btn btn-primary">Remix this map</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="col-4">
+					<div class="card stats-card">
+						<div class="card-body">
+							<div class="dropdown w-100">
+								<button class="btn btn-primary w-100 dropdown-toggle" type="button" id="dropdownVersionsButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+									Versions
+								</button>
+								<div class="dropdown-menu" aria-labelledby="dropdownVersionsButton">
+									<a class="dropdown-item" href="#">Action</a>
+									<a class="dropdown-item" href="#">Another action</a>
+									<a class="dropdown-item" href="#">Something else here</a>
+								</div>
+							</div>
+							<div class="dropdown w-100 mt-2">
+								<button class="btn btn-primary w-100 dropdown-toggle" type="button" id="dropdownRemixesButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+									Remixes
+								</button>
+								<div class="dropdown-menu" aria-labelledby="dropdownRemixesButton">
+									<a class="dropdown-item" href="#">Action</a>
+									<a class="dropdown-item" href="#">Another action</a>
+									<a class="dropdown-item" href="#">Something else here</a>
+								</div>
+							</div>
+							<hr>
+							<p>Maybe some stats on the map go here or something</p>
+						</div>
+					</div>
+				</div>
+			</div>
+			<hr>
+		</main>
+
+		<%- include('bodyscripts') %>
+	</body>
+</html>
