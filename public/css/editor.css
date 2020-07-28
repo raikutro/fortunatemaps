@@ -1,0 +1,10 @@
+body {
+	width: 100%;
+	height: calc(100vh);
+}
+
+#editorFrame {
+	width: 100%;
+	height: 100%;
+	border: none;
+}

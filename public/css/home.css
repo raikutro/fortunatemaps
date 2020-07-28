@@ -1,6 +1,6 @@
-.starter-template {
-	padding: 3rem 1.5rem;
-	text-align: center;
+.map-card {
+	width: 33%;
+	display: inline-flex;
 }
 
 .bd-placeholder-img {

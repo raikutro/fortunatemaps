@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="A collaborative TagPro map editor.">
+    <title>TagPro Map Editor</title>
+    <script src="generatepng.js"></script>
+    <script src="jquery-2.1.0.min.js"></script>
+    <script src="bootstrap.min.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <link rel="stylesheet" type="text/css" href="css/signin.css">
+</head>
+<body>
+
+
+    <div class="container">
+
+        <form class="form-signin">
+            <br><br><br><br><br><br><br><br><br><br><br><br>
+            <label for="inputRoom" class="sr-only">Room name</label>
+            <input id="inputRoom" class="form-control" placeholder="Room name" required autofocus>
+            <br><br>
+            <button id="createRoom" class="btn btn-lg btn-primary btn-block">Create or join</button>
+        </form>
+
+    </div> <!-- /container -->
+
+    <script>
+        $(function() {
+            $('#createRoom').click(function() {
+                var room = $('#inputRoom').val();
+                window.location.href = "/" + room;
+                return false;
+            });
+        });
+    </script>
+
+</body>
+</html>
