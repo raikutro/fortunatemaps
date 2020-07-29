@@ -1,7 +1,7 @@
-const URL_VARS = getUrlVars();
+let urlVars = getUrlVars();
 
-if(URL_VARS["q"]) {
-	$("#searchText").val(decodeURIComponent(URL_VARS["q"]));
+if(urlVars["q"]) {
+	$("#searchText").val(decodeURIComponent(urlVars["q"]));
 }
 
 $("#searchForm").submit(() => {
