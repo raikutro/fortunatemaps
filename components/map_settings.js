@@ -27,7 +27,8 @@ SETTINGS.TILE_IDS = {
 	BRWALL: 19,
 	PORTAL: 20,
 	REDENDZONE: 21,
-	BLUEENDZONE: 22
+	BLUEENDZONE: 22,
+	GRAVITYWELL: 23
 };
 
 SETTINGS.IS_WALL = id => [
@@ -44,7 +45,7 @@ SETTINGS.TILE_NAMES = Object.keys(SETTINGS.TILE_IDS).reduce((acc, val) => {
 	return acc;
 }, []);
 
-console.log(SETTINGS.TILE_NAMES);
+// console.log(SETTINGS.TILE_NAMES);
 
 SETTINGS.TILE_COLORS = [
 	{ red: 212, green: 212, blue: 212, alpha: 255 }, // Floor
@@ -70,6 +71,7 @@ SETTINGS.TILE_COLORS = [
 	{ red: 202, green: 192, blue: 0, alpha: 255}, // Portal
 	{ red: 185, green: 0, blue: 0, alpha: 255}, // Red Endzone
 	{ red: 25, green: 0, blue: 148, alpha: 255}, // Blue Endzone
+	{ red: 32, green: 32, blue: 32, alpha: 255}, // Gravity Well
 ];
 
 SETTINGS.TILE_COORDINATES = {
@@ -88,7 +90,8 @@ SETTINGS.TILE_COORDINATES = {
 	BLUETEAMTILE: {x: 15, y: 4},
 	YELLOWTEAMTILE: {x: 13, y: 5},
 	REDENDZONE: {x: 14, y: 5},
-	BLUEENDZONE: {x: 15, y: 5}
+	BLUEENDZONE: {x: 15, y: 5},
+	GRAVITYWELL: {x: 13, y: 0}
 };
 
 SETTINGS.WALL_DRAW_ORDER = [[0, 0], [SETTINGS.QUADRANT_SIZE, 0], [0, SETTINGS.QUADRANT_SIZE], [SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE]];

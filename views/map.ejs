@@ -14,19 +14,21 @@
 			<div class="row">
 				<div class="col-8">
 					<div class="card">
-						<img src="http://unfortunate-maps.jukejuice.com/static/previews/60095.png" class="card-img-top" alt="...">
+						<img src="/preview/<%- map.mapID %>" class="card-img-top mt-2" alt="...">
 						<div class="card-body">
 							<div class="text-center">
-								<h5 class="card-title"><b>Emerald</b> by <b>Ball-E</b></h5>
-								<p class="card-text">Look at this map.</p>
+								<h5 class="card-title">
+									<b><%= map.name %></b> by <b><%= map.authorName %></b>
+								</h5>
+								<!-- <p class="card-text">Look at this map.</p> -->
 							</div>
 							<hr>
 							<div class="btn-group w-100" role="group" aria-label="Basic example">
-								<button type="button" class="btn btn-primary">Test</button>
-								<button type="button" class="btn btn-primary">Fullsize Preview</button>
-								<button type="button" class="btn btn-primary">.PNG</button>
-								<button type="button" class="btn btn-primary">.JSON</button>
-								<button type="button" class="btn btn-primary">Remix this map</button>
+								<a type="button" class="btn btn-primary" href="/test/<%- map.mapID %>">Test</a>
+								<a type="button" class="btn btn-primary" href="/preview/<%- map.mapID %>">Fullsize Preview</a>
+								<a type="button" class="btn btn-primary" href="/png/<%- map.mapID %>">.PNG</a>
+								<a type="button" class="btn btn-primary" href="/json/<%- map.mapID %>">.JSON</a>
+								<a type="button" class="btn btn-primary" href="/editor?mapid=<%- map.mapID %>">Remix this map</a>
 							</div>
 						</div>
 					</div>
@@ -39,9 +41,11 @@
 									Versions
 								</button>
 								<div class="dropdown-menu" aria-labelledby="dropdownVersionsButton">
-									<a class="dropdown-item" href="#">Action</a>
-									<a class="dropdown-item" href="#">Another action</a>
-									<a class="dropdown-item" href="#">Something else here</a>
+									<%- mapVersions.map(map => `
+										<a class="dropdown-item" href="/map/${map.mapID}">
+											${`${map.name} by ${map.authorName} (${map.mapID})`.replace(/</gi, "&lt;").replace(/>/gi, "&gt;")}
+										</a>
+									`).join("") %>
 								</div>
 							</div>
 							<div class="dropdown w-100 mt-2">
@@ -49,13 +53,15 @@
 									Remixes
 								</button>
 								<div class="dropdown-menu" aria-labelledby="dropdownRemixesButton">
-									<a class="dropdown-item" href="#">Action</a>
-									<a class="dropdown-item" href="#">Another action</a>
-									<a class="dropdown-item" href="#">Something else here</a>
+									<%- mapRemixes.map(map => `
+										<a class="dropdown-item" href="/map/${map.mapID}">
+											${`${map.name} by ${map.authorName} (${map.mapID})`.replace(/</gi, "&lt;").replace(/>/gi, "&gt;")}
+										</a>
+									`).join("") %>
 								</div>
 							</div>
 							<hr>
-							<p>Maybe some stats on the map go here or something</p>
+							<!-- <p>Maybe some stats on the map go here or something</p> -->
 						</div>
 					</div>
 				</div>

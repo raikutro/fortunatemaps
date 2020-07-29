@@ -1,3 +1,5 @@
+const URL_VARS = getUrlVars();
+
 $(function() {
   $('[data-toggle="popover"]').popover();
   var quadrantCoords = {
@@ -237,11 +239,32 @@ $(function() {
 
   var socket = io();
 
-  var savedPng = null; //localStorage.getItem('png')
-  var savedJson = null; //localStorage.getItem('json')
+  var savedPng = localStorage.getItem('png');
+  var savedJson = localStorage.getItem('json');
 
   var texturePack = localStorage.getItem('texturePack') || 'classic';
-  restoreFromPngAndJson(savedPng, savedJson, undefined, true);
+
+  var versionSource;
+
+  if(URL_VARS["mapid"]) {
+    fetch("/map_data/" + URL_VARS["mapid"]).then(a => a.json()).then(json => {
+      addAlert('info',`Loading ${json.map.name} from server...`, 1000);
+      versionSource = json.map.mapID;
+      restoreFromPngAndJson(
+        'data:image/png;base64,' + json.map.png,
+        json.map.json, undefined, true, undefined,
+      () => {
+        addAlert('success','Map imported from server!', 1000);
+      });
+    });
+  } else {
+    restoreFromPngAndJson(savedPng, savedJson, undefined, true);
+  }
+  
+  setInterval(() => {
+    localStorage.setItem('png', getPngBase64Url());
+    localStorage.setItem('json', makeLogicString());
+  }, 5000);
 
   var importJson;
   var importPng;
@@ -2284,20 +2307,33 @@ $(function() {
     });
   });
 
+  $("#collabBtn").click(() => {
+    prompt("Here is your Collaboration URL", location.protocol + "//" + location.host + "/editor?r=" + location.pathname.split("/").filter(a => a)[1]);
+  });
+
   $("#saveToFM").click( function() {
+    $("#saveToFM").prop("disabled", true);
+    console.log(versionSource);
     fetch("/upload_map", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        layout: getPngBase64(), logic: makeLogicString()
+        layout: getPngBase64(), logic: makeLogicString(), unlisted: $("#unlistedCheck").prop("checked"), sourceMapID: versionSource || null
       })
     }).then(a => a.json()).then(data => {
+      if(data.err) {
+        console.log(data);
+        return addAlert('success',`Error: ${data.err}`, 5000);
+      }
+
       addAlert('success','Map uploaded successfully?',2000);
       var win = window.open('/map/' + data.id);
       if(win) win.focus();
+      window.close();
     }).catch(() => {
+      $("#saveToFM").prop("disabled", false);
       addAlert('error','Failed to upload map',2000);
     });
   });
@@ -2343,7 +2379,7 @@ $(function() {
         addAlert('danger','Error: '+validStr,2000);
         return false;
       }
-      $.post('test.php', {logic: JSON.stringify(makeLogic()), layout: getPngBase64(), server: i}, function(data) {
+      $.post('https://cors-anywhere.herokuapp.com/http://tagproedit.com/test.php', {logic: JSON.stringify(makeLogic()), layout: getPngBase64(), server: i}, function(data) {
         if (data) {
           var win = window.open(data, 'tagpro');
           if(win)
@@ -2367,7 +2403,7 @@ $(function() {
         addAlert('danger','Error: '+validStr,2000);
         return false;
       }
-      $.post('test.php', {logic: JSON.stringify(makeLogic()), layout: getPngBase64(), cloud: i}, function(data) {
+      $.post('https://cors-anywhere.herokuapp.com/http://tagproedit.com/test.php', {logic: JSON.stringify(makeLogic()), layout: getPngBase64(), cloud: i}, function(data) {
         if (data) {
           addAlert('success','Map uploaded successfully!',2000);
           var win = window.open(data, 'tagpro');
@@ -2784,7 +2820,7 @@ $(function() {
   $('#importUrl').click(function() {
     var url = prompt('Enter a JukeJuice or Unfortunate JukeJuice map URL to import:');
     if(url) {
-      $.post('test.php', {url: url}, function(data) {
+      $.post('https://cors-anywhere.herokuapp.com/http://tagproedit.com/test.php', {url: url}, function(data) {
         if (data) {
           data = JSON.parse(data);
           restoreFromPngAndJson(
@@ -3973,3 +4009,17 @@ $(function() {
 
   initPageTitleNotification();
 });
+
+function getUrlVars(){
+  let vars = [], hash;
+  let hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+
+  for(let i = 0; i < hashes.length; i++){
+    hash = hashes[i].split('=');
+    hash[1] = unescape(hash[1]);
+    vars.push(hash[0]);
+    vars[hash[0]] = hash[1];
+  }
+
+  return vars;
+}

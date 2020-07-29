@@ -12,6 +12,7 @@ const MapEntrySchema = new Schema({
 	json: {type: String},
 	png: {type: String},
 	previewPng: {type: String},
+	thumbnailPng: {type: String},
 	versionSource: {type: Number},
 	isRemix: {type: Boolean},
 	unlisted: {type: Boolean}

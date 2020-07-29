@@ -4,7 +4,12 @@
   "description": "A TagPro Map Hosting Site",
   "main": "index.js",
   "scripts": {
-    "test": "nodemon"
+    "test": "nodemon",
+    "start": "node index.js"
+  },
+  "nodemonConfig": {
+    "verbose": false,
+    "ignore": ["temp/"]
   },
   "author": "Electro",
   "license": "ISC",

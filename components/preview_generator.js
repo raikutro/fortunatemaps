@@ -5,7 +5,8 @@ const zeros = require('zeros');
 const fetch = require('node-fetch');
 
 const Utils = require('../Utils');
-const SETTINGS = require('./settings');
+const SETTINGS = require('./map_settings');
+const fs = require("fs");
 
 let TILES = {};
 
@@ -21,12 +22,41 @@ let TILES = {};
 
 let assetsLoaded = false;
 
-module.exports = (pngLink, json) => {
+module.exports = (rawPngLink, json) => {
 	return new Promise(async (resolve, reject) => {
 		await waitForLoadedAssets();
 
+		let pngLink;
+		let tempURL = null;
+
+		if(rawPngLink.includes("://")) {
+			pngLink = rawPngLink;
+		} else {
+			pngLink = await new Promise((resolve, reject) => {
+				tempURL = `./temp/temp${Date.now()}.png`;
+				fs.writeFile(tempURL, rawPngLink, 'base64', async (err) => {
+					if(err) reject(err);
+
+					resolve(tempURL);
+				});
+			});
+		}
+
 		let map = await mapURLToArray(pngLink);
 		let mapJSON;
+
+		if(tempURL !== null) {
+			let deletedFile = await new Promise((resolve, reject) => {
+				fs.unlink(tempURL, err => {
+					if(err) return reject(err);
+
+					resolve(tempURL);
+				});
+			}).catch(err => {
+				console.log(err);
+				return false;
+			});
+		}
 
 		try {
 			mapJSON = JSON.parse(json);
@@ -167,15 +197,18 @@ function fillStates(ctx, mapJSON){
 			y: position[1]
 		};
 
-		let gateCoords = SETTINGS.TILE_COORDINATES[mapJSON.fields[key].defaultState.toUpperCase() + "GATE"];
+		let defaultState = mapJSON.fields[key].defaultState === "on" ? "green" : mapJSON.fields[key].defaultState;
+		let gateCoords = SETTINGS.TILE_COORDINATES[defaultState.toUpperCase() + "GATE"];
 
-		ctx.drawImage(
-			TILES.GENERAL,
-			gateCoords.x * SETTINGS.TILE_SIZE, gateCoords.y * SETTINGS.TILE_SIZE,
-			SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-			position.x * SETTINGS.TILE_SIZE, position.y * SETTINGS.TILE_SIZE,
-			SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
-		);
+		if(gateCoords){
+			ctx.drawImage(
+				TILES.GENERAL,
+				gateCoords.x * SETTINGS.TILE_SIZE, gateCoords.y * SETTINGS.TILE_SIZE,
+				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
+				position.x * SETTINGS.TILE_SIZE, position.y * SETTINGS.TILE_SIZE,
+				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
+			);
+		}
 	});
 
 	Object.keys(mapJSON.portals).forEach(key => {

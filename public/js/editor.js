@@ -1,7 +1,7 @@
 const URL_VARS = getUrlVars();
 
 if(URL_VARS["mapid"]) {
-	$("#editorFrame").attr("src", "/map_editor?mapid=" + URL_VARS["mapid"]);
+	$("#editorFrame").attr("src", "/map_editor/" + makeID() + "?mapid=" + URL_VARS["mapid"]);
 } else if(URL_VARS["r"]) {
 	$("#editorFrame").attr("src", "/map_editor/" + URL_VARS["r"]);
 } else {
