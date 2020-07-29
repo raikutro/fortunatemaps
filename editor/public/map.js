@@ -3810,7 +3810,7 @@ $(function() {
   // Socket Handlers
   ///////////////////////////////////////////////
   socket.on('connect', function() {
-    var room = window.location.pathname.split('/')[1];
+    var room = window.location.pathname.split('/')[2];
     var username = $('#my-username').val();
     myHighlightColor = localStorage.getItem('color') || myHighlightColor;
     socket.emit('roomConnect', {room: room, username: username, color: myHighlightColor });

@@ -59,9 +59,9 @@ function init(app, server) {
 	});
 
 
-	app.get('*', function(req, res) {
-		res.redirect('/');
-	});
+	// app.get('*', function(req, res) {
+	// 	res.redirect('/');
+	// });
 
 	//////////////////////////////// Functions ////////////////////////////////////////
 
