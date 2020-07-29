@@ -340,9 +340,7 @@ app.post('/upload_map', async (req, res) => {
 // 	});
 // })();
 
-(async () => {
-	app.use('/map_editor', await TagproEditMapEditor(new express.Router(), httpServer));
-})();
+app.use('/map_editor', TagproEditMapEditor(new express.Router(), httpServer));
 app.use('/', express.static(path.join(__dirname, 'public')));
 
 setInterval(function() {
