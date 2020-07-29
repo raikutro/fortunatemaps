@@ -344,7 +344,7 @@ app.use('/map_editor', TagproEditMapEditor(new express.Router(), httpServer));
 app.use('/', express.static(path.join(__dirname, 'public')));
 
 setInterval(function() {
-	httpReq.get("http://fortunatemaps.herokuapp.com");
+	fetch("http://fortunatemaps.herokuapp.com");
 	console.log("Pinged!");
 }, 10 * 60 * 1000);
 
