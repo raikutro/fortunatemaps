@@ -23,7 +23,7 @@
     "express": "^4.17.1",
     "mongoose": "^5.9.25",
     "ndarray-fill": "^1.0.2",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.1",
     "pngjs-image": "^0.11.7",
     "socket.io": "^2.3.0",
     "zeros": "^1.0.0"
