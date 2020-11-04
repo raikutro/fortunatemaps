@@ -1,5 +1,6 @@
 const URL_VARS = getUrlVars();
 
+// Editor URL Params controller
 if(URL_VARS["mapid"]) {
 	$("#editorFrame").attr("src", "/map_editor/" + makeID() + "?mapid=" + URL_VARS["mapid"]);
 } else if(URL_VARS["r"]) {
