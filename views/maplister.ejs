@@ -1,0 +1,26 @@
+<%-
+	// Renders an array of MapEntry's
+	maps.map(map => { // lol
+		return `
+			<div class="card map-card">
+				<a href="/map/${map.mapID}" class="map-image-link"><img src="/thumbnail/${map.mapID}.jpeg" class="card-img-top" alt="${map.name}"></a>
+				<div class="card-body">
+					<a href="/map/${map.mapID}" class="map-link"><p class="card-text text-center">
+						<b>${map.name
+							.replace(/</gi, "&lt;")
+							.replace(/>/gi, "&gt;")
+						}</b> by <b>${map.authorName
+							.replace(/</gi, "&lt;")
+							.replace(/>/gi, "&gt;")
+						}</b>
+					</p></a>
+					<hr>
+					<div class="btn-group w-100" role="group" aria-label="Basic example">
+						<a type="button" class="btn btn-primary" href="/test/${map.mapID}">Test</a>
+						<a type="button" class="btn btn-primary" href="/preview/${map.mapID}.jpeg">Fullsize Preview</a>
+					</div>
+				</div>
+			</div>
+		`;
+	}).join("");
+%>

@@ -18,7 +18,12 @@ npm i
 node index.js
 ```
 
-Make sure to add a .env file to the folder containing the MongoDB Connection URL. See the `.env.example` file for an example.
+Make sure to add a .env file to the folder containing the MongoDB Connection URL.
+
 I use MongoDB Atlas to host the DB, but you can also use a local MongoDB Connection if you know how to set that up.
+You also require a AWS S3 Bucket.
+
+See the `.env.example` file for an example of credentials.
 
 Atlas: [https://www.mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+AWS S3: [https://aws.amazon.com/s3](https://aws.amazon.com/s3)
