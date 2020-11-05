@@ -1,3 +1,46 @@
 body {
-	padding-top: 5rem;
+	padding-top: 8rem;
+}
+
+.navbar-brand {
+	margin-left: 15%;
+}
+
+.navbar-nav {
+	margin: 0 auto;
+}
+
+.navbar .nav-item {
+	margin-right: 10px;
+}
+
+.account-buttons {
+	margin-left: 32px;
+	margin-right: 15%;
+	font-size: 16px;
+}
+
+.settings-button {
+	margin-right: 16px;
+}
+
+.map-card {
+	width: 33%;
+	display: inline-flex;
+	margin-bottom: 3%;
+}
+
+@media (max-width: 400px) {
+	.map-card {
+		width: 49%;
+	}
+}
+
+.map-card .card-img-top {
+	max-height: 300px;
+	display: inline-block;
+}
+
+.map-image-link {
+	text-align: center;
 }
