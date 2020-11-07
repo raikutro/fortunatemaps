@@ -2320,7 +2320,10 @@ $(function() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        layout: getPngBase64(), logic: makeLogicString(), unlisted: $("#unlistedCheck").prop("checked"), sourceMapID: versionSource || null
+        layout: getPngBase64(),
+        logic: makeLogicString(),
+        unlisted: $("#unlistedCheck").prop("checked"),
+        sourceMapID: versionSource || 0
       })
     }).then(a => a.json()).then(data => {
       if(data.err) {

@@ -240,6 +240,19 @@ function fillStates(ctx, mapJSON, textureName="VANILLA"){
 			);
 		}
 	});
+
+	console.log(mapJSON);
+
+	mapJSON.marsballs.forEach(marsball => {
+		ctx.drawImage(
+			TILES[textureName].GENERAL,
+			480, 360,
+			SETTINGS.TILE_SIZE * 2, SETTINGS.TILE_SIZE * 2,
+			(marsball.x * SETTINGS.TILE_SIZE) - (SETTINGS.TILE_SIZE / 2),
+			(marsball.y * SETTINGS.TILE_SIZE) - (SETTINGS.TILE_SIZE / 2),
+			SETTINGS.TILE_SIZE * 2, SETTINGS.TILE_SIZE * 2
+		);
+	});
 }
 
 function drawWall(ctx, x, y, type, neighbors, textureName="VANILLA") {

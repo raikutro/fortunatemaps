@@ -387,7 +387,7 @@ app.post('/upload_map', loginMiddleware, async (req, res) => {
 			if(req.body.sourceMapID !== 0) versionSourceMapEntry = await MapEntry.findOne({mapID: req.body.sourceMapID});
 
 			// The map entry gets counted as a remix if there is no author account and the map has a different version source.
-			let isRemix = authorIDs.length === 0 ? versionSourceMapEntry === 0 : !versionSourceMapEntry.authorIDs.includes(req.profileID);
+			let isRemix = authorIDs.length === 0 ? versionSourceMapEntry === 0 : (versionSourceMapEntry ? !versionSourceMapEntry.authorIDs.includes(req.profileID) : false);
 
 			// Find the best way to scale the preview image to turn it into a thumbnail
 			let newWidth;
