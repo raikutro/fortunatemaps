@@ -70,7 +70,7 @@ fetch(`https://jsonbin.org/${process.env.JSONBIN_USERNAME}/${process.env.JSONBIN
 		"Authorization": "Token " + process.env.JSONBIN_API_KEY
 	}
 }).then(a => a.json()).then(json => {
-	loginTokens = json;
+	loginTokens = json || {};
 
 	AccountRoutes(app, loginTokens);
 }).catch(err => {
