@@ -3,6 +3,7 @@
 	<head>
 		<%- include('head') %>
 
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
 		<link rel="stylesheet" type="text/css" href="/css/map.css">
 
 		<title>Fortunate Maps - Map</title>
@@ -12,7 +13,7 @@
 
 		<main role="main" class="container">
 			<div class="row">
-				<div class="col-8">
+				<div class="col-md-8">
 					<div class="card">
 						<img src="/preview/<%- map.mapID %>" class="card-img-top mt-2" alt="...">
 						<div class="card-body">
@@ -33,7 +34,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="col-4">
+				<div class="col-md-4">
 					<div class="card stats-card">
 						<div class="card-body">
 							<div class="dropdown w-100">
@@ -41,11 +42,17 @@
 									Versions
 								</button>
 								<div class="dropdown-menu" aria-labelledby="dropdownVersionsButton">
-									<%- mapVersions.map(map => `
-										<a class="dropdown-item" href="/map/${map.mapID}">
-											${`${map.name} by ${map.authorName} (${map.mapID})`.replace(/</gi, "&lt;").replace(/>/gi, "&gt;")}
-										</a>
-									`).join("") %>
+									<%- mapVersions.map(map => {
+										let fullMapName = `${map.name} by ${map.authorName}`;
+										let truncatedName = fullMapName.slice(0, 34);
+
+										fullMapName = `${truncatedName}${truncatedName.length < fullMapName.length ? "..." : ""} (${map.mapID})`;
+										return `
+											<a class="dropdown-item" href="/map/${map.mapID}">
+												${`${fullMapName}`}
+											</a>
+										`;
+									}).join("") %>
 								</div>
 							</div>
 							<div class="dropdown w-100 mt-2">
@@ -53,22 +60,150 @@
 									Remixes
 								</button>
 								<div class="dropdown-menu" aria-labelledby="dropdownRemixesButton">
-									<%- mapRemixes.map(map => `
-										<a class="dropdown-item" href="/map/${map.mapID}">
-											${`${map.name} by ${map.authorName} (${map.mapID})`.replace(/</gi, "&lt;").replace(/>/gi, "&gt;")}
-										</a>
-									`).join("") %>
+									<%- mapRemixes.map(map => {
+										let fullMapName = `${map.name} by ${map.authorName}`;
+										let truncatedName = fullMapName.slice(0, 34);
+
+										fullMapName = `${truncatedName}${truncatedName.length < fullMapName.length ? "..." : ""} (${map.mapID})`;
+										return `
+											<a class="dropdown-item" href="/map/${map.mapID}">
+												${`${fullMapName}`}
+											</a>
+										`;
+									}).join("") %>
 								</div>
 							</div>
 							<hr>
-							<!-- <p>Maybe some stats on the map go here or something</p> -->
+							<%- map.authorIDs.includes(profileID) ? `
+							<button class="btn btn-primary w-100" data-toggle="modal" data-target="#mapSettingsModal">Map Settings</button>
+							<hr>
+							` : "" %>
+							<div class="map-data">
+								<table class="data-table">
+									<tbody>
+										<tr>
+											<td>Upload Date</td>
+											<td>
+												<%- map.dateUploaded.toLocaleString() %>
+											</td>
+										</tr>
+										<tr>
+											<td>Authors</td>
+											<td>
+												<%-
+													map.authorIDs.length === 0 ? "Anonymous" :
+													map.authorIDs.map(id => `<a class="profile-link" href="/profile/${id}" target="_blank">${id}</a>`).join(", ")
+												%>
+											</td>
+										</tr>
+										<tr>
+											<td>Tags</td>
+											<td>
+												<%-
+													map.tags.length !== 0 ? map.tags.map(tag => {
+														let tagData = SETTINGS.SITE.TAGS[tag.tagType];
+														return `<span
+															class="tag badge badge-primary"
+															style="background: ${tagData.backgroundColor}; color: ${tagData.textColor}"
+														>${tag.name || tagData.name}</span>`;
+													}).join("") : "None"
+												%>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+							<hr>
+							<p><%- map.description %></p>
 						</div>
 					</div>
 				</div>
 			</div>
 			<hr>
+			<div class="markdown-container mt-2">
+				<textarea id="commentInput"></textarea>
+			</div>
+			<button class="btn btn-primary w-100" id="submitCommentBtn">Submit</button>
+			<hr>
+			<div class="card">
+				<div class="card-header">
+					Comments
+				</div>
+				<div class="card-body" id="commentsContainer">
+					
+				</div>
+			</div>
 		</main>
 
+		<div class="modal fade" id="mapSettingsModal" tabindex="-1" aria-labelledby="mapSettingsModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="mapSettingsModalLabel">Map Settings</h5>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+					<div class="modal-body">
+						<b class="tag-container">Authors: <span id="authorsDisplay">
+							
+						</span></b>
+						<div class="input-group mt-2" id="authorsGroup">
+							<input type="text" class="form-control" id="authorsInput" placeholder="Author ID or Username" maxlength="24">
+							<div class="input-group-append">
+								<button type="button" class="btn btn-secondary" id="addAuthorBtn">Add</button>
+							</div>
+						</div>
+						<ul id="authorSearchList">
+							
+						</ul>
+
+						<b class="tag-container">Tags: <span id="tagsDisplay">
+							
+						</span></b>
+						<div class="input-group mt-2" id="tagsGroup">
+							<input type="text" class="form-control" id="tagsInput" placeholder="Tag Name" maxlength="<%- SETTINGS.SITE.TAG_NAME_LENGTH %>">
+							<div class="input-group-append">
+								<button type="button" class="btn btn-secondary" id="addTagBtn">Add</button>
+								<button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown">
+									<span class="sr-only">Toggle Dropdown</span>
+								</button>
+								<div class="dropdown-menu">
+									<%- Object.keys(SETTINGS.SITE.TAGS).map(key => {
+										if(key === "1" || (!isAdmin && SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(Number(key)))) return "";
+										return `<a class="dropdown-item" href="javascript:void(0)" data-type="${key}">${SETTINGS.SITE.TAGS[key].name}</a>`;
+									}).join("") %>
+								</div>
+							</div>
+						</div>
+						<hr/>
+						<b>Description:</b>
+						<textarea class="form-control" id="descriptionText"></textarea>
+						<hr>
+						<div class="input-group w-100">
+							<div class="input-group-prepend">
+								<span class="input-group-text">Unlisted</span>
+							</div>
+							<div class="input-group-append">
+								<div class="input-group-text">
+									<input type="checkbox" id="unlistedCheck">
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+						<button type="button" class="btn btn-primary" id="saveMapSettings">Save changes</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script type="text/javascript">window.MAP_DATA = <%- JSON.stringify(map) %></script>
+
 		<%- include('bodyscripts') %>
+		<script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+		<script type="text/javascript" src="/js/tag_input.js"></script>
+		<script type="text/javascript" src="/js/map.js"></script>
 	</body>
 </html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<%- include('head') %>
+
+		<link rel="stylesheet" type="text/css" href="/css/profile.css">
+
+		<title>Fortunate Maps - Profile</title>
+	</head>
+	<body>
+		<%- include('nav'); %>
+
+		<div class="banner">
+			
+		</div>
+		<main role="main" class="container">
+			<div class="banner-overlay">
+				<img class="profile-avatar" src="/assets/user.png" />
+				<h2 class="profile-username"><%- user.username %></h2>
+			</div>
+
+			<div class="row" id="mainRow">
+				<div class="col-md-6">
+					<div class="card">
+						<div class="card-body">
+							<div class="bio-text" id="bioText" markdown="<%- user.bio || `*${SETTINGS.FILLERS.BIO[Math.floor(Math.random() * SETTINGS.FILLERS.BIO.length)]}*`%>">
+							</div>
+							<hr>
+							<div class="social-container">
+								<div class="social-expander" <%- user.tagproProfile ? "" : "style='display:none'" %>>
+									<img class="social-icon" src="https://tagpro.koalabeast.com/favicon.ico">
+									<p class="social-handle"><%- user.tagproProfile %></p>
+								</div>
+								<div class="social-expander" <%- user.social.discord ? "" : "style='display:none'" %>>
+									<img class="social-icon" src="https://discord.com/assets/07dca80a102d4149e9736d4b162cff6f.ico">
+									<p class="social-handle"><%- user.social.discord %></p>
+								</div>
+								<div class="social-expander" <%- user.social.reddit ? "" : "style='display:none'" %>>
+									<img class="social-icon" src="https://www.reddit.com/favicon.ico">
+									<p class="social-handle"><%- user.social.reddit %></p>
+								</div>
+							</div>
+						</div>
+					</div>
+					<hr>
+					<div class="card">
+						<div class="card-header">
+							Favorite Maps
+						</div>
+					</div>
+				</div>
+				<div class="col-md-6">
+					<div class="card">
+						<div class="card-header">
+							Certifications
+						</div>
+						<div class="card-body">
+							<%- user.certifications.length > 0 ? user.certifications.map(certification => {
+								let certData = SETTINGS.SITE.CERTIFICATIONS[certification.certificationType];
+								return `<span
+									class="certification badge badge-primary"
+									style="background: ${certData.backgroundColor}; color: ${certData.textColor}"
+								>${certification.name || certData.name}</span>`;
+							}) : "Unfortunately, this person isn't known for anything."%>
+						</div>
+					</div>
+					<hr>
+					<div class="profile-map-container">
+						<%- include('maplister'); %>
+					</div>
+				</div>
+			</div>
+		</main>
+
+		<%- include('bodyscripts') %>
+		<script type="text/javascript" src="/js/profile.js"></script>
+	</body>
+</html>

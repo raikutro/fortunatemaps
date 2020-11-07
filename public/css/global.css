@@ -1,5 +1,6 @@
 body {
-	padding-top: 8rem;
+	padding-top: 5rem;
+	padding-bottom: 2rem;
 }
 
 .navbar-brand {
@@ -30,12 +31,6 @@ body {
 	margin-bottom: 3%;
 }
 
-@media (max-width: 400px) {
-	.map-card {
-		width: 49%;
-	}
-}
-
 .map-card .card-img-top {
 	max-height: 300px;
 	display: inline-block;
@@ -43,4 +38,44 @@ body {
 
 .map-image-link {
 	text-align: center;
+}
+
+.comment .avatar {
+	width: 64px;
+}
+
+.comment .username {
+	width: 100%;
+	border-bottom: 1px solid #222;
+}
+
+.CodeMirror-fullscreen {
+	z-index: 10000 !important;
+}
+.editor-toolbar {
+	z-index: 100000 !important;
+}
+
+.editor-preview-side.editor-preview-active-side {
+	z-index: 10000 !important;
+}
+
+.editor-toolbar.fullscreen::before, .editor-toolbar.fullscreen::after {
+	opacity: 0;
+}
+
+@media (max-width: 400px) {
+	.map-card {
+		width: 49%;
+	}
+
+	.navbar-brand {
+		margin-left: 0;
+	}
+}
+
+@media (min-width: 400px) {
+	.map-card .card-img-top {
+		width: auto;
+	}
 }

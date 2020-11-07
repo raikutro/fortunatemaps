@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<%- include('head') %>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+		<link rel="stylesheet" type="text/css" href="/css/settings.css">
+
+		<title>Fortunate Maps - Settings</title>
+	</head>
+	<body>
+		<%- include('nav'); %>
+
+		<main role="main" class="container">
+			<h1 class="text-center">Settings</h1>
+			<hr>
+			<div class="settings-form">
+				<b>Socials</b>
+				<div class="input-group mt-2">
+					<input type="text" class="form-control" id="discordSocialInput" value="<%- user.social.discord %>" maxlength="30" placeholder="Discord Username">
+					<input type="text" class="form-control" id="redditSocialInput" value="<%- user.social.reddit %>" maxlength="30" placeholder="Reddit Username">
+				</div>
+				<hr>
+				<b>Biography</b>
+				<div class="markdown-container mt-2">
+					<textarea id="biographyInput"><%- user.bio %></textarea>
+				</div>
+				<hr>
+				<button class="btn btn-primary w-100" id="settingsBtn">Save Settings</button>
+			</div>
+		</main>
+
+		<%- include('bodyscripts') %>
+		<script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+		<script type="text/javascript" src="/js/settings.js"></script>
+	</body>
+</html>

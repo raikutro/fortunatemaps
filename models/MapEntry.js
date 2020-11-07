@@ -14,6 +14,9 @@ const MapEntrySchema = new Schema({
 	dateUploaded: {type: Date},
 	// Map comments
 	comments: [{
+		id: {type: String},
+		parentID: {type: String, default: ""},
+		date: {type: Date},
 		authorID: {type: Schema.Types.ObjectId},
 		body: {type: String}
 	}],
