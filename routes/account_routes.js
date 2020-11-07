@@ -67,12 +67,20 @@ module.exports = (app, loginTokens) => {
 		res.redirect("/");
 	});
 
+	app.get('/p/:id', (req, res) => res.redirect("/profile/" + req.params.id));
 	app.get('/profile/:id', async (req, res) => {
-		let user = (await User.findById(String(req.params.id)).catch(err => {
-			// console.log(err);
-			res.send("Invalid Profile ID");
-		})).toObject();
+		req.params.id = String(req.params.id);
+		let user;
+
+		if(req.params.id.length !== 24) {
+			user = (await User.findOne({username: new RegExp(Utils.makeAlphanumeric(req.params.id), "i")}).catch(err => {}));
+		} else {
+			user = (await User.findById(req.params.id).catch(err => {}));
+		}
+
 		if(user){
+			user = user.toObject();
+
 			let maps = await MapEntry.find({ authorIDs: user._id }).limit(20).sort({ dateUploaded: -1 });
 			let profileData = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]];
 			let renderData = {...(Utils.templateEngineData(req)), user, maps};
