@@ -41,5 +41,5 @@
 </nav>
 
 <script>
-	document.querySelector(`.nav-link[href="${location.pathname}"]`).parentElement.classList.add("active");
+	document.querySelector(`.nav-link[href*="${location.pathname.split("/")[1] || "/"}"]`).parentElement.classList.add("active");
 </script>
