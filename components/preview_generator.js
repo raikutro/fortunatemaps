@@ -241,8 +241,6 @@ function fillStates(ctx, mapJSON, textureName="VANILLA"){
 		}
 	});
 
-	console.log(mapJSON);
-
 	mapJSON.marsballs.forEach(marsball => {
 		ctx.drawImage(
 			TILES[textureName].GENERAL,
