@@ -111,7 +111,7 @@ app.get('/search', loginMiddleware, async (req, res) => {
 	req.query.p = Math.max(Number(req.query.p) || 1, 1) - 1;
 
 	// Grab "@"'s and "#"'s and the text that comes after.
-	let specialQueries = req.query.q.match(/(^|\s)([#@][a-z\d-]+)/gi);
+	let specialQueries = req.query.q.match(/(^|\s)([#@][a-z\d-]+)/gi) || [];
 
 	// This monster of a statement gets all "@" queries and converts them to a list of user ids.
 	let authorQueries = (await Promise.all(specialQueries.filter(a => a.includes("@")).map(a => new Promise(async (resolve) => {

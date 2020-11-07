@@ -243,6 +243,7 @@ function saveTokens(loginTokens) {
 		},
 		body: JSON.stringify(loginTokens)
 	}).then(a => a.json()).catch(err => {
+		console.log(loginTokens);
 		console.log("Error while saving tokens: ", err);
 	});
 }
