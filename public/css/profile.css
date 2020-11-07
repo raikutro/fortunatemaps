@@ -19,12 +19,12 @@ body {
 	position: absolute;
 	display: inline-flex;
 	align-items: flex-end;
-	height: 40%;
-	top: -40%;
+	height: 100%;
+	top: -100%;
 }
 
 .profile-avatar {
-	height: 40%;
+	height: 20vh;
 }
 
 .profile-username {
@@ -50,7 +50,7 @@ body {
 }
 
 .social-expander:hover {
-	width: 50%;
+	width: 100%;
 	border-bottom: 1px solid black;
 	color: black;
 }
@@ -64,14 +64,10 @@ body {
 	margin-left: 8px;
 }
 
-.profile-map-container .map-card {
-	width: 49%;
+.profile-map-container .map-link {
+	font-size: 14px;
 }
 
 .certification.badge {
 	font-size: 1.5rem;
-}
-
-.map-card .card-img-top {
-	width: 100%;
 }

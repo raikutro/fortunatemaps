@@ -228,7 +228,7 @@ module.exports = (app, loginTokens) => {
 }
 
 function saveTokens(loginTokens) {
-	return fetch(`https://jsonbin.org/${process.env.JSONBIN_USERNAME}/fmtokens`, {
+	return fetch(`https://jsonbin.org/${process.env.JSONBIN_USERNAME}/${process.env.JSONBIN_TOKEN_PATH}`, {
 		method: "POST",
 		headers: {
 			"Authorization": "Token " + process.env.JSONBIN_API_KEY

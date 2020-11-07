@@ -103,11 +103,12 @@
 											<td>
 												<%-
 													map.tags.length !== 0 ? map.tags.map(tag => {
-														let tagData = SETTINGS.SITE.TAGS[tag.tagType];
-														return `<span
+														let tagData = SETTINGS.SITE.TAGS[tag.toUpperCase()];
+														return tagData ? `<span
 															class="tag badge badge-primary"
 															style="background: ${tagData.backgroundColor}; color: ${tagData.textColor}"
-														>${tag.name || tagData.name}</span>`;
+														>${tag.name || tagData.name}</span>` :
+														`<span class="tag badge badge-primary">${tag}</span>`;
 													}).join("") : "None"
 												%>
 											</td>
@@ -147,6 +148,12 @@
 						</button>
 					</div>
 					<div class="modal-body">
+						<b>Map Name and Author:</b>
+						<div class="input-group mt-2">
+							<input type="text" class="form-control" id="mapNameInput" value="<%- map.name %>" maxlength="<%- SETTINGS.SITE.MAP_NAME_LENGTH %>" placeholder="Map Name">
+							<input type="text" class="form-control" id="mapAuthorInput" value="<%- map.authorName %>" maxlength="<%- SETTINGS.SITE.AUTHOR_LENGTH %>" placeholder="Map Author">
+						</div>
+						<hr>
 						<b class="tag-container">Authors: <span id="authorsDisplay">
 							
 						</span></b>
@@ -172,7 +179,7 @@
 								</button>
 								<div class="dropdown-menu">
 									<%- Object.keys(SETTINGS.SITE.TAGS).map(key => {
-										if(key === "1" || (!isAdmin && SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(Number(key)))) return "";
+										if(!isAdmin && SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(key)) return "";
 										return `<a class="dropdown-item" href="javascript:void(0)" data-type="${key}">${SETTINGS.SITE.TAGS[key].name}</a>`;
 									}).join("") %>
 								</div>
@@ -188,7 +195,7 @@
 							</div>
 							<div class="input-group-append">
 								<div class="input-group-text">
-									<input type="checkbox" id="unlistedCheck">
+									<input type="checkbox" id="unlistedCheck" <%- map.unlisted ? "checked" : "" %>>
 								</div>
 							</div>
 						</div>

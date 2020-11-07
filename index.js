@@ -65,7 +65,7 @@ app.use(cookieParser());
 console.log(SETTINGS.DEV_MODE ? "Running in Local Mode" : "Running in Production Mode");
 
 // Retrieve login tokens stored in jsonbin
-fetch(`https://jsonbin.org/${process.env.JSONBIN_USERNAME}/fmtokens`, {
+fetch(`https://jsonbin.org/${process.env.JSONBIN_USERNAME}/${process.env.JSONBIN_TOKEN_PATH}`, {
 	headers: {
 		"Authorization": "Token " + process.env.JSONBIN_API_KEY
 	}
@@ -106,9 +106,44 @@ app.get('/editor', loginMiddleware, (req, res) => {
 
 // Search Page
 app.get('/search', loginMiddleware, async (req, res) => {
+	// Sanitize queries
 	req.query.q = String(req.query.q) || "";
 	req.query.p = Math.max(Number(req.query.p) || 1, 1) - 1;
-	let maps = await MapEntry.find({name: new RegExp(req.query.q, 'i'), unlisted: false}, "name mapID authorName")
+
+	// Grab "@"'s and "#"'s and the text that comes after.
+	let specialQueries = req.query.q.match(/(^|\s)([#@][a-z\d-]+)/gi);
+
+	// This monster of a statement gets all "@" queries and converts them to a list of user ids.
+	let authorQueries = (await Promise.all(specialQueries.filter(a => a.includes("@")).map(a => new Promise(async (resolve) => {
+		let user = (await User.findOne({username: new RegExp(Utils.makeAlphanumeric(a), "i")}, "_id")) || {_id: ""};
+		resolve(user._id);
+	})))).filter(a => a.length !== 0);
+	
+	// Get all the "#" queries and sanitize them.
+	let tagQueries = specialQueries.filter(a => a.includes("#")).map(a => new RegExp(Utils.makeAlphanumeric(a).trim(), "i"));
+
+	// Remove all the special queries from the actual query
+	specialQueries.forEach(specialQuery => {
+		req.query.q = req.query.q.replace(specialQuery, "");
+	});
+
+	// Trim off the whitespace
+	req.query.q = req.query.q.trim();
+
+	console.log(req.query.q, tagQueries, authorQueries);
+
+	let finalQuery = {
+		name: new RegExp(req.query.q, 'i'),
+		authorIDs: { $all: authorQueries },
+		tags: { $all: tagQueries },
+		unlisted: false
+	};
+
+	// Remove field queries if they don't need to be there
+	if(authorQueries.length === 0) delete finalQuery.authorIDs;
+	if(tagQueries.length === 0) delete finalQuery.tags;
+
+	let maps = await MapEntry.find(finalQuery, "name mapID authorName")
 		.skip((req.query.p * SETTINGS.SITE.MAPS_PER_PAGE))
 		.limit(SETTINGS.SITE.MAPS_PER_PAGE)
 		.sort({ dateUploaded: -1 });
@@ -422,8 +457,8 @@ app.post('/upload_map', loginMiddleware, async (req, res) => {
 				// If it's a new map, then set its version source to it's own map ID
 				let versionSource = versionSourceMapEntry ? versionSourceMapEntry.versionSource : newMapID;
 
-				let mapName = Utils.cleanQueryableText(mapJSON.info.name.slice(0, 150));
-				let authorName = Utils.cleanQueryableText(mapJSON.info.author.slice(0, 150));
+				let mapName = Utils.cleanQueryableText(insane(mapJSON.info.name).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
+				let authorName = Utils.cleanQueryableText(insane(mapJSON.info.author).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH))
 
 				// Upload the preview & thumbnail images to the AWS S3 Bucket
 				await AWSController.uploadMapImages({
@@ -434,9 +469,9 @@ app.post('/upload_map', loginMiddleware, async (req, res) => {
 
 				// Save the MapEntry to MongoDB
 				await MapEntry.create({
-					name: insane(mapName),
+					name: mapName,
 					authorIDs: authorIDs,
-					authorName: insane(authorName),
+					authorName: authorName,
 					description: "No Description",
 					dateUploaded: new Date(),
 					tags: [],
@@ -466,6 +501,8 @@ app.post('/upload_map', loginMiddleware, async (req, res) => {
 app.post('/update_map', loginMiddleware, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		mapID: "number",
+		mapName: "string",
+		mapAuthor: "string",
 		description: "string",
 		tags: "object",
 		authors: "object",
@@ -484,15 +521,18 @@ app.post('/update_map', loginMiddleware, async (req, res) => {
 		let authorsArray = Array.from(req.body.authors).map(a => String(a)).slice(0, SETTINGS.SITE.MAX_AUTHORS);
 
 		if(authorsArray.length === 0) return res.json({err: "Empty Author Array"});
-
-		let description = insane(req.body.description);
-
-		if(tagsArray.length > 0) {
-			tagsArray = tagsArray.map(a => ({tagType: a.tagType, name: (a.name || "").slice(0, SETTINGS.SITE.TAG_NAME_LENGTH)}))
-				.slice(0, SETTINGS.SITE.MAX_TAGS);
-		}
 		if(authorsArray.some(a => a.length !== 24)) return res.json({err: "Invalid Author Array"});
 
+		if(tagsArray.length > 0) {
+			tagsArray = tagsArray.map(a => Utils.makeAlphanumeric(a).slice(0, SETTINGS.SITE.TAG_NAME_LENGTH)).slice(0, SETTINGS.SITE.MAX_TAGS);
+		}
+
+		let description = insane(req.body.description).slice(0, 500);
+		let mapName = Utils.cleanQueryableText(insane(req.body.mapName).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
+		let mapAuthor = Utils.cleanQueryableText(insane(req.body.mapAuthor).slice(0, SETTINGS.SITE.AUTHOR_LENGTH));
+
+		mapEntry.name = mapName;
+		mapEntry.authorName = mapAuthor;
 		mapEntry.tags = tagsArray;
 		mapEntry.description = description;
 		mapEntry.authorIDs = authorsArray;

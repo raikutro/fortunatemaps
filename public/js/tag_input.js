@@ -3,7 +3,6 @@ class TagInput {
 		displayElem,
 		input,
 		addButton,
-		defaultType,
 		colorKey,
 		addTagConditionFunction
 	}) {
@@ -12,9 +11,8 @@ class TagInput {
 		this.displayElem = displayElem;
 		this.input = input;
 		this.addButton = addButton;
-		this.defaultType = defaultType;
 		this.colorKey = colorKey;
-		this.addTagConditionFunction = addTagConditionFunction || (() => {});
+		this.addTagConditionFunction = addTagConditionFunction || (() => true);
 
 		this.addButton.click(() => {
 			let tagName = this.input.val().trim();
@@ -22,7 +20,7 @@ class TagInput {
 
 			if(!this.addTagConditionFunction(tagName)) return;
 
-			this.addTag(this.defaultType, tagName);
+			this.addTag(tagName);
 
 			this.input.val("");
 		});
@@ -34,14 +32,11 @@ class TagInput {
 		return this;
 	}
 
-	addTag(type, name) {
+	addTag(name) {
 		if(this.tags.length >= SETTINGS.SITE.MAX_TAGS) return;
-		if(this.tags.findIndex(a => (a.type === type && type !== 1) || (a.name === name && name !== null)) > -1) return;
+		if(this.tags.findIndex(a => (a.name === name && name !== null)) > -1) return;
 
-		this.tags.push({
-			tagType: Number(type),
-			name
-		});
+		this.tags.push(name);
 
 		this.renderTags(this.tags);
 
@@ -64,14 +59,15 @@ class TagInput {
 		tagList.forEach(tag => {
 			// console.log(tag);
 
-			if(this.colorKey){
-				let tagData = this.colorKey[tag.tagType];
+			if(this.colorKey && this.colorKey[tag.toUpperCase()]){
+				let tagData = this.colorKey[tag.toUpperCase()];
+
 				this.displayElem.append(`
 					<span class="tag badge badge-primary"
 						style="background: ${tagData.backgroundColor}; color: ${tagData.textColor}"
-					>${tag.name || tagData.name}</span>`);
+					>${tagData.name}</span>`);
 			} else {
-				this.displayElem.append(`<span class="tag badge badge-primary">${tag.name}</span>`);
+				this.displayElem.append(`<span class="tag badge badge-primary">${tag}</span>`);
 			}
 		});
 

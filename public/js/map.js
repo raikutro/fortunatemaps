@@ -6,7 +6,6 @@ let tagInput = new TagInput({
 	displayElem: $("#tagsDisplay"),
 	input: $("#tagsInput"),
 	addButton: $("#addTagBtn"),
-	defaultType: 1,
 	colorKey: SETTINGS.SITE.TAGS
 });
 
@@ -14,7 +13,6 @@ let authorInput = new TagInput({
 	displayElem: $("#authorsDisplay"),
 	input: $("#authorsInput"),
 	addButton: $("#addAuthorBtn"),
-	defaultType: 1,
 	colorKey: null,
 	addTagConditionFunction: input => {
 		return input.length === 24;
@@ -26,12 +24,12 @@ updateComments();
 updateProfileLinks();
 
 tagInput.init(window.MAP_DATA.tags);
-authorInput.init(window.MAP_DATA.authorIDs.map(a => ({name: a})));
+authorInput.init(window.MAP_DATA.authorIDs);
 
 $("#descriptionText").val(window.MAP_DATA.description);
 
 $("#tagsGroup .dropdown-item").click(function(e){
-	tagInput.addTag($(this).attr("data-type"), null);
+	tagInput.addTag($(this).attr("data-type"));
 });
 
 setInterval(() => {
@@ -65,9 +63,11 @@ $("#saveMapSettings").click(() => {
 		},
 		body: JSON.stringify({
 			mapID: window.MAP_DATA.mapID,
+			mapName: $("#mapNameInput").val().trim(),
+			mapAuthor: $("#mapAuthorInput").val().trim(),
 			tags: tagInput.tags,
 			description: $("#descriptionText").val().trim(),
-			authors: authorInput.tags.map(a => a.name),
+			authors: authorInput.tags,
 			unlisted: $("#unlistedCheck").prop("checked")
 		})
 	}).then(a =>a.json()).then(json => {
@@ -111,8 +111,8 @@ function updateComments() {
 							<div class="username">
 								<b class="mt-0">
 									<a class="profile-link" href="/profile/${comment.authorID}" target="_blank">${comment.authorID}</a>
-								</b><br>
-							</div>
+								</b> | <span>${new Date(comment.date).toLocaleString()}</span>
+							</div><br>
 							<span>${cleanMarkdown}</span>
 						</div>
 					</div>

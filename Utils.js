@@ -51,6 +51,8 @@ Utils.cleanQueryableText = text => {
 
 Utils.isAlphanumeric = text => Boolean(text.match(/^[a-zA-Z0-9_]*$/gi));
 
+Utils.makeAlphanumeric = text => text.replace(/[^a-zA-Z0-9-]/gi, "");
+
 Utils.templateEngineData = (req) => {return {
 	SETTINGS,
 	profileID: req.profileID

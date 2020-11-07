@@ -21,7 +21,7 @@ const MapEntrySchema = new Schema({
 		body: {type: String}
 	}],
 	// Map tags
-	tags: [{tagType: {type: Number}, name: {type: String}}],
+	tags: [String],
 	// Hidden map tags, for bots
 	hiddenTags: [{tagType: {type: Number}, name: {type: String}}],
 	// Map ID

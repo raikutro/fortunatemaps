@@ -11,6 +11,8 @@ const SETTINGS = {
 		MAPS_PER_PAGE: 20,
 		LOGIN_EXPIRATION_TIME_LIMIT: 100 * 24 * 3600000,
 		COOKIE_TOKEN_NAME: "nekotizer",
+		MAP_NAME_LENGTH: 150,
+		AUTHOR_LENGTH: 150,
 		TAG_NAME_LENGTH: 16,
 		MAX_TAGS: 10,
 		MAX_AUTHORS: 24,
@@ -34,39 +36,34 @@ const SETTINGS = {
 				textColor: "white"
 			}
 		},
-		ADMIN_ONLY_TAGS: [7],
+		ADMIN_ONLY_TAGS: ["ROTATION"],
 		TAGS: {
-			1: {
-				name: "Custom",
-				backgroundColor: "gray",
-				textColor: "white"
-			},
-			2: {
+			CTF: {
 				name: "CTF",
 				backgroundColor: "linear-gradient(45deg, #DF5349 50%, #4971DF 50%)",
 				textColor: "white"
 			},
-			3: {
+			NF: {
 				name: "NF",
 				backgroundColor: "#FFEB3B",
 				textColor: "black"
 			},
-			4: {
+			DTF: {
 				name: "DTF",
 				backgroundColor: "#673AB7",
 				textColor: "white"
 			},
-			5: {
+			"2NF": {
 				name: "2NF",
 				backgroundColor: "linear-gradient(45deg, #FF9800 33%, #F0F0F0 33% 66%, #FF9800 33%)",
 				textColor: "black"
 			},
-			6: {
+			"MARS BALL": {
 				name: "Mars Ball",
 				backgroundColor: "maroon",
 				textColor: "white"
 			},
-			7: {
+			"ROTATION": {
 				name: "Rotation",
 				backgroundColor: "linear-gradient(90deg, #33c738, #a4d270)",
 				textColor: "white"
