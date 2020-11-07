@@ -2145,6 +2145,7 @@ $(function() {
       if(e.buttons!=1) mouseDown = false; //can drag outside $map and back in, but mouseDown is not stuck if mouseup occurs outside $map
       var x = currPos.x = $(this).data('x');
       var y = currPos.y = $(this).data('y');
+
       if (selectedTool && mouseDown) {
         var change = selectedTool.speculateDrag && selectedTool.speculateDrag(x,y);
         if (change) {
@@ -2346,14 +2347,6 @@ $(function() {
   $('#save').click(function() {
     localStorage.setItem('png', getPngBase64Url());
     localStorage.setItem('json', makeLogicString());
-  });
-
-  $('#syncToServer').click(function() {
-    socket.emit('syncToServer', { force: true, files: { png: getPngBase64Url(), json: makeLogicString() }, mapInfo: getMapInfo()});
-    addAlert('success','Map saved on server successfully!',2000);
-  });
-  $('#pullFromServer').click(function() {
-    socket.emit('pullFromServer', {});
   });
 
   function isValidMapStr() {
@@ -2816,7 +2809,7 @@ $(function() {
         importPng,
         importJson, undefined, true);
       addAlert('success','Map imported from files!',1000);
-      setTimeout(function() { socket.emit('syncToServer', { isImport:true, force: false, pull:true, files: { png: getPngBase64Url(), json: makeLogicString() }, mapInfo: getMapInfo()  }) }, 1500);
+      // setTimeout(function() { socket.emit('syncToServer', { isImport:true, force: false, pull:true, files: { png: getPngBase64Url(), json: makeLogicString() }, mapInfo: getMapInfo()  }) }, 1500);
     } else {
       addAlert('danger','Error: No PNG and/or JSON dragged and dropped for input.',2000);
     }
@@ -2832,7 +2825,7 @@ $(function() {
             'data:image/png;base64,' + data.layout,
             data.logic, undefined, true);
           addAlert('success','Map downloaded from URL and imported!',1000);
-          setTimeout(function() { socket.emit('syncToServer', { isImport:true, force: false, pull:true, files: { png: getPngBase64Url(), json: makeLogicString() }, mapInfo: getMapInfo()  }) }, 1500);
+          // setTimeout(function() { socket.emit('syncToServer', { isImport:true, force: false, pull:true, files: { png: getPngBase64Url(), json: makeLogicString() }, mapInfo: getMapInfo()  }) }, 1500);
         } else {
           addAlert('danger','Error: Invalid map URL or download failed.',2000);
         }
@@ -3970,18 +3963,18 @@ $(function() {
     localStorage.setItem('pageTitleNotification', JSON.stringify($(this).is(':checked')));
   });
 
-  /////////////////////////////////////////////// 
-  // Init
-  ///////////////////////////////////////////////
-  setTimeout(function() {
-    socket.emit('syncToServer', { force: false, files: { png: getPngBase64Url(), json: makeLogicString() }, mapInfo: getMapInfo() });
-  }, 6000);
-  setInterval(function() {
-    socket.emit('syncToServer', { force: false, files: { png: getPngBase64Url(), json: makeLogicString() }, mapInfo: getMapInfo() });
-  }, 15000);
-  setInterval(function() {
-    socket.emit('syncToServer', { save:true, force: false, files: { png: getPngBase64Url(), json: makeLogicString() }, mapInfo: getMapInfo() });
-  }, 300000);
+  // /////////////////////////////////////////////// 
+  // // Init
+  // ///////////////////////////////////////////////
+  // setTimeout(function() {
+  //   socket.emit('syncToServer', { force: false, files: { png: getPngBase64Url(), json: makeLogicString() }, mapInfo: getMapInfo() });
+  // }, 6000);
+  // setInterval(function() {
+  //   socket.emit('syncToServer', { force: false, files: { png: getPngBase64Url(), json: makeLogicString() }, mapInfo: getMapInfo() });
+  // }, 15000);
+  // setInterval(function() {
+  //   socket.emit('syncToServer', { save:true, force: false, files: { png: getPngBase64Url(), json: makeLogicString() }, mapInfo: getMapInfo() });
+  // }, 300000);
 
   // Set username
   if (localStorage.getItem('username')) {
