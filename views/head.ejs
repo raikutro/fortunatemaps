@@ -1,11 +1,34 @@
 <!-- Required meta tags -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
-<meta property="og:type" content="website"/>
-<meta property="og:site_name" content="FortunateMaps"/>
-<meta property="og:description" content="A hub for TagPro maps."/>
-<meta name="description" content="A hub for TagPro maps."/>
+
+
+<!-- Twitter Card data -->
+
+<!-- Open Graph data -->
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://fortunatemaps.herokuapp.com" />
+<meta property="og:site_name" content="FortunateMaps" />
+
+<%- locals.map ? `
+<meta name="twitter:title" content="${map.name}">
+<meta name="twitter:image" content="/preview/${map.mapID}.jpeg">
+<meta property="og:image" content="/preview/${map.mapID}.jpeg" />
+<meta name="description" content="by ${map.authorName}" />
+<meta name="twitter:card" content="by ${map.authorName}">
+<meta name="twitter:description" content="by ${map.authorName}">
+<meta property="og:description" content="by ${map.authorName}" />
+` : `
+<meta name="twitter:title" content="FortunateMaps">
+<meta name="twitter:image" content="/assets/logo.png">
+<meta property="og:image" content="/assets/logo.png" />
+<meta name="description" content="A hub for TagPro maps." />
+<meta name="twitter:card" content="A hub for TagPro maps.">
+<meta name="twitter:description" content="A hub for TagPro maps.">
+<meta property="og:description" content="A hub for TagPro maps." />
+`%>
 
 <!-- Bootstrap CSS -->
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
