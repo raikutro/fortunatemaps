@@ -40,6 +40,10 @@ body {
 	text-align: center;
 }
 
+.map-pagination-container .pagination {
+	justify-content: center;
+}
+
 .comment .avatar {
 	width: 64px;
 }

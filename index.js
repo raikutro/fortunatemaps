@@ -91,6 +91,8 @@ app.get('/', loginMiddleware, async (req, res) => {
 
 	res.render('index', {
 		...(Utils.templateEngineData(req)),
+		query: "",
+		page: 1,
 		maps
 	});
 });
@@ -115,6 +117,8 @@ app.get('/search', loginMiddleware, async (req, res) => {
 
 	res.render('search', {
 		...(Utils.templateEngineData(req)),
+		query: req.query.q,
+		page: req.query.p + 1,
 		maps
 	});
 });

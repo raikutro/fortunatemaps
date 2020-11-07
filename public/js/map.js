@@ -136,6 +136,8 @@ function updateProfileLinks() {
 		ids.push($(this).attr("href").split("/")[2]);
 	});
 
+	ids = Array.from(new Set(ids));
+
 	fetch("/author_names/" + ids.join(",")).then(a => a.json()).then(json => {
 		$(".profile-link").each(function(idx){
 			let id = $(this).attr("href").split("/")[2];
