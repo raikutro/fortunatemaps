@@ -26,8 +26,8 @@ Testing functions of the site that require account login, also requires a **CTFA
 
 See the `.env.example` file for an example of credentials.
 
-- Atlas: [https://www.mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
-- AWS S3: [https://aws.amazon.com/s3](https://aws.amazon.com/s3)
-- JSONBin: [https://jsonbin.org/](https://jsonbin.org/)
-- CTFAuth: [https://ctfauth.herokuapp.com/](https://ctfauth.herokuapp.com/)
-- Ngrok: [https://ngrok.com/](https://ngrok.com/)
+- **Atlas**: [https://www.mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+- **AWS S3**: [https://aws.amazon.com/s3](https://aws.amazon.com/s3)
+- **JSONBin**: [https://jsonbin.org/](https://jsonbin.org/)
+- **CTFAuth**: [https://ctfauth.herokuapp.com/](https://ctfauth.herokuapp.com/)
+- **Ngrok**: [https://ngrok.com/](https://ngrok.com/)
