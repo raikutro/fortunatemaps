@@ -8,21 +8,32 @@ const Utils = require('../Utils');
 const SETTINGS = require('./map_settings');
 const fs = require("fs");
 
+const TEXTURES = ["VANILLA"];
+
 let TILES = {};
 
 (async () => {
-	TILES.GENERAL = await loadImage("./assets/tiles.png");
-	TILES.PORTALS = await loadImage("./assets/portal.png");
-	TILES.BOOSTS = await loadImage("./assets/speedpad.png");
-	TILES.REDBOOSTS = await loadImage("./assets/speedpadred.png");
-	TILES.BLUEBOOSTS = await loadImage("./assets/speedpadblue.png");
+	let promises = TEXTURES.map(name => {
+		return new Promise(async (resolve, reject) => {
+			TILES[name] = {};
+			TILES[name].GENERAL = await loadImage(`./assets/textures/${name.toLowerCase()}/tiles.png`);
+			TILES[name].PORTALS = await loadImage(`./assets/textures/${name.toLowerCase()}/portal.png`);
+			TILES[name].BOOSTS = await loadImage(`./assets/textures/${name.toLowerCase()}/speedpad.png`);
+			TILES[name].REDBOOSTS = await loadImage(`./assets/textures/${name.toLowerCase()}/speedpadred.png`);
+			TILES[name].BLUEBOOSTS = await loadImage(`./assets/textures/${name.toLowerCase()}/speedpadblue.png`);
 
-	assetsLoaded = true;
+			resolve();
+		});
+	});
+
+	Promise.all(promises).then(() => {
+		assetsLoaded = true;
+	});
 })();
 
 let assetsLoaded = false;
 
-module.exports = (rawPngLink, json) => {
+module.exports = (rawPngLink, json, textureName="VANILLA") => {
 	return new Promise(async (resolve, reject) => {
 		await waitForLoadedAssets();
 
@@ -80,7 +91,7 @@ module.exports = (rawPngLink, json) => {
 
 				if(tileType !== SETTINGS.TILE_IDS.BACKGROUND) {
 					ctx.drawImage(
-						TILES.GENERAL,
+						TILES[textureName].GENERAL,
 						SETTINGS.TILE_COORDINATES.FLOOR.x * SETTINGS.TILE_SIZE,
 						SETTINGS.TILE_COORDINATES.FLOOR.y * SETTINGS.TILE_SIZE,
 						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
@@ -93,7 +104,7 @@ module.exports = (rawPngLink, json) => {
 					drawWall(ctx, x, y, SETTINGS.TILE_NAMES[tileType], neighborObj);
 				} else if(SETTINGS.TILE_COORDINATES[SETTINGS.TILE_NAMES[tileType]]) {
 					ctx.drawImage(
-						TILES.GENERAL,
+						TILES[textureName].GENERAL,
 						SETTINGS.TILE_COORDINATES[SETTINGS.TILE_NAMES[tileType]].x * SETTINGS.TILE_SIZE,
 						SETTINGS.TILE_COORDINATES[SETTINGS.TILE_NAMES[tileType]].y * SETTINGS.TILE_SIZE,
 						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
@@ -102,7 +113,7 @@ module.exports = (rawPngLink, json) => {
 					);
 				} else if(tileType === SETTINGS.TILE_IDS.BOOST) {
 					ctx.drawImage(
-						TILES.BOOSTS,
+						TILES[textureName].BOOSTS,
 						0, 0,
 						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
 						x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
@@ -110,7 +121,7 @@ module.exports = (rawPngLink, json) => {
 					);
 				} else if(tileType === SETTINGS.TILE_IDS.REDBOOST) {
 					ctx.drawImage(
-						TILES.REDBOOSTS,
+						TILES[textureName].REDBOOSTS,
 						0, 0,
 						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
 						x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
@@ -118,7 +129,7 @@ module.exports = (rawPngLink, json) => {
 					);
 				} else if(tileType === SETTINGS.TILE_IDS.BLUEBOOST) {
 					ctx.drawImage(
-						TILES.BLUEBOOSTS,
+						TILES[textureName].BLUEBOOSTS,
 						0, 0,
 						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
 						x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
@@ -126,7 +137,7 @@ module.exports = (rawPngLink, json) => {
 					);
 				} else if(tileType === SETTINGS.TILE_IDS.PORTAL) {
 					ctx.drawImage(
-						TILES.PORTALS,
+						TILES[textureName].PORTALS,
 						0, 0,
 						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
 						x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
@@ -189,7 +200,7 @@ function mapImageToArray(image) {
 	return buffer;
 }
 
-function fillStates(ctx, mapJSON){
+function fillStates(ctx, mapJSON, textureName="VANILLA"){
 	Object.keys(mapJSON.fields).forEach(key => {
 		let position = key.split(",");
 		position = {
@@ -202,7 +213,7 @@ function fillStates(ctx, mapJSON){
 
 		if(gateCoords){
 			ctx.drawImage(
-				TILES.GENERAL,
+				TILES[textureName].GENERAL,
 				gateCoords.x * SETTINGS.TILE_SIZE, gateCoords.y * SETTINGS.TILE_SIZE,
 				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
 				position.x * SETTINGS.TILE_SIZE, position.y * SETTINGS.TILE_SIZE,
@@ -221,7 +232,7 @@ function fillStates(ctx, mapJSON){
 		// draw deactivated portal on portals with no destination
 		if(!mapJSON.portals[key].destination) {
 			ctx.drawImage(
-				TILES.PORTALS,
+				TILES[textureName].PORTALS,
 				160, 0,
 				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
 				position.x * SETTINGS.TILE_SIZE, position.y * SETTINGS.TILE_SIZE,
@@ -229,15 +240,26 @@ function fillStates(ctx, mapJSON){
 			);
 		}
 	});
+
+	mapJSON.marsballs.forEach(marsball => {
+		ctx.drawImage(
+			TILES[textureName].GENERAL,
+			480, 360,
+			SETTINGS.TILE_SIZE * 2, SETTINGS.TILE_SIZE * 2,
+			(marsball.x * SETTINGS.TILE_SIZE) - (SETTINGS.TILE_SIZE / 2),
+			(marsball.y * SETTINGS.TILE_SIZE) - (SETTINGS.TILE_SIZE / 2),
+			SETTINGS.TILE_SIZE * 2, SETTINGS.TILE_SIZE * 2
+		);
+	});
 }
 
-function drawWall(ctx, x, y, type, neighbors) {
+function drawWall(ctx, x, y, type, neighbors, textureName="VANILLA") {
 	if(type === "WALL") type = "FULL";
 
 	for (let i = 0; i < 4; i++) {
 		// console.log(SETTINGS.WALL_DRAW_ORDER[i], SETTINGS.WALL_COORDINATES.FULL[i]);
 		ctx.drawImage(
-			TILES.GENERAL,
+			TILES[textureName].GENERAL,
 			SETTINGS.WALL_COORDINATES[type][i][0],
 			SETTINGS.WALL_COORDINATES[type][i][1],
 			SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE,
@@ -250,7 +272,7 @@ function drawWall(ctx, x, y, type, neighbors) {
 	Object.keys(neighbors).forEach(key => {
 		if(neighbors[key]) {
 			ctx.drawImage(
-				TILES.GENERAL,
+				TILES[textureName].GENERAL,
 				SETTINGS.WALL_CONNECTIONS[type][key][0],
 				SETTINGS.WALL_CONNECTIONS[type][key][1],
 				SETTINGS.WALL_CONNECTIONS[type][key][2],

@@ -28,7 +28,8 @@ SETTINGS.TILE_IDS = {
 	PORTAL: 20,
 	REDENDZONE: 21,
 	BLUEENDZONE: 22,
-	GRAVITYWELL: 23
+	GRAVITYWELL: 23,
+	YELLOWFLAG: 24
 };
 
 SETTINGS.IS_WALL = id => [
@@ -72,6 +73,7 @@ SETTINGS.TILE_COLORS = [
 	{ red: 185, green: 0, blue: 0, alpha: 255}, // Red Endzone
 	{ red: 25, green: 0, blue: 148, alpha: 255}, // Blue Endzone
 	{ red: 32, green: 32, blue: 32, alpha: 255}, // Gravity Well
+	{ red: 128, green: 128, blue: 0, alpha: 255}, // Yellow Flag
 ];
 
 SETTINGS.TILE_COORDINATES = {
@@ -91,7 +93,8 @@ SETTINGS.TILE_COORDINATES = {
 	YELLOWTEAMTILE: {x: 13, y: 5},
 	REDENDZONE: {x: 14, y: 5},
 	BLUEENDZONE: {x: 15, y: 5},
-	GRAVITYWELL: {x: 13, y: 0}
+	GRAVITYWELL: {x: 13, y: 0},
+	YELLOWFLAG: {x: 13, y: 1},
 };
 
 SETTINGS.WALL_DRAW_ORDER = [[0, 0], [SETTINGS.QUADRANT_SIZE, 0], [0, SETTINGS.QUADRANT_SIZE], [SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE]];

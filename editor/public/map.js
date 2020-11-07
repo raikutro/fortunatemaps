@@ -1,5 +1,7 @@
 const URL_VARS = getUrlVars();
 
+let windowSource = null;
+
 $(function() {
   $('[data-toggle="popover"]').popover();
   var quadrantCoords = {
@@ -2320,18 +2322,21 @@ $(function() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        layout: getPngBase64(), logic: makeLogicString(), unlisted: $("#unlistedCheck").prop("checked"), sourceMapID: versionSource || null
+        layout: getPngBase64(),
+        logic: makeLogicString(),
+        unlisted: $("#unlistedCheck").prop("checked"),
+        sourceMapID: versionSource || 0
       })
     }).then(a => a.json()).then(data => {
       if(data.err) {
         console.log(data);
-        return addAlert('success',`Error: ${data.err}`, 5000);
+        return addAlert('error',`Error: ${data.err}`, 5000);
       }
 
-      addAlert('success','Map uploaded successfully?',2000);
-      var win = window.open('/map/' + data.id);
-      if(win) win.focus();
-      window.close();
+      window.parent.location.href='/map/' + data.id;
+
+      addAlert('success','Map uploaded successfully!',2000);
+      windowSource.postMessage("goto", '/map/' + data.id);
     }).catch(() => {
       $("#saveToFM").prop("disabled", false);
       addAlert('error','Failed to upload map',2000);
@@ -4023,3 +4028,8 @@ function getUrlVars(){
 
   return vars;
 }
+
+window.addEventListener("message", (event) => {
+  // console.log("message receieved")
+  windowSource = event.source;
+}, false);

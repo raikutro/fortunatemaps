@@ -1,3 +1,49 @@
 .stats-card {
 	height: 100%;
 }
+
+.data-table {
+	width: 100%;
+}
+
+.data-table tr td:first-child {
+	width: 33%;
+	text-align: center;
+	font-weight: bold;
+}
+
+.tag.badge {
+	font-size: 1rem;
+	margin-right: 4px;
+}
+
+#tagsDisplay .tag {
+	cursor: pointer;
+}
+
+#authorsDisplay .tag {
+	cursor: pointer;
+}
+
+.tag-container {
+	line-height: 32px;
+}
+
+#authorSearchList {
+	position: absolute;
+	width: 80%;
+	background-color: rgba(255, 255, 255, 0.8);
+	border: 1px solid black;
+	z-index: 100;
+	padding: 0;
+	list-style-type: none;
+}
+
+#authorSearchList li {
+	cursor: pointer;
+	border-bottom: 1px solid black;
+}
+
+#authorSearchList li:hover {
+	background-color: #DDD;
+}

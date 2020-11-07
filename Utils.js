@@ -1,4 +1,10 @@
+const SETTINGS = require("./Settings");
+
 let Utils = {};
+
+Utils.makeID = (length) => {
+	return Math.random().toString(36).substr(2, (length || 7) + 2);
+}
 
 Utils.componentToHex = c => {
 	let hex = c.toString(16);
@@ -19,5 +25,37 @@ Utils.hexToRGB = hex => {
 	let r = hex & 0xFF;
 	return [r,g,b];
 }
+
+Utils.hasCorrectParameters = (body, correctBody) => {
+	if(!body || Object.keys(body).length === 0) return false;
+
+	let isCorrect = true;
+	Object.keys(body).forEach(key => {
+		if(!isCorrect) return;
+
+		if(correctBody[key]) {
+			if(typeof correctBody[key] === "object") {
+				if(typeof body[key] !== correctBody[key].type || !correctBody[key].func(body[key])) isCorrect = false;
+			} else if(typeof body[key] !== correctBody[key]) isCorrect = false;
+		} else {
+			isCorrect = false;
+		}
+	});
+
+	return isCorrect;
+}
+
+Utils.cleanQueryableText = text => {
+	return text.replace(/[#@]/g, "");
+};
+
+Utils.isAlphanumeric = text => Boolean(text.match(/^[a-zA-Z0-9_]*$/gi));
+
+Utils.makeAlphanumeric = text => text.replace(/[^a-zA-Z0-9-]/gi, "");
+
+Utils.templateEngineData = (req) => {return {
+	SETTINGS,
+	profileID: req.profileID
+}};
 
 module.exports = Utils;

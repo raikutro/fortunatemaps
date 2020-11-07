@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<%- include('head') %>
+
+		<link rel="stylesheet" type="text/css" href="/css/register.css">
+
+		<title>Fortunate Maps - Register</title>
+	</head>
+	<body>
+		<%- include('nav'); %>
+
+		<main role="main" class="container">
+			<h1 class="text-center">Registering as <%- tagproProfile %></h1>
+			<hr>
+			<div class="register-form">
+				<input class="form-control w-100" type="text" id="usernameText" maxlength="20" placeholder="Username">
+				<hr>
+				<button class="btn btn-primary w-100" id="registerBtn">Register</button>
+			</div>
+		</main>
+
+		<%- include('bodyscripts') %>
+		<script type="text/javascript" src="/js/register.js"></script>
+	</body>
+</html>

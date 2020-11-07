@@ -1,18 +1,3 @@
-.map-card {
-	width: 33%;
-	display: inline-flex;
-}
-
-.map-card .card-img-top {
-	max-height: 300px;
-    width: auto;
-    display: inline-block;
-}
-
-.map-image-link {
-	text-align: center;
-}
-
 .bd-placeholder-img {
 	font-size: 1.125rem;
 	text-anchor: middle;

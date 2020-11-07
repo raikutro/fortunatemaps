@@ -7,38 +7,43 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const fetch = require('node-fetch');
 const fs = require('fs');
+const cookieParser = require('cookie-parser');
 const FormData = require('form-data');
+const insane = require('insane');
 const { createCanvas, Image } = require('canvas');
 
 const app = express();
 const httpServer = http.Server(app);
 
-const DEV_MODE = !process.env.PORT;
 const PORT = process.env.PORT || 80;
 
 // The TagProEdit.com module.
 // I compartimentalized the source code to its own module.
 const TagproEditMapEditor = require("./editor/app");
+
 const PreviewGenerator = require("./components/preview_generator");
 const AWSController = require("./components/aws_controller");
+
+// Routes
+const AccountRoutes = require("./routes/account_routes");
 
 // Basic Utility Functions
 const Utils = require("./Utils");
 
+// Settings
+const SETTINGS = require("./Settings");
+
 // Mongoose Models
 const MapEntry = require("./models/MapEntry");
+const User = require("./models/User");
 
 // Expres Router for API routes. Doesn't have any routes right now.
 const apiRouter = express.Router();
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
-const SETTINGS = {
-	MAPS_PER_PAGE: 20
-};
-
 // Preview quality of preview & thumbnail images.
-const PREVIEW_QUALITY = 0.7;
+let loginTokens = {};
 
 // Connect to the MongoDB Instance
 mongoose.connect(process.env.MONGODB_URL, {
@@ -46,68 +51,146 @@ mongoose.connect(process.env.MONGODB_URL, {
 	useFindAndModify: false,
 	useCreateIndex: true,
 	useUnifiedTopology: true,
-});
+}).then(() => {
+	console.log("Connected to MongoDB");
+}).catch(err => console.log);
 mongoose.set('debug', false);
 
 app.set('view engine', 'ejs');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(cookieParser());
 
-console.log(DEV_MODE ? "Running in Local Mode" : "Running in Production Mode");
+console.log(SETTINGS.DEV_MODE ? "Running in Local Mode" : "Running in Production Mode");
+
+// Retrieve login tokens stored in jsonbin
+fetch(`https://jsonbin.org/${process.env.JSONBIN_USERNAME}/${process.env.JSONBIN_TOKEN_PATH}`, {
+	headers: {
+		"Authorization": "Token " + process.env.JSONBIN_API_KEY
+	}
+}).then(a => a.json()).then(json => {
+	loginTokens = json;
+
+	AccountRoutes(app, loginTokens);
+}).catch(err => {
+	console.log("Error while saving tokens: ", err);
+});
+
+let loginMiddleware = (req, res, next) => {
+	if(loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]]){
+		req.profileID = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]].profileID;
+	} else req.profileID = false;
+
+	next();
+};
 
 // Home Page
-app.get('/', async (req, res) => {
-	let maps = await MapEntry.find({unlisted: false}).limit(SETTINGS.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
+app.get('/', loginMiddleware, async (req, res) => {
+	let maps = await MapEntry.find({ unlisted: false }).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
 
 	res.render('index', {
+		...(Utils.templateEngineData(req)),
+		query: "",
+		page: 1,
 		maps
 	});
 });
 
 // Map Editor
-app.get('/editor', (req, res) => {
-	res.render('editor', {});
+app.get('/editor', loginMiddleware, (req, res) => {
+	res.render('editor', {
+		...(Utils.templateEngineData(req))
+	});
 });
 
 // Search Page
-app.get('/search', async (req, res) => {
+app.get('/search', loginMiddleware, async (req, res) => {
+	// Sanitize queries
 	req.query.q = String(req.query.q) || "";
 	req.query.p = Math.max(Number(req.query.p) || 1, 1) - 1;
-	let maps = await MapEntry.find({name: new RegExp(req.query.q, 'i'), unlisted: false}, "name mapID authorName")
-		.skip((req.query.p * SETTINGS.MAPS_PER_PAGE))
-		.limit(SETTINGS.MAPS_PER_PAGE)
+
+	// Grab "@"'s and "#"'s and the text that comes after.
+	let specialQueries = req.query.q.match(/(^|\s)([#@][a-z\d-]+)/gi);
+
+	// This monster of a statement gets all "@" queries and converts them to a list of user ids.
+	let authorQueries = (await Promise.all(specialQueries.filter(a => a.includes("@")).map(a => new Promise(async (resolve) => {
+		let user = (await User.findOne({username: new RegExp(Utils.makeAlphanumeric(a), "i")}, "_id")) || {_id: ""};
+		resolve(user._id);
+	})))).filter(a => a.length !== 0);
+	
+	// Get all the "#" queries and sanitize them.
+	let tagQueries = specialQueries.filter(a => a.includes("#")).map(a => new RegExp(Utils.makeAlphanumeric(a).trim(), "i"));
+
+	// Remove all the special queries from the actual query
+	specialQueries.forEach(specialQuery => {
+		req.query.q = req.query.q.replace(specialQuery, "");
+	});
+
+	// Trim off the whitespace
+	req.query.q = req.query.q.trim();
+
+	console.log(req.query.q, tagQueries, authorQueries);
+
+	let finalQuery = {
+		name: new RegExp(req.query.q, 'i'),
+		authorIDs: { $all: authorQueries },
+		tags: { $all: tagQueries },
+		unlisted: false
+	};
+
+	// Remove field queries if they don't need to be there
+	if(authorQueries.length === 0) delete finalQuery.authorIDs;
+	if(tagQueries.length === 0) delete finalQuery.tags;
+
+	let maps = await MapEntry.find(finalQuery, "name mapID authorName")
+		.skip((req.query.p * SETTINGS.SITE.MAPS_PER_PAGE))
+		.limit(SETTINGS.SITE.MAPS_PER_PAGE)
 		.sort({ dateUploaded: -1 });
 
 	// console.log(req.query);
 
 	res.render('search', {
+		...(Utils.templateEngineData(req)),
+		query: req.query.q,
+		page: req.query.p + 1,
 		maps
 	});
 });
 
 // Map Page
-app.get('/map/:mapid', async (req, res) => {
+app.get('/map/:mapid', loginMiddleware, async (req, res) => {
 	let mapEntry = await MapEntry.findOne({
-		mapID: req.params.mapid
+		mapID: String(req.params.mapid)
+	}).catch(err => {
+		// console.log(err);
+		// res.send("Invalid Map ID");
 	});
 
 	if(!mapEntry) return res.redirect("/");
 
+	let isAdmin = req.profileID ? (await User.findById(req.profileID, "isAdmin").catch(err => {
+		// console.log(err);
+		res.send("Invalid User ID");
+		return {isAdmin: false};
+	})).isAdmin : false;
+
 	let mapVersions = await MapEntry.find({
 		versionSource: mapEntry.versionSource,
 		isRemix: false
-	}).limit(SETTINGS.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
+	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
 
 	let mapRemixes = await MapEntry.find({
 		versionSource: mapEntry.versionSource,
 		isRemix: true
-	}).limit(SETTINGS.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
+	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
 
 	res.render('map', {
+		...(Utils.templateEngineData(req)),
 		map: mapEntry,
 		mapVersions,
-		mapRemixes
+		mapRemixes,
+		isAdmin
 	});
 });
 
@@ -128,12 +211,12 @@ app.get('/map_data/:mapid', async (req, res) => {
 		mapVersions = await MapEntry.find({
 			versionSource: mapEntry.versionSource,
 			isRemix: false
-		}).limit(SETTINGS.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
+		}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
 
 		mapRemixes = await MapEntry.find({
 			versionSource: mapEntry.versionSource,
 			isRemix: true
-		}).limit(SETTINGS.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
+		}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
 	}
 
 	res.json({
@@ -143,9 +226,46 @@ app.get('/map_data/:mapid', async (req, res) => {
 	});
 });
 
+app.get('/author_id/:query', async (req, res) => {
+	if(!Utils.hasCorrectParameters(req.params, {
+		query: "string"
+	})) return res.json({err: "Invalid Parameters"});
+
+	if(!Utils.isAlphanumeric(req.params.query)) return res.json({ users: [] });
+
+	let users = await User.find({username: new RegExp(req.params.query, "i")}, "username _id");
+
+	res.json({
+		users: users.map(a => { return {id: a._id, username: a.username} })
+	});
+});
+
+app.get('/author_names/:authorid', async (req, res) => {
+	if(!Utils.hasCorrectParameters(req.params, {
+		authorid: "string"
+	})) return res.json({err: "Invalid Parameters"});
+
+	let authorIDs = req.params.authorid.split(",");
+	if(authorIDs.some(a => a.length !== 24)) return res.json({ usernames: [] });
+
+	authorIDs = authorIDs.map(a => mongoose.Types.ObjectId(a));
+
+	let users = await User.find({ 
+		_id: {
+			$in: authorIDs
+		}
+	}, "username");
+
+	res.json({
+		usernames: users.reduce((acc, val) => {
+			acc[val._id] = val.username;
+			return acc;
+		}, {})
+	});
+});
+
 // Preview Image Route
-app.get('/preview/:mapid.jpeg', (req, res) => res.redirect(`/preview/${req.params.mapid}`));
-app.get('/preview/:mapid', async (req, res) => {
+app.get('/preview/:mapid.jpeg', async (req, res) => {
 	let previewBuffer = await AWSController.getPreviewMapImage(String(req.params.mapid).slice(0, 10)).catch(err => {
 		return {err};
 	});
@@ -158,10 +278,10 @@ app.get('/preview/:mapid', async (req, res) => {
 	});
 	res.end(previewBuffer);
 });
+app.get('/preview/:mapid', (req, res) => res.redirect(`/preview/${req.params.mapid}.jpeg`));
 
 // Thumbnail Image Route
-app.get('/thumbnail/:mapid.jpeg', (req, res) => res.redirect(`/thumbnail/${req.params.mapid}`));
-app.get('/thumbnail/:mapid', async (req, res) => {
+app.get('/thumbnail/:mapid.jpeg', async (req, res) => {
 	let thumbnailBuffer = await AWSController.getThumbnailMapImage(String(req.params.mapid).slice(0, 10)).catch(err => {
 		return {err};
 	});
@@ -174,6 +294,7 @@ app.get('/thumbnail/:mapid', async (req, res) => {
 	});
 	res.end(thumbnailBuffer);
 });
+app.get('/thumbnail/:mapid', (req, res) => res.redirect(`/thumbnail/${req.params.mapid}.jpeg`));
 
 // Source PNG Image Route
 app.get('/png/:mapid', async (req, res) => {
@@ -244,10 +365,15 @@ app.get('/test/:mapid', async (req, res) => {
 
 // Upload Map Route
 // Uploads a map to the server
-app.post('/upload_map', async (req, res) => {
-	if(req.body.layout && req.body.logic) {
-		const mapLayout = String(req.body.layout);
-		const mapLogic = String(req.body.logic);
+app.post('/upload_map', loginMiddleware, async (req, res) => {
+	if(Utils.hasCorrectParameters(req.body, {
+		logic: "string",
+		layout: "string",
+		sourceMapID: "number",
+		unlisted: "boolean"
+	})){
+		const mapLayout = req.body.layout;
+		const mapLogic = req.body.logic;
 		let mapJSON;
 
 		// Validate & parse the JSON file.
@@ -260,8 +386,8 @@ app.post('/upload_map', async (req, res) => {
 		}
 
 		// Clean body parameters
-		req.body.unlisted = Boolean(req.body.unlisted);
-		req.body.sourceMapID = req.body.sourceMapID ? Number(req.body.sourceMapID) : 0;
+		req.body.unlisted = req.body.unlisted;
+		req.body.sourceMapID = req.body.sourceMapID ? req.body.sourceMapID : 0;
 
 		// Generate the preview canvas.
 		let previewCanvas = await PreviewGenerator(
@@ -277,7 +403,7 @@ app.post('/upload_map', async (req, res) => {
 		});
 
 		// Generate a Base64 JPEG Data URL from the preview canvas.
-		previewCanvas.toDataURL('image/jpeg', PREVIEW_QUALITY, async (err, previewJPEG) => {
+		previewCanvas.toDataURL('image/jpeg', SETTINGS.MAPS.PREVIEW_QUALITY, async (err, previewJPEG) => {
 			if(err) {
 				console.log(err);
 				res.json({
@@ -286,14 +412,17 @@ app.post('/upload_map', async (req, res) => {
 				return;
 			}
 
-			// Accounts haven't been created yet so the authorID stays empty.
-			let authorID = "";
-			// The map entry gets counted as a remix automatically if there is no author.
-			let isRemix = authorID === "" ? true : false;
+			// Put users authorID inside if they're logged in.
+			let authorIDs = [];
+
+			if(req.profileID) authorIDs = [req.profileID];
 
 			// Check if this is a remix of another map.
 			let versionSourceMapEntry = 0;
 			if(req.body.sourceMapID !== 0) versionSourceMapEntry = await MapEntry.findOne({mapID: req.body.sourceMapID});
+
+			// The map entry gets counted as a remix if there is no author account and the map has a different version source.
+			let isRemix = authorIDs.length === 0 ? versionSourceMapEntry === 0 : (versionSourceMapEntry ? !versionSourceMapEntry.authorIDs.includes(req.profileID) : false);
 
 			// Find the best way to scale the preview image to turn it into a thumbnail
 			let newWidth;
@@ -321,12 +450,15 @@ app.post('/upload_map', async (req, res) => {
 					newWidth, newHeight
 				);
 
-				let thumbnailJPEG = thumbnailCanvas.toDataURL('image/jpeg', PREVIEW_QUALITY);
+				let thumbnailJPEG = thumbnailCanvas.toDataURL('image/jpeg', SETTINGS.MAPS.PREVIEW_QUALITY);
 
 				let newMapID = (await MapEntry.countDocuments({})) + 1;
 				// Set the version source to the original map
 				// If it's a new map, then set its version source to it's own map ID
 				let versionSource = versionSourceMapEntry ? versionSourceMapEntry.versionSource : newMapID;
+
+				let mapName = Utils.cleanQueryableText(insane(mapJSON.info.name).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
+				let authorName = Utils.cleanQueryableText(insane(mapJSON.info.author).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH))
 
 				// Upload the preview & thumbnail images to the AWS S3 Bucket
 				await AWSController.uploadMapImages({
@@ -337,12 +469,13 @@ app.post('/upload_map', async (req, res) => {
 
 				// Save the MapEntry to MongoDB
 				await MapEntry.create({
-					name: mapJSON.info.name.slice(0, 150),
-					authorID: authorID,
-					authorName: mapJSON.info.author.slice(0, 150),
+					name: mapName,
+					authorIDs: authorIDs,
+					authorName: authorName,
 					description: "No Description",
 					dateUploaded: new Date(),
 					tags: [],
+					hiddenTags: [],
 					mapID: newMapID,
 					json: mapLogic,
 					png: mapLayout,
@@ -358,6 +491,88 @@ app.post('/upload_map', async (req, res) => {
 			};
 
 			sourceImg.src = previewJPEG;
+		});
+	} else {
+		res.json({err: "Invalid Parameters"});
+	}
+});
+
+// Update Map Route
+app.post('/update_map', loginMiddleware, async (req, res) => {
+	if(Utils.hasCorrectParameters(req.body, {
+		mapID: "number",
+		mapName: "string",
+		mapAuthor: "string",
+		description: "string",
+		tags: "object",
+		authors: "object",
+		unlisted: "boolean"
+	}) && typeof req.body.tags.length !== "undefined"){
+		let mapEntry = await MapEntry.findOne({
+			mapID: req.body.mapID
+		});
+
+		if(!mapEntry) return res.status(404).json({err: "Map not found."});
+
+		if(!mapEntry.authorIDs.includes(req.profileID))  return res.status(404).json({err: "User is not an author of this map."});
+
+		// Sanitize inputs
+		let tagsArray = Array.from(req.body.tags);
+		let authorsArray = Array.from(req.body.authors).map(a => String(a)).slice(0, SETTINGS.SITE.MAX_AUTHORS);
+
+		if(authorsArray.length === 0) return res.json({err: "Empty Author Array"});
+		if(authorsArray.some(a => a.length !== 24)) return res.json({err: "Invalid Author Array"});
+
+		if(tagsArray.length > 0) {
+			tagsArray = tagsArray.map(a => Utils.makeAlphanumeric(a).slice(0, SETTINGS.SITE.TAG_NAME_LENGTH)).slice(0, SETTINGS.SITE.MAX_TAGS);
+		}
+
+		let description = insane(req.body.description).slice(0, 500);
+		let mapName = Utils.cleanQueryableText(insane(req.body.mapName).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
+		let mapAuthor = Utils.cleanQueryableText(insane(req.body.mapAuthor).slice(0, SETTINGS.SITE.AUTHOR_LENGTH));
+
+		mapEntry.name = mapName;
+		mapEntry.authorName = mapAuthor;
+		mapEntry.tags = tagsArray;
+		mapEntry.description = description;
+		mapEntry.authorIDs = authorsArray;
+		mapEntry.unlisted = req.body.unlisted;
+
+		await mapEntry.save();
+
+		res.json({
+			success: true
+		});
+	}
+});
+
+// Post Comment Route
+app.post('/comment', loginMiddleware, async (req, res) => {
+	if(Utils.hasCorrectParameters(req.body, {
+		mapID: "number",
+		body: "string"
+	}) && req.profileID){
+		let mapEntry = await MapEntry.findOne({
+			mapID: req.body.mapID
+		});
+
+		if(!mapEntry) return res.status(404).json({err: "Map not found."});
+
+		let commentingUser = await User.findById(req.profileID);
+		if(!commentingUser) return res.status(404).json({err: "User not found."}); 
+
+		mapEntry.comments.push({
+			id: Utils.makeID(),
+			parentID: "",
+			date: new Date(),
+			authorID: req.profileID,
+			body: req.body.body
+		});
+
+		await mapEntry.save();
+
+		res.json({
+			success: true
 		});
 	}
 });
