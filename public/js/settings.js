@@ -2,6 +2,12 @@ const markdownEditor = new SimpleMDE({ element: document.getElementById("biograp
 
 let localSettings = JSON.parse(localStorage.getItem("localSettings") || "{}");
 
+Object.keys(localSettings).forEach(key => {
+	let value = localSettings[key];
+
+	if(typeof value === "boolean") $(`.local-settings[data-setting=${key}]`).prop("checked", value);
+});
+
 $(".local-setting").click(function(){
 	let value = null;
 
