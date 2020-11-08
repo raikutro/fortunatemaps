@@ -1,5 +1,17 @@
 const markdownEditor = new SimpleMDE({ element: document.getElementById("biographyInput") });
 
+let localSettings = JSON.parse(localStorage.getItem("localSettings") || "{}");
+
+$(".local-settings").click(() => {
+	let value = null;
+
+	if($(this).attr("type") === "checkbox") value = $(this).prop("checked");
+
+	localSettings[$(this).attr("data-setting")] = value;
+
+	saveSettings();
+});
+
 $("#settingsBtn").click(() => {
 	$("#settingsBtn").prop("disabled", true);
 	fetch("/settings", {
@@ -20,3 +32,7 @@ $("#settingsBtn").click(() => {
 		alert("Saved settings!");
 	});
 });
+
+function saveSettings(){
+	localStorage.setItem("localSettings", JSON.stringify(localSettings));
+}
