@@ -25,6 +25,12 @@ body {
 	margin-right: 16px;
 }
 
+.map-container {
+	display: flex;
+	justify-content: space-evenly;
+	flex-flow: wrap;
+}
+
 .map-card {
 	width: 33%;
 	display: inline-flex;
@@ -32,7 +38,6 @@ body {
 }
 
 .map-card .card-img-top {
-	max-height: 300px;
 	display: inline-block;
 }
 
@@ -80,6 +85,6 @@ body {
 
 @media (min-width: 400px) {
 	.map-card .card-img-top {
-		width: auto;
+		width: 100%;
 	}
 }
