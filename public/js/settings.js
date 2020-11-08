@@ -2,7 +2,7 @@ const markdownEditor = new SimpleMDE({ element: document.getElementById("biograp
 
 let localSettings = JSON.parse(localStorage.getItem("localSettings") || "{}");
 
-$(".local-setting").click(() => {
+$(".local-settings").click(() => {
 	let value = null;
 
 	if($(this).attr("type") === "checkbox") value = $(this).prop("checked");
