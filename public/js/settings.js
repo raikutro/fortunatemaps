@@ -5,7 +5,7 @@ let localSettings = JSON.parse(localStorage.getItem("localSettings") || "{}");
 Object.keys(localSettings).forEach(key => {
 	let value = localSettings[key];
 
-	if(typeof value === "boolean") $(`.local-settings[data-setting=${key}]`).prop("checked", value);
+	if(typeof value === "boolean") $(`.local-setting[data-setting=${key}]`).prop("checked", value);
 });
 
 $(".local-setting").click(function(){
