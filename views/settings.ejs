@@ -14,6 +14,17 @@
 			<h1 class="text-center">Settings</h1>
 			<hr>
 			<div class="settings-form">
+				<div class="input-group">
+					<div class="input-group-prepend">
+						<span class="input-group-text">Left-aligned navbar</span>
+					</div>
+					<div class="input-group-append">
+						<div class="input-group-text">
+							<input type="checkbox" class="local-setting" data-setting="leftAlignedNavbar">
+						</div>
+					</div>
+				</div>
+				<hr>
 				<b>Socials</b>
 				<div class="input-group mt-2">
 					<input type="text" class="form-control" id="discordSocialInput" value="<%- user.social.discord %>" maxlength="30" placeholder="Discord Username">
