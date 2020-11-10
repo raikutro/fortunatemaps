@@ -5,7 +5,8 @@ const SETTINGS = {
 	CTF_AUTH_URL: "https://ctfauth.herokuapp.com/api/v1",
 	DEV_MODE: DEV_MODE,
 	MAPS: {
-		PREVIEW_QUALITY: 0.7
+		PREVIEW_QUALITY: 0.7,
+		THUMBNAIL_SIZE: 400
 	},
 	SITE: {
 		MAPS_PER_PAGE: 20,

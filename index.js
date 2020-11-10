@@ -429,12 +429,12 @@ app.post('/upload_map', loginMiddleware, async (req, res) => {
 			let newHeight;
 			if(previewCanvas.width > previewCanvas.height) {
 				let ratio = previewCanvas.width / previewCanvas.height;
-				newWidth = 300 * ratio;
-				newHeight = 300;
+				newWidth = SETTINGS.MAPS.THUMBNAIL_SIZE * ratio;
+				newHeight = SETTINGS.MAPS.THUMBNAIL_SIZE;
 			} else {
 				let ratio = previewCanvas.height / previewCanvas.width;
-				newWidth = 300;
-				newHeight = 300 * ratio;
+				newWidth = SETTINGS.MAPS.THUMBNAIL_SIZE;
+				newHeight = SETTINGS.MAPS.THUMBNAIL_SIZE * ratio;
 			}
 			let biggerDimension = Math.max(newWidth, newHeight);
 
@@ -450,7 +450,7 @@ app.post('/upload_map', loginMiddleware, async (req, res) => {
 					newWidth, newHeight
 				);
 
-				let thumbnailJPEG = thumbnailCanvas.toDataURL('image/jpeg', SETTINGS.MAPS.PREVIEW_QUALITY);
+				let thumbnailJPEG = thumbnailCanvas.toDataURL('image/jpeg', 1);
 
 				let newMapID = (await MapEntry.countDocuments({})) + 1;
 				// Set the version source to the original map
