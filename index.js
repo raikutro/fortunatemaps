@@ -53,6 +53,12 @@ mongoose.connect(process.env.MONGODB_URL, {
 	useUnifiedTopology: true,
 }).then(() => {
 	console.log("Connected to MongoDB");
+
+	loadLoginTokens().then(() => {
+		httpServer.listen(PORT, () => {
+			console.log('listening on *:' + PORT);
+		});
+	});
 }).catch(err => console.log);
 mongoose.set('debug', false);
 
@@ -64,18 +70,22 @@ app.use(cookieParser());
 
 console.log(SETTINGS.DEV_MODE ? "Running in Local Mode" : "Running in Production Mode");
 
-// Retrieve login tokens stored in jsonbin
-fetch(`https://jsonbin.org/${process.env.JSONBIN_USERNAME}/${process.env.JSONBIN_TOKEN_PATH}`, {
-	headers: {
-		"Authorization": "Token " + process.env.JSONBIN_API_KEY
-	}
-}).then(a => a.json()).then(json => {
-	loginTokens = json || {};
+ // Retrieve login tokens stored in jsonbin
+function loadLoginTokens() {
+	return fetch(`https://jsonbin.org/${process.env.JSONBIN_USERNAME}/${process.env.JSONBIN_TOKEN_PATH}`, {
+		headers: {
+			"Authorization": "Token " + process.env.JSONBIN_API_KEY
+		}
+	}).then(a => a.json()).then(json => {
+		loginTokens = json || {};
 
-	AccountRoutes(app, loginTokens);
-}).catch(err => {
-	console.log("Error while saving tokens: ", err);
-});
+		AccountRoutes(app, loginTokens);
+
+		console.log("Retrieved Tokens");
+	}).catch(err => {
+		console.log("Error while saving tokens: ", err);
+	});
+}
 
 let loginMiddleware = (req, res, next) => {
 	if(loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]]){
@@ -580,13 +590,3 @@ app.post('/comment', loginMiddleware, async (req, res) => {
 // Link the map editor route
 app.use('/map_editor', TagproEditMapEditor(new express.Router(), httpServer));
 app.use('/', express.static(path.join(__dirname, 'public')));
-
-// Pings the heroku app every 10 mins
-setInterval(function() {
-	fetch("http://fortunatemaps.herokuapp.com");
-	console.log("Pinged!");
-}, 10 * 60 * 1000);
-
-httpServer.listen(PORT, () => {
-	console.log('listening on *:' + PORT);
-});
