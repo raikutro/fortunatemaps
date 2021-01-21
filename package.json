@@ -27,7 +27,7 @@
     "ndarray-fill": "^1.0.2",
     "node-fetch": "^2.6.1",
     "pngjs-image": "^0.11.7",
-    "socket.io": "^2.3.0",
+    "socket.io": "^2.4.0",
     "zeros": "^1.0.0"
   }
 }
