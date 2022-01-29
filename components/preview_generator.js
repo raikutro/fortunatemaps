@@ -21,6 +21,8 @@ let TILES = {};
 			TILES[name].BOOSTS = await loadImage(`./assets/textures/${name.toLowerCase()}/speedpad.png`);
 			TILES[name].REDBOOSTS = await loadImage(`./assets/textures/${name.toLowerCase()}/speedpadred.png`);
 			TILES[name].BLUEBOOSTS = await loadImage(`./assets/textures/${name.toLowerCase()}/speedpadblue.png`);
+			TILES[name].REDPORTALS = await loadImage(`./assets/textures/${name.toLowerCase()}/portalred.png`);
+			TILES[name].BLUEPORTALS = await loadImage(`./assets/textures/${name.toLowerCase()}/portalblue.png`);
 
 			resolve();
 		});
@@ -77,6 +79,15 @@ module.exports = (rawPngLink, json, textureName="VANILLA") => {
 
 		const canvas = createCanvas(map.shape[0] * SETTINGS.TILE_SIZE, map.shape[1] * SETTINGS.TILE_SIZE);
 		const ctx = canvas.getContext('2d');
+		const drawTile = (tile, x, y) => {
+			ctx.drawImage(
+				tile,
+				0, 0,
+				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
+				x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
+				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
+			);
+		};
 
 		for (let y = 0; y < map.shape[1]; y++) {
 			for (let x = 0; x < map.shape[0]; x++) {
@@ -112,37 +123,17 @@ module.exports = (rawPngLink, json, textureName="VANILLA") => {
 						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
 					);
 				} else if(tileType === SETTINGS.TILE_IDS.BOOST) {
-					ctx.drawImage(
-						TILES[textureName].BOOSTS,
-						0, 0,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-						x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
-					);
+					drawTile(TILES[textureName].BOOSTS, x, y);
 				} else if(tileType === SETTINGS.TILE_IDS.REDBOOST) {
-					ctx.drawImage(
-						TILES[textureName].REDBOOSTS,
-						0, 0,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-						x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
-					);
+					drawTile(TILES[textureName].REDBOOSTS, x, y);
 				} else if(tileType === SETTINGS.TILE_IDS.BLUEBOOST) {
-					ctx.drawImage(
-						TILES[textureName].BLUEBOOSTS,
-						0, 0,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-						x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
-					);
+					drawTile(TILES[textureName].BLUEBOOSTS, x, y);
 				} else if(tileType === SETTINGS.TILE_IDS.PORTAL) {
-					ctx.drawImage(
-						TILES[textureName].PORTALS,
-						0, 0,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-						x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
-					);
+					drawTile(TILES[textureName].PORTALS, x, y);
+				} else if(tileType === SETTINGS.TILE_IDS.REDPORTAL) {
+					drawTile(TILES[textureName].REDPORTALS, x, y);
+				} else if(tileType === SETTINGS.TILE_IDS.BLUEPORTAL) {
+					drawTile(TILES[textureName].BLUEPORTALS, x, y);
 				}
 			}
 		}

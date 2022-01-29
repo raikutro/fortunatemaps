@@ -29,7 +29,9 @@ SETTINGS.TILE_IDS = {
 	REDENDZONE: 21,
 	BLUEENDZONE: 22,
 	GRAVITYWELL: 23,
-	YELLOWFLAG: 24
+	YELLOWFLAG: 24,
+	REDPORTAL: 25,
+	BLUEPORTAL: 26
 };
 
 SETTINGS.IS_WALL = id => [
@@ -46,8 +48,7 @@ SETTINGS.TILE_NAMES = Object.keys(SETTINGS.TILE_IDS).reduce((acc, val) => {
 	return acc;
 }, []);
 
-// console.log(SETTINGS.TILE_NAMES);
-
+// INDEXES MUST MATCH TILE_IDS
 SETTINGS.TILE_COLORS = [
 	{ red: 212, green: 212, blue: 212, alpha: 255 }, // Floor
 	{ red: 120, green: 120, blue: 120, alpha: 255 }, // Wall
@@ -74,6 +75,8 @@ SETTINGS.TILE_COLORS = [
 	{ red: 25, green: 0, blue: 148, alpha: 255}, // Blue Endzone
 	{ red: 32, green: 32, blue: 32, alpha: 255}, // Gravity Well
 	{ red: 128, green: 128, blue: 0, alpha: 255}, // Yellow Flag
+	{ red: 204, green: 51, blue: 0, alpha: 255}, // Red Portal
+	{ red: 0, green: 102, blue: 204, alpha: 255}, // Blue Portal
 ];
 
 SETTINGS.TILE_COORDINATES = {

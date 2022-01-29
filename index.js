@@ -42,7 +42,6 @@ const apiRouter = express.Router();
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
-// Preview quality of preview & thumbnail images.
 let loginTokens = {};
 
 // Connect to the MongoDB Instance
@@ -578,6 +577,38 @@ app.post('/comment', loginMiddleware, async (req, res) => {
 			authorID: req.profileID,
 			body: req.body.body
 		});
+
+		await mapEntry.save();
+
+		res.json({
+			success: true
+		});
+	}
+});
+
+// Like Map Route
+app.post('/like', loginMiddleware, async (req, res) => {
+	if(Utils.hasCorrectParameters(req.body, {
+		mapID: "number"
+	}) && req.profileID){
+		let mapEntry = await MapEntry.findOne({
+			mapID: req.body.mapID
+		});
+
+		if(!mapEntry) return res.status(404).json({err: "Map not found."});
+
+		let likingUser = await User.findById(req.profileID);
+		if(!likingUser) return res.status(404).json({err: "User not found."}); 
+
+		// Convert the array of mongoose ObjectId's to strings for ease-of-use.
+		let mapLikesArray = mapEntry.likes.map(a => String(a));
+
+		// Toggles the like status of a map
+		if(!mapLikesArray.includes(req.profileID)) {
+			mapEntry.likes.splice(mapEntry.indexOf(req.profileID), 1);
+		} else {
+			mapLikesArray.push(req.profileID);
+		}
 
 		await mapEntry.save();
 

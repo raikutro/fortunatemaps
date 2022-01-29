@@ -17,7 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "aws-sdk": "^2.720.0",
-    "canvas": "^2.6.1",
+    "canvas": "^2.9.0",
     "cookie-parser": "^1.4.5",
     "dotenv": "^8.2.0",
     "ejs": "^3.1.3",

@@ -20,6 +20,8 @@ const MapEntrySchema = new Schema({
 		authorID: {type: Schema.Types.ObjectId},
 		body: {type: String}
 	}],
+	// Map Likes
+	likes: [Schema.Types.ObjectId],
 	// Map tags
 	tags: [String],
 	// Hidden map tags, for bots
