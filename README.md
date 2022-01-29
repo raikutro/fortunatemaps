@@ -28,6 +28,6 @@ See the `.env.example` file for an example of credentials.
 
 - **Atlas**: [https://www.mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
 - **AWS S3**: [https://aws.amazon.com/s3](https://aws.amazon.com/s3)
-- **JSONBin**: [https://jsonbin.org/](https://jsonbin.org/)
+- **JSONBin**: [https://jsonbin.io/](https://jsonbin.io/)
 - **CTFAuth**: [https://ctfauth.herokuapp.com/](https://ctfauth.herokuapp.com/)
 - **Ngrok**: [https://ngrok.com/](https://ngrok.com/)

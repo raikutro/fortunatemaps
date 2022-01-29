@@ -71,9 +71,9 @@ console.log(SETTINGS.DEV_MODE ? "Running in Local Mode" : "Running in Production
 
  // Retrieve login tokens stored in jsonbin
 function loadLoginTokens() {
-	return fetch(`https://jsonbin.org/${process.env.JSONBIN_USERNAME}/${process.env.JSONBIN_TOKEN_PATH}`, {
+	return fetch(`https://api.jsonbin.io/b/${process.env.JSONBIN_ID}`, {
 		headers: {
-			"Authorization": "Token " + process.env.JSONBIN_API_KEY
+			"secret-key": process.env.JSONBIN_API_KEY
 		}
 	}).then(a => a.json()).then(json => {
 		loginTokens = json || {};

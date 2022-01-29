@@ -8,6 +8,10 @@ const User = require("../models/User");
 const Utils = require("../Utils");
 const SETTINGS = require("../Settings");
 
+const DEFAULT_JSONBIN_DATA = {
+	"fake": null
+};
+
 module.exports = (app, loginTokens) => {
 	app.get('/register', async (req, res) => {
 		let profileData = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]];
@@ -226,6 +230,8 @@ module.exports = (app, loginTokens) => {
 	// Check expiration of tokens every 10 mins
 	setInterval(function() {
 		Object.keys(loginTokens).forEach(key => {
+			if(key === "fake") return;
+
 			if(Date.now() - loginTokens[key].loginDate > SETTINGS.SITE.LOGIN_EXPIRATION_TIME_LIMIT) {
 				delete loginTokens[key];
 
@@ -236,14 +242,18 @@ module.exports = (app, loginTokens) => {
 }
 
 function saveTokens(loginTokens) {
-	return fetch(`https://jsonbin.org/${process.env.JSONBIN_USERNAME}/${process.env.JSONBIN_TOKEN_PATH}`, {
-		method: "POST",
+	let sendableTokens = DEFAULT_JSONBIN_DATA;
+	if(Object.keys(loginTokens).length !== 0) sendableTokens = loginTokens;
+	
+	return fetch(`https://api.jsonbin.io/b/${process.env.JSONBIN_ID}`, {
+		method: "PUT",
 		headers: {
-			"Authorization": "Token " + process.env.JSONBIN_API_KEY
+			"Content-Type": "application/json",
+			"secret-key": process.env.JSONBIN_API_KEY
 		},
-		body: JSON.stringify(loginTokens)
+		body: JSON.stringify(sendableTokens)
 	}).then(a => a.json()).catch(err => {
-		console.log(loginTokens);
+		console.log(sendableTokens);
 		console.log("Error while saving tokens: ", err);
 	});
 }
