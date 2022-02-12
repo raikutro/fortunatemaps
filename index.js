@@ -69,7 +69,7 @@ app.use(cookieParser());
 
 console.log(SETTINGS.DEV_MODE ? "Running in Local Mode" : "Running in Production Mode");
 
- // Retrieve login tokens stored in jsonbin
+// Retrieve login tokens stored in jsonbin
 function loadLoginTokens() {
 	return fetch(`https://api.jsonbin.io/b/${process.env.JSONBIN_ID}`, {
 		headers: {
