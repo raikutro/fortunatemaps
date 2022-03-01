@@ -120,7 +120,7 @@ module.exports = (app, loginTokens) => {
 	});
 
 	app.post("/auth_callback", async (req, res) => {
-		if(req.body.verified && req.body.apiKey === process.env.CTF_AUTH_API_KEY) {
+		if(req.body.verified && req.body.apiSecret === process.env.CTF_AUTH_API_SECRET) {
 			let userAccount = await User.findOne({
 				tagproProfile: req.body.profileID
 			});
@@ -234,10 +234,10 @@ module.exports = (app, loginTokens) => {
 
 			if(Date.now() - loginTokens[key].loginDate > SETTINGS.SITE.LOGIN_EXPIRATION_TIME_LIMIT) {
 				delete loginTokens[key];
-
-				saveTokens(loginTokens);
 			}
 		});
+
+		saveTokens(loginTokens);
 	}, 10 * 60 * 1000);
 }
 

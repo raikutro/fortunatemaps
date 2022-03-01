@@ -18,7 +18,7 @@ const httpServer = http.Server(app);
 const PORT = process.env.PORT || 80;
 
 // The TagProEdit.com module.
-// I compartimentalized the source code to its own module.
+// Compartimentalized the source code to its own module.
 const TagproEditMapEditor = require("./editor/app");
 
 const PreviewGenerator = require("./components/preview_generator");
@@ -37,7 +37,7 @@ const SETTINGS = require("./Settings");
 const MapEntry = require("./models/MapEntry");
 const User = require("./models/User");
 
-// Expres Router for API routes. Doesn't have any routes right now.
+// Express Router for API routes. Doesn't have any routes right now.
 const apiRouter = express.Router();
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
@@ -87,8 +87,18 @@ function loadLoginTokens() {
 }
 
 let loginMiddleware = (req, res, next) => {
+	req.getProfile = () => null;
 	if(loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]]){
 		req.profileID = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]].profileID;
+		req.getProfile = async () => {
+			if(!req.profileData) req.profileData = await User.findById(req.profileID).catch(err => {
+				console.error(err);
+
+				return null;
+			});
+
+			return req.profileData;
+		};
 	} else req.profileID = false;
 
 	next();
@@ -178,11 +188,8 @@ app.get('/map/:mapid', loginMiddleware, async (req, res) => {
 
 	if(!mapEntry) return res.redirect("/");
 
-	let isAdmin = req.profileID ? (await User.findById(req.profileID, "isAdmin").catch(err => {
-		// console.log(err);
-		res.send("Invalid User ID");
-		return {isAdmin: false};
-	})).isAdmin : false;
+	const userProfile = await req.getProfile();
+	const isAdmin = userProfile ? userProfile.isAdmin : false;
 
 	let mapVersions = await MapEntry.find({
 		versionSource: mapEntry.versionSource,
@@ -521,9 +528,11 @@ app.post('/update_map', loginMiddleware, async (req, res) => {
 			mapID: req.body.mapID
 		});
 
+		const userProfile = await req.getProfile();
+
 		if(!mapEntry) return res.status(404).json({err: "Map not found."});
 
-		if(!mapEntry.authorIDs.includes(req.profileID))  return res.status(404).json({err: "User is not an author of this map."});
+		if(!mapEntry.authorIDs.includes(req.profileID) && !userProfile.isAdmin) return res.status(404).json({err: "User is not an author of this map."});
 
 		// Sanitize inputs
 		let tagsArray = Array.from(req.body.tags);
