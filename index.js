@@ -538,7 +538,7 @@ app.post('/update_map', loginMiddleware, async (req, res) => {
 		let tagsArray = Array.from(req.body.tags);
 		let authorsArray = Array.from(req.body.authors).map(a => String(a)).slice(0, SETTINGS.SITE.MAX_AUTHORS);
 
-		if(authorsArray.length === 0) return res.json({err: "Empty Author Array"});
+		if(authorsArray.length === 0 && !userProfile.isAdmin) return res.json({err: "Empty Author Array"});
 		if(authorsArray.some(a => a.length !== 24)) return res.json({err: "Invalid Author Array"});
 
 		if(tagsArray.length > 0) {
