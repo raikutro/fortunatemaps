@@ -22,7 +22,7 @@ module.exports = (app, loginTokens) => {
 			// Check if the user has been registered yet
 			if(user.username.length === 0) {
 				res.render('register', {
-					...(Utils.templateEngineData(req)),
+					...(await Utils.templateEngineData(req)),
 					profileID: profileData.profileID,
 					tagproProfile: profileData.tagproProfile
 				});
@@ -40,7 +40,7 @@ module.exports = (app, loginTokens) => {
 			let user = (await User.findById(profileData.profileID)).toObject();
 
 			res.render('settings', {
-				...(Utils.templateEngineData(req)),
+				...(await Utils.templateEngineData(req)),
 				profileID: profileData.profileID,
 				user
 			});
@@ -87,7 +87,7 @@ module.exports = (app, loginTokens) => {
 
 			let maps = await MapEntry.find({ authorIDs: user._id }).limit(20).sort({ dateUploaded: -1 });
 			let profileData = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]];
-			let renderData = {...(Utils.templateEngineData(req)), user, maps};
+			let renderData = {...(await Utils.templateEngineData(req)), user, maps};
 
 			if(profileData){
 				if(profileData.profileID === String(user._id)) {
@@ -124,8 +124,6 @@ module.exports = (app, loginTokens) => {
 			let userAccount = await User.findOne({
 				tagproProfile: req.body.profileID
 			});
-
-			console.log(req.body);
 
 			// Check if the users account exists.
 			if(!userAccount){

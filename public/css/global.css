@@ -98,14 +98,14 @@ body {
 }
 
 .CodeMirror-fullscreen {
-	z-index: 10000 !important;
+	z-index: 10 !important;
 }
 .editor-toolbar {
-	z-index: 100000 !important;
+	z-index: 100 !important;
 }
 
 .editor-preview-side.editor-preview-active-side {
-	z-index: 10000 !important;
+	z-index: 10 !important;
 }
 
 .editor-toolbar.fullscreen::before, .editor-toolbar.fullscreen::after {

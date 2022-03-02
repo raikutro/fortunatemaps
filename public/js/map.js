@@ -2,6 +2,12 @@ const markdownEditor = new SimpleMDE({ element: document.getElementById("comment
 
 let lastAuthorSearchInput = "";
 
+const PROFILE = window.PROFILE || {};
+
+let USER_ID_NAME_MAP = {
+	[PROFILE._id]: PROFILE.username
+};
+
 let tagInput = new TagInput({
 	displayElem: $("#tagsDisplay"),
 	input: $("#tagsInput"),
@@ -16,6 +22,9 @@ let authorInput = new TagInput({
 	colorKey: null,
 	addTagConditionFunction: input => {
 		return input.length === 24;
+	},
+	onBeforeTagRender: tag => {
+		return USER_ID_NAME_MAP[tag] || tag;
 	}
 });
 
@@ -43,6 +52,7 @@ setInterval(() => {
 
 				data.users.forEach(item => {
 					$("#authorSearchList").append(`<li data-id="${item.id}"><b>${item.username}</b> / <code>${item.id}</code></li>`);
+					USER_ID_NAME_MAP[item.id] = item.username;
 				});
 
 				resetAuthorHandlers();
@@ -99,7 +109,7 @@ $("#submitCommentBtn").click(() => {
 function updateComments() {
 	$("#commentsContainer").empty();
 	window.MAP_DATA.comments.forEach(comment => {
-		let renderedMarkdown = marked(comment.body);
+		let renderedMarkdown = marked.parse(comment.body);
 		let cleanMarkdown = DOMPurify.sanitize(renderedMarkdown);
 
 		$("#commentsContainer").append(`
@@ -142,6 +152,10 @@ function updateProfileLinks() {
 		$(".profile-link").each(function(idx){
 			let id = $(this).attr("href").split("/")[2];
 			$(this).text(json.usernames[id]);
+			USER_ID_NAME_MAP = {
+				...USER_ID_NAME_MAP,
+				...json.usernames
+			};
 		});
 	});
 }

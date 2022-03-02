@@ -4,7 +4,8 @@ class TagInput {
 		input,
 		addButton,
 		colorKey,
-		addTagConditionFunction
+		addTagConditionFunction,
+		onBeforeTagRender
 	}) {
 		this.tags = [];
 
@@ -12,6 +13,7 @@ class TagInput {
 		this.input = input;
 		this.addButton = addButton;
 		this.colorKey = colorKey;
+		this.onBeforeTagRender = onBeforeTagRender || (() => undefined);
 		this.addTagConditionFunction = addTagConditionFunction || (() => true);
 
 		this.addButton.click(() => {
@@ -58,6 +60,9 @@ class TagInput {
 
 		tagList.forEach(tag => {
 			// console.log(tag);
+			
+			const newTag = this.onBeforeTagRender(tag);
+			if(typeof newTag !== "undefined") tag = newTag;
 
 			if(this.colorKey && this.colorKey[tag.toUpperCase()]){
 				let tagData = this.colorKey[tag.toUpperCase()];

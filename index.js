@@ -91,7 +91,9 @@ let loginMiddleware = (req, res, next) => {
 	if(loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]]){
 		req.profileID = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]].profileID;
 		req.getProfile = async () => {
-			if(!req.profileData) req.profileData = await User.findById(req.profileID).catch(err => {
+			if(!req.profileData) req.profileData = await User.findById(req.profileID)
+			.then(doc => doc.toObject())
+			.catch(err => {
 				console.error(err);
 
 				return null;
@@ -109,7 +111,7 @@ app.get('/', loginMiddleware, async (req, res) => {
 	let maps = await MapEntry.find({ unlisted: false }).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
 
 	res.render('index', {
-		...(Utils.templateEngineData(req)),
+		...(await Utils.templateEngineData(req)),
 		query: "",
 		page: 1,
 		maps
@@ -117,9 +119,9 @@ app.get('/', loginMiddleware, async (req, res) => {
 });
 
 // Map Editor
-app.get('/editor', loginMiddleware, (req, res) => {
+app.get('/editor', loginMiddleware, async (req, res) => {
 	res.render('editor', {
-		...(Utils.templateEngineData(req))
+		...(await Utils.templateEngineData(req))
 	});
 });
 
@@ -170,7 +172,7 @@ app.get('/search', loginMiddleware, async (req, res) => {
 	// console.log(req.query);
 
 	res.render('search', {
-		...(Utils.templateEngineData(req)),
+		...(await Utils.templateEngineData(req)),
 		query: req.query.q,
 		page: req.query.p + 1,
 		maps
@@ -202,7 +204,7 @@ app.get('/map/:mapid', loginMiddleware, async (req, res) => {
 	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
 
 	res.render('map', {
-		...(Utils.templateEngineData(req)),
+		...(await Utils.templateEngineData(req)),
 		map: mapEntry,
 		mapVersions,
 		mapRemixes,
