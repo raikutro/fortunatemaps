@@ -27,7 +27,7 @@ const SETTINGS = {
 			1: {
 				priority: 10,
 				name: "F-M Developer",
-				backgroundColor: "#3F51B5",
+				backgroundColor: "#69BF4A",
 				textColor: "#EEEEEE"
 			},
 			2: {
@@ -39,7 +39,7 @@ const SETTINGS = {
 			3: {
 				priority: 8,
 				name: "TPFG",
-				backgroundColor: "#33C738",
+				backgroundColor: "#5DB4E8",
 				textColor: "#EEEEEE"
 			}
 		},
