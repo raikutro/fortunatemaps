@@ -6,11 +6,16 @@
 			</a>
 		</li>
 		<%-
-			Array(8).fill(0).map((a, idx) => `
-				<li class="page-item">
-					<a class="page-link" href="/search?q=${encodeURIComponent(query || "")}&p=${page + idx}">${page + idx}</a>
-				</li>
-			`).join("");
+			(() => {
+				const lowestPageIndex = Math.max(1, page - 4);
+				const range = Math.min(9, Infinity - page);
+
+				return Array(range).fill(0).map((x, idx) => `
+					<li class="page-item ${page === lowestPageIndex + idx ? "active" : ""}">
+						<a class="page-link" href="/search?q=${encodeURIComponent(query || "")}&p=${lowestPageIndex + idx}">${lowestPageIndex + idx}</a>
+					</li>
+				`).join("");
+			})();
 		%>
 		<li class="page-item">
 			<a class="page-link" href="/search?q=<%- encodeURIComponent(query || "") + "&p=" + String(page + 1) %>" aria-label="Next">

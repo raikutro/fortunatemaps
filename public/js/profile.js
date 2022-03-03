@@ -3,4 +3,4 @@ let cleanMarkdown = DOMPurify.sanitize(renderedMarkdown);
 
 document.getElementById('bioText').innerHTML = cleanMarkdown;
 
-$(".btn.btn-primary[href^='/preview/']").text("Preview");
+$(".btn.btn-primary[href^='/preview/']").text("Preview")

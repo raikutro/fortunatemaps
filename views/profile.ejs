@@ -28,15 +28,15 @@
 							<hr>
 							<div class="social-container">
 								<div class="social-expander" <%- user.tagproProfile ? "" : "style='display:none'" %>>
-									<img class="social-icon" src="/assets/logos/tagpro.ico">
+									<img class="social-icon" src="https://tagpro.koalabeast.com/favicon.ico">
 									<p class="social-handle"><%- user.tagproProfile %></p>
 								</div>
 								<div class="social-expander" <%- user.social.discord ? "" : "style='display:none'" %>>
-									<img class="social-icon" src="/assets/logos/discord.ico">
+									<img class="social-icon" src="/assets/discord.png">
 									<p class="social-handle"><%- user.social.discord %></p>
 								</div>
 								<div class="social-expander" <%- user.social.reddit ? "" : "style='display:none'" %>>
-									<img class="social-icon" src="/assets/logos/reddit.ico">
+									<img class="social-icon" src="https://www.reddit.com/favicon.ico">
 									<p class="social-handle"><%- user.social.reddit %></p>
 								</div>
 							</div>
@@ -75,6 +75,7 @@
 		</main>
 
 		<%- include('bodyscripts') %>
+		
 		<script type="text/javascript" src="/js/profile.js"></script>
 	</body>
 </html>

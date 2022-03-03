@@ -6,23 +6,25 @@ const fetch = require('node-fetch');
 
 const Utils = require('../Utils');
 const SETTINGS = require('./map_settings');
-const fs = require("fs");
+const fs = require('fs');
 
 const TEXTURES = ["VANILLA"];
 
 let TILES = {};
 
+let assetsLoaded = false;
+
 (async () => {
 	let promises = TEXTURES.map(name => {
 		return new Promise(async (resolve, reject) => {
 			TILES[name] = {};
-			TILES[name].GENERAL = await loadImage(`./assets/textures/${name.toLowerCase()}/tiles.png`);
-			TILES[name].PORTALS = await loadImage(`./assets/textures/${name.toLowerCase()}/portal.png`);
-			TILES[name].BOOSTS = await loadImage(`./assets/textures/${name.toLowerCase()}/speedpad.png`);
-			TILES[name].REDBOOSTS = await loadImage(`./assets/textures/${name.toLowerCase()}/speedpadred.png`);
-			TILES[name].BLUEBOOSTS = await loadImage(`./assets/textures/${name.toLowerCase()}/speedpadblue.png`);
-			TILES[name].REDPORTALS = await loadImage(`./assets/textures/${name.toLowerCase()}/portalred.png`);
-			TILES[name].BLUEPORTALS = await loadImage(`./assets/textures/${name.toLowerCase()}/portalblue.png`);
+			TILES[name].GENERAL = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/tiles.png`);
+			TILES[name].PORTALS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/portal.png`);
+			TILES[name].BOOSTS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/speedpad.png`);
+			TILES[name].REDBOOSTS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/speedpadred.png`);
+			TILES[name].BLUEBOOSTS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/speedpadblue.png`);
+			TILES[name].REDPORTALS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/portalred.png`);
+			TILES[name].BLUEPORTALS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/portalblue.png`);
 
 			resolve();
 		});
@@ -33,29 +35,31 @@ let TILES = {};
 	});
 })();
 
-let assetsLoaded = false;
-
-module.exports = (rawPngLink, json, textureName="VANILLA") => {
+const generate = (layout, logic, textureName="VANILLA") => {
 	return new Promise(async (resolve, reject) => {
 		await waitForLoadedAssets();
 
 		let pngLink;
 		let tempURL = null;
 
-		if(rawPngLink.includes("://")) {
-			pngLink = rawPngLink;
+		if(!TEXTURES.includes(textureName)) textureName = "VANILLA";
+
+		if(layout.includes("://")) {
+			pngLink = layout;
 		} else {
 			pngLink = await new Promise((resolve, reject) => {
-				tempURL = `./temp/temp${Date.now()}.png`;
-				fs.writeFile(tempURL, rawPngLink, 'base64', async (err) => {
-					if(err) reject(err);
+				tempURL = `./temp/temp${String(Math.random()).slice(2)}.png`;
+				fs.writeFile(tempURL, layout, 'base64', (err) => {
+					if(err) return reject(err);
 
 					resolve(tempURL);
 				});
 			});
 		}
 
-		let map = await mapURLToArray(pngLink);
+		let map = await mapURLToArray(pngLink).catch(err => null);
+		if(!map) return reject("Invalid map");
+
 		let mapJSON;
 
 		if(tempURL !== null) {
@@ -63,21 +67,25 @@ module.exports = (rawPngLink, json, textureName="VANILLA") => {
 				fs.unlink(tempURL, err => {
 					if(err) return reject(err);
 
-					resolve(tempURL);
+					resolve(true);
 				});
 			}).catch(err => {
-				console.log(err);
-				return false;
+				return null;
 			});
 		}
 
 		try {
-			mapJSON = JSON.parse(json);
+			mapJSON = JSON.parse(logic);
 		} catch(e) {
-			mapJSON = await mapURLToJSON(json);
+			mapJSON = await mapURLToJSON(logic).catch(err => null);
 		}
 
-		const canvas = createCanvas(map.shape[0] * SETTINGS.TILE_SIZE, map.shape[1] * SETTINGS.TILE_SIZE);
+		if(!mapJSON) return reject('Invalid map json');
+
+		const canvas = createCanvas(
+			(map.shape[0] * SETTINGS.TILE_SIZE) || SETTINGS.TILE_SIZE,
+			(map.shape[1] * SETTINGS.TILE_SIZE) || SETTINGS.TILE_SIZE
+		);
 		const ctx = canvas.getContext('2d');
 		const drawTile = (tile, x, y) => {
 			ctx.drawImage(
@@ -142,13 +150,44 @@ module.exports = (rawPngLink, json, textureName="VANILLA") => {
 
 		resolve(canvas);
 	});
-}
+};
+
+const generateThumbnail = async (previewCanvas, { thumbnailSize=400 }={}) => {
+	let newWidth;
+	let newHeight;
+	if(previewCanvas.width > previewCanvas.height) {
+		let ratio = previewCanvas.width / previewCanvas.height;
+		newWidth = thumbnailSize * ratio;
+		newHeight = thumbnailSize;
+	} else {
+		let ratio = previewCanvas.height / previewCanvas.width;
+		newWidth = thumbnailSize;
+		newHeight = thumbnailSize * ratio;
+	}
+	let biggerDimension = Math.max(newWidth, newHeight);
+
+	// Create the thumbnail canvas
+	const thumbnailCanvas = createCanvas(biggerDimension, biggerDimension);
+	const ctx = thumbnailCanvas.getContext('2d');
+	// let sourceImg = new Image();
+
+	// setTimeout(() => sourceImg.src = previewB64 || previewCanvas.toBuffer(), 0);
+	// await new Promise(resolve => sourceImg.onload = resolve);
+
+	ctx.drawImage(
+		previewCanvas,
+		(biggerDimension / 2) - (newWidth / 2), (biggerDimension / 2) - (newHeight / 2),
+		newWidth, newHeight
+	);
+
+	return thumbnailCanvas;
+};
 
 function mapURLToArray(mapURL){
 	return new Promise((resolve, reject) => {
 		let mapPNGLink = mapURL;
 		PNGImage.readImage(mapPNGLink, (err, image) => {
-			if(err) reject(err);
+			if(err) return reject(err);
 
 			let array = mapImageToArray(image);
 
@@ -156,14 +195,14 @@ function mapURLToArray(mapURL){
 
 			resolve(array);
 		});
-	}).catch(console.log);
+	});
 }
 
 function mapURLToJSON(mapURL){
 	return new Promise((resolve, reject) => {
 		let mapJSONLink = mapURL;
 		fetch(mapJSONLink).then(a => a.json()).then(resolve).catch(reject);
-	}).catch(console.log);
+	})
 }
 
 function mapImageToArray(image) {
@@ -171,7 +210,9 @@ function mapImageToArray(image) {
 	let width = image.getWidth();
 	let height = image.getHeight();
 
-	let buffer = zeros([width, height], "array");
+	let shape = [width, height].map(n => Math.max(Math.min(256, n), 1));
+
+	let buffer = zeros(shape, "array");
 
 	for (let y = 0; y < height; y++) {
 		for (let x = 0; x < width; x++) {
@@ -192,7 +233,7 @@ function mapImageToArray(image) {
 }
 
 function fillStates(ctx, mapJSON, textureName="VANILLA"){
-	Object.keys(mapJSON.fields).forEach(key => {
+	if(mapJSON.fields) Object.keys(mapJSON.fields).forEach(key => {
 		let position = key.split(",");
 		position = {
 			x: position[0],
@@ -213,7 +254,7 @@ function fillStates(ctx, mapJSON, textureName="VANILLA"){
 		}
 	});
 
-	Object.keys(mapJSON.portals).forEach(key => {
+	if(mapJSON.portals) Object.keys(mapJSON.portals).forEach(key => {
 		let position = key.split(",");
 		position = {
 			x: position[0],
@@ -232,7 +273,7 @@ function fillStates(ctx, mapJSON, textureName="VANILLA"){
 		}
 	});
 
-	mapJSON.marsballs.forEach(marsball => {
+	if(Array.isArray(mapJSON.marsballs)) mapJSON.marsballs.forEach(marsball => {
 		ctx.drawImage(
 			TILES[textureName].GENERAL,
 			480, 360,
@@ -287,4 +328,9 @@ function waitForLoadedAssets() {
 			}
 		}, 500);
 	});
+}
+
+module.exports = {
+	generate,
+	generateThumbnail
 }

@@ -1,9 +1,7 @@
-const DEV_MODE = !process.env.PORT;
-
 const SETTINGS = {
 	NGROK_URL: process.env.NGROK_URL,
 	CTF_AUTH_URL: "https://ctfauth.herokuapp.com/api/v2",
-	DEV_MODE: DEV_MODE,
+	DEV_MODE: (process.env.NODE_ENV || "").toUpperCase() === "DEVELOPMENT",
 	MAPS: {
 		PREVIEW_QUALITY: 0.7,
 		THUMBNAIL_SIZE: 400

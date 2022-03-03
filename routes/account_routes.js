@@ -27,7 +27,7 @@ module.exports = (app, loginTokens) => {
 					tagproProfile: profileData.tagproProfile
 				});
 			} else {
-				res.redirect("/#err=" + SETTINGS.ERROR_CODES.ALREADY_REGISTERED);
+				res.redirect("/#err=" + SETTINGS.ERRORS.ALREADY_REGISTERED().code);
 			}
 		} else {
 			res.redirect("/");
@@ -154,7 +154,7 @@ module.exports = (app, loginTokens) => {
 			});
 		} else {
 			res.json({
-				redirectURL: (SETTINGS.DEV_MODE ? (SETTINGS.NGROK_URL || "http://localhost") : "https://fortunatemaps.herokuapp.com") + "/#err=" + SETTINGS.ERROR_CODES.LOGIN_ERROR
+				redirectURL: (SETTINGS.DEV_MODE ? (SETTINGS.NGROK_URL || "http://localhost") : "https://fortunatemaps.herokuapp.com") + "/#err=" + SETTINGS.ERRORS.LOGIN_ERROR().code
 			});
 		}
 	});
@@ -185,9 +185,7 @@ module.exports = (app, loginTokens) => {
 					profileID: user._id
 				});
 			} else {
-				res.json({
-					err: "Already registered"
-				});
+				res.json(SETTINGS.ERRORS.ALREADY_REGISTERED());
 			}
 		} else {
 			res.json({
