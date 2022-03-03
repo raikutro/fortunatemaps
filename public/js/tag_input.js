@@ -20,7 +20,7 @@ class TagInput {
 			let tagName = this.input.val().trim();
 			if(tagName.length === 0) return;
 
-			if(!this.addTagConditionFunction(tagName)) return;
+			if(!this.addTagConditionFunction(tagName, this)) return;
 
 			this.addTag(tagName);
 
@@ -36,9 +36,10 @@ class TagInput {
 
 	addTag(name) {
 		if(this.tags.length >= SETTINGS.SITE.MAX_TAGS) return;
-		if(this.tags.findIndex(a => (a.name === name && name !== null)) > -1) return;
 
 		this.tags.push(name);
+
+		this.tags = Array.from(new Set(this.tags));
 
 		this.render();
 

@@ -20,8 +20,8 @@ let authorInput = new TagInput({
 	input: $("#authorsInput"),
 	addButton: $("#addAuthorBtn"),
 	colorKey: null,
-	addTagConditionFunction: input => {
-		return input.length === 24;
+	addTagConditionFunction: (tagName, { tags }) => {
+		return tagName.length === 24 && !tags.includes(tagName);
 	},
 	onBeforeTagRender: tag => {
 		return USER_ID_NAME_MAP[tag] || tag;

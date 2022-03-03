@@ -532,7 +532,7 @@ app.post('/update_map', loginMiddleware, async (req, res) => {
 		tags: "object",
 		authors: "object",
 		unlisted: "boolean"
-	}) && typeof req.body.tags.length !== "undefined"){
+	}) && Array.isArray(req.body.tags)) {
 		let mapEntry = await MapEntry.findOne({
 			mapID: req.body.mapID
 		});
@@ -544,15 +544,18 @@ app.post('/update_map', loginMiddleware, async (req, res) => {
 		if(!mapEntry.authorIDs.includes(req.profileID) && !userProfile.isAdmin) return res.status(404).json({err: "User is not an author of this map."});
 
 		// Sanitize inputs
-		let tagsArray = Array.from(req.body.tags);
+		let tagsArray = Array.from(new Set(req.body.tags));
 		let authorsArray = Array.from(req.body.authors).map(a => String(a)).slice(0, SETTINGS.SITE.MAX_AUTHORS);
 
 		if(authorsArray.length === 0 && !userProfile.isAdmin) return res.json({err: "Empty Author Array"});
 		if(authorsArray.some(a => a.length !== 24)) return res.json({err: "Invalid Author Array"});
+		if(tagsArray.length > SETTINGS.SITE.MAX_TAGS) return res.json({err: "Too many tags."});
 
-		if(tagsArray.length > 0) {
-			tagsArray = tagsArray.map(a => Utils.makeAlphanumeric(a).slice(0, SETTINGS.SITE.TAG_NAME_LENGTH)).slice(0, SETTINGS.SITE.MAX_TAGS);
-		}
+		// Sanitize the tags
+		tagsArray = tagsArray.map(t => 
+			Utils.makeAlphanumeric(t)
+			.slice(0, SETTINGS.SITE.TAG_NAME_MAX_LENGTH)
+		);
 
 		let description = insane(req.body.description).slice(0, 500);
 		let mapName = Utils.cleanQueryableText(insane(req.body.mapName).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
