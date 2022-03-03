@@ -15,10 +15,10 @@
 				<code>
 					<%-
 						[
-							(query.length !== 0 ? `Query: ${query}` : null),
-							(parsedSpecials.tag.length !== 0 ? `Tags: ${parsedSpecials.tag.join(", ")}` : null),
-							(parsedSpecials.author.length !== 0 ? `Authors: ${parsedSpecials.author.join(", ")}` : null),
-							(parsedSpecials.authorText.length !== 0 ? `Author Text: ${parsedSpecials.authorText.join(", ")}` : null)
+							(parsedQuery.query.length !== 0 ? `Query: ${parsedQuery.query}` : null),
+							(parsedQuery.tag.length !== 0 ? `Tags: ${parsedQuery.tag.join(", ")}` : null),
+							(parsedQuery.author.length !== 0 ? `Authors: ${parsedQuery.author.join(", ")}` : null),
+							(parsedQuery.authorText.length !== 0 ? `Author Text: ${parsedQuery.authorText.join(", ")}` : null)
 						].filter(t => t).join(" | ")
 					%>
 				</code>

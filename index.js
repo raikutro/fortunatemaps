@@ -138,6 +138,8 @@ app.get('/search', loginMiddleware, async (req, res) => {
 	req.query.q = String(req.query.q) || "";
 	req.query.p = Math.max(Number(req.query.p) || 1, 1) - 1;
 
+	const rawSearchQuery = req.query.q;
+
 	// Grab "@", "@@", and "#" and the text that comes after.
 	const specialQueries = req.query.q.match(/(^|)((@@|@|#)[a-z\d-]+)/gi) || [];
 
@@ -186,9 +188,10 @@ app.get('/search', loginMiddleware, async (req, res) => {
 
 	res.render('search', {
 		...(await Utils.templateEngineData(req)),
-		query: req.query.q,
+		query: rawSearchQuery,
 		page: req.query.p + 1,
-		parsedSpecials: {
+		parsedQuery: {
+			query: req.query.q,
 			...rawQueries
 		},
 		maps

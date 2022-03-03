@@ -1,19 +1,19 @@
 <nav class="map-pagination-container" aria-label="Page navigation example">
 	<ul class="pagination">
 		<li class="page-item <%- page === 1 ? "disabled" : "" %>">
-			<a class="page-link" href="/search?q=<%- "&p=" + String(page-1) %>" aria-label="Previous">
+			<a class="page-link" href="/search?q=<%- encodeURIComponent(query || "") + "&p=" + String(page - 1) %>" aria-label="Previous">
 				<span aria-hidden="true">&laquo;</span>
 			</a>
 		</li>
 		<%-
 			Array(8).fill(0).map((a, idx) => `
 				<li class="page-item">
-					<a class="page-link" href="/search?q=${query}&p=${page + idx}">${page + idx}</a>
+					<a class="page-link" href="/search?q=${encodeURIComponent(query || "")}&p=${page + idx}">${page + idx}</a>
 				</li>
 			`).join("");
 		%>
 		<li class="page-item">
-			<a class="page-link" href="/search?q=<%- "&p=" + String(page+1) %>" aria-label="Next">
+			<a class="page-link" href="/search?q=<%- encodeURIComponent(query || "") + "&p=" + String(page + 1) %>" aria-label="Next">
 				<span aria-hidden="true">&raquo;</span>
 			</a>
 		</li>
