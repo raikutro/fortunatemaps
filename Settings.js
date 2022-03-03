@@ -22,19 +22,19 @@ const SETTINGS = {
 				priority: 10,
 				name: "Nothing",
 				backgroundColor: "gray",
-				textColor: "white"
+				textColor: "#EEEEEE"
 			},
 			1: {
 				priority: 10,
 				name: "Developer",
 				backgroundColor: "#3F51B5",
-				textColor: "white"
+				textColor: "#EEEEEE"
 			},
 			2: {
 				priority: 9,
 				name: "MTC",
 				backgroundColor: "#4CAF50",
-				textColor: "white"
+				textColor: "#EEEEEE"
 			}
 		},
 		ADMIN_ONLY_TAGS: ["ROTATION"],
@@ -42,37 +42,42 @@ const SETTINGS = {
 			CTF: {
 				name: "CTF",
 				backgroundColor: "linear-gradient(45deg, #DF5349 50%, #4971DF 50%)",
-				textColor: "white"
+				textColor: "#EEEEEE"
 			},
 			NF: {
 				name: "NF",
 				backgroundColor: "#FFEB3B",
-				textColor: "black"
+				textColor: "#111111"
 			},
 			DTF: {
 				name: "DTF",
 				backgroundColor: "#673AB7",
-				textColor: "white"
+				textColor: "#EEEEEE"
 			},
 			"2NF": {
 				name: "2NF",
 				backgroundColor: "linear-gradient(45deg, #FF9800 33%, #F0F0F0 33% 66%, #FF9800 33%)",
-				textColor: "black"
+				textColor: "#111111"
 			},
 			"MARS BALL": {
 				name: "Mars Ball",
 				backgroundColor: "maroon",
-				textColor: "white"
+				textColor: "#EEEEEE"
+			},
+			"MINIGAME": {
+				name: "Minigame",
+				backgroundColor: "#B73AB3",
+				textColor: "#EEEEEE"
 			},
 			"ROTATION": {
 				name: "Rotation",
 				backgroundColor: "linear-gradient(90deg, #33C738, #A4D270)",
-				textColor: "white"
+				textColor: "#EEEEEE"
 			},
 			"RETIRED": {
 				name: "Retired",
 				backgroundColor: "linear-gradient(90deg, #C4C4C4, #D1D1D1)",
-				textColor: "black"
+				textColor: "#111111"
 			}
 		}
 	},
