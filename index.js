@@ -436,7 +436,7 @@ apiRouter.get('/test/:mapid', async (req, res) => {
 apiRouter.post('/upload_map', 
 	// mapUploadLimiter,
 	loginMiddleware, async (req, res) => {
-	if(true || Utils.hasCorrectParameters(req.body, {
+	if(Utils.hasCorrectParameters(req.body, {
 		logic: "string",
 		layout: "string",
 		sourceMapID: "number",
@@ -495,8 +495,17 @@ apiRouter.post('/upload_map',
 			let versionSourceMapEntry = 0;
 			if(req.body.sourceMapID !== 0) versionSourceMapEntry = await MapEntry.findOne({mapID: req.body.sourceMapID});
 
-			// The map entry gets counted as a remix if there is no author account and the map has a different version source.
-			let isRemix = authorIDs.length === 0 ? versionSourceMapEntry === 0 : (versionSourceMapEntry ? !versionSourceMapEntry.authorIDs.includes(req.profileID) : false);
+			// isRemix is true if a versionSource was given and the submitter is not an author of the original source
+			// isRemix is false if a versionSource was given and the submitter is an author of the original source
+			// isRemix is false if a versionSource was not given
+			let isRemix = versionSourceMapEntry !== 0 ? false : (
+				!versionSourceMapEntry.authorIDs.includes(req.profileID)
+			);
+
+			// Three Final States:
+			// 1. isRemix = true + versionSource > 0 = Map is a remix
+			// 2. isRemix = false + versionSource === 0 = Map is original
+			// 3. isRemix = false + versionSource > 0 = Map is a new version
 
 			// Find the best way to scale the preview image to turn it into a thumbnail
 			let newWidth;
@@ -544,25 +553,9 @@ apiRouter.post('/upload_map',
 			});
 
 			// Save the MapEntry to MongoDB
-			// await MapEntry.create({
-			// 	name: mapName,
-			// 	authorIDs: authorIDs,
-			// 	authorName: authorName,
-			// 	description: "No Description",
-			// 	dateUploaded: new Date(),
-			// 	tags: [],
-			// 	hiddenTags: [],
-			// 	mapID: newMapID,
-			// 	json: mapLogic,
-			// 	png: mapLayout,
-			// 	versionSource: versionSource,
-			// 	isRemix: isRemix,
-			// 	unlisted: req.body.unlisted
-			// });
-			
 			await MapEntry.create({
 				name: mapName,
-				authorIDs: [],
+				authorIDs: authorIDs,
 				authorName: authorName,
 				description: "No Description",
 				dateUploaded: new Date(),
@@ -573,8 +566,7 @@ apiRouter.post('/upload_map',
 				png: mapLayout,
 				versionSource: versionSource,
 				isRemix: isRemix,
-				unlisted: req.body.unlisted,
-				...(req.body.extra || {})
+				unlisted: req.body.unlisted
 			});
 
 			// Send the new map ID to the client.
