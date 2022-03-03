@@ -52,7 +52,7 @@ setInterval(() => {
 
 				data.users.forEach(item => {
 					$("#authorSearchList").append(`<li data-id="${item.id}"><b>${item.username}</b> / <code>${item.id}</code></li>`);
-					USER_ID_NAME_MAP[item.id] = item.username;
+					updateUserIDNameMap({[item.id]: item.username});
 				});
 
 				resetAuthorHandlers();
@@ -152,10 +152,16 @@ function updateProfileLinks() {
 		$(".profile-link").each(function(idx){
 			let id = $(this).attr("href").split("/")[2];
 			$(this).text(json.usernames[id]);
-			USER_ID_NAME_MAP = {
-				...USER_ID_NAME_MAP,
-				...json.usernames
-			};
+			updateUserIDNameMap(json.usernames);
 		});
 	});
+}
+
+function updateUserIDNameMap(obj) {
+	USER_ID_NAME_MAP = {
+		...USER_ID_NAME_MAP,
+		...obj
+	};
+
+	authorInput.render();
 }

@@ -30,7 +30,7 @@ class TagInput {
 
 	init(tags) {
 		this.tags = tags;
-		this.renderTags(this.tags);
+		this.render();
 		return this;
 	}
 
@@ -40,7 +40,7 @@ class TagInput {
 
 		this.tags.push(name);
 
-		this.renderTags(this.tags);
+		this.render();
 
 		return this;
 	}
@@ -48,9 +48,13 @@ class TagInput {
 	deleteTag(index) {
 		this.tags.splice(index, 1);
 
-		this.renderTags(this.tags);
+		this.render();
 
 		return this;
+	}
+
+	render() {
+		return this.renderTags(this.tags);
 	}
 
 	renderTags(tagList) {

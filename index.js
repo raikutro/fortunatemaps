@@ -87,21 +87,28 @@ function loadLoginTokens() {
 }
 
 let loginMiddleware = (req, res, next) => {
+	req.profileID = false;
 	req.getProfile = () => null;
-	if(loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]]){
+
+	if(process.env.PROFILE_ID_OVERRIDE) {
+		req.profileID = process.env.PROFILE_ID_OVERRIDE;
+	} else if(loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]]){
 		req.profileID = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]].profileID;
-		req.getProfile = async () => {
-			if(!req.profileData) req.profileData = await User.findById(req.profileID)
-			.then(doc => doc.toObject())
-			.catch(err => {
-				console.error(err);
+	}
 
-				return null;
-			});
+	if(!req.profileID) return next();
 
-			return req.profileData;
-		};
-	} else req.profileID = false;
+	req.getProfile = async () => {
+		if(!req.profileData) req.profileData = await User.findById(req.profileID)
+		.then(doc => doc.toObject())
+		.catch(err => {
+			console.error(err);
+
+			return null;
+		});
+
+		return req.profileData;
+	};
 
 	next();
 };
