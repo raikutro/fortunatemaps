@@ -26,7 +26,7 @@ const SETTINGS = {
 			},
 			1: {
 				priority: 10,
-				name: "Developer",
+				name: "F-M Developer",
 				backgroundColor: "#3F51B5",
 				textColor: "#EEEEEE"
 			},
@@ -34,6 +34,12 @@ const SETTINGS = {
 				priority: 9,
 				name: "MTC",
 				backgroundColor: "#4CAF50",
+				textColor: "#EEEEEE"
+			},
+			3: {
+				priority: 8,
+				name: "TPFG",
+				backgroundColor: "#33C738",
 				textColor: "#EEEEEE"
 			}
 		},
