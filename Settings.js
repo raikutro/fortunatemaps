@@ -66,8 +66,13 @@ const SETTINGS = {
 			},
 			"ROTATION": {
 				name: "Rotation",
-				backgroundColor: "linear-gradient(90deg, #33c738, #a4d270)",
+				backgroundColor: "linear-gradient(90deg, #33C738, #A4D270)",
 				textColor: "white"
+			},
+			"RETIRED": {
+				name: "Retired",
+				backgroundColor: "linear-gradient(90deg, #C4C4C4, #D1D1D1)",
+				textColor: "black"
 			}
 		}
 	},
