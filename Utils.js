@@ -55,6 +55,9 @@ Utils.makeAlphanumeric = text => text.replace(/[^a-zA-Z0-9-]/gi, "");
 
 Utils.templateEngineData = (req) => {return {
 	SETTINGS,
+	CONTEXT: {
+		PROFILE_ID: req.profileID || null
+	},
 	profileID: req.profileID
 }};
 

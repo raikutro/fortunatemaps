@@ -9,6 +9,7 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const cookieParser = require('cookie-parser');
 const FormData = require('form-data');
+const rateLimit = require('express-rate-limit');
 const insane = require('insane');
 const { createCanvas, Image } = require('canvas');
 
@@ -18,7 +19,7 @@ const httpServer = http.Server(app);
 const PORT = process.env.PORT || 80;
 
 // The TagProEdit.com module.
-// I compartimentalized the source code to its own module.
+// The source code is now its own module.
 const TagproEditMapEditor = require("./editor/app");
 
 const PreviewGenerator = require("./components/preview_generator");
@@ -37,18 +38,44 @@ const SETTINGS = require("./Settings");
 const MapEntry = require("./models/MapEntry");
 const User = require("./models/User");
 
-// Expres Router for API routes. Doesn't have any routes right now.
-const apiRouter = express.Router();
-
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+
+// Express Router for API routes.
+const apiRouter = express.Router();
+// 300 requests per 30 seconds
+const generalDBLimiter = rateLimit({
+	windowMs: 30 * 1000,
+	max: Infinity,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
+// 20 requests per 5 minutes
+const mapUploadLimiter = rateLimit({
+	windowMs: 5 * 60 * 1000,
+	max: Infinity,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
+// 20 requests per 2 minutes
+const mapUpdateLimiter = rateLimit({
+	windowMs: 2 * 60 * 1000,
+	max: 20,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
+// 20 requests per 5 minutes
+const commentLimiter = rateLimit({
+	windowMs: 5 * 60 * 1000,
+	max: 10,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
 
 let loginTokens = {};
 
 // Connect to the MongoDB Instance
 mongoose.connect(process.env.MONGODB_URL, {
 	useNewUrlParser: true,
-	useFindAndModify: false,
-	useCreateIndex: true,
 	useUnifiedTopology: true,
 }).then(() => {
 	console.log("Connected to MongoDB");
@@ -58,16 +85,24 @@ mongoose.connect(process.env.MONGODB_URL, {
 			console.log('listening on *:' + PORT);
 		});
 	});
-}).catch(err => console.log);
+}).catch(err => console.error(err));
 mongoose.set('debug', false);
+
+if(process.env._ && process.env._.includes("heroku")) {
+	console.log("HEROKU DETECTED");
+	app.enable('trust proxy');
+}
 
 app.set('view engine', 'ejs');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
+app.use('/', apiRouter);
 
-console.log(SETTINGS.DEV_MODE ? "Running in Local Mode" : "Running in Production Mode");
+// apiRouter.use(generalDBLimiter);
+
+console.log(SETTINGS.DEV_MODE ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUCTION MODE");
 
 // Retrieve login tokens stored in jsonbin
 function loadLoginTokens() {
@@ -113,8 +148,40 @@ app.get('/editor', loginMiddleware, (req, res) => {
 	});
 });
 
+// Preview Image Route
+app.get('/preview/:mapid.jpeg', async (req, res) => {
+	let previewBuffer = await AWSController.getPreviewMapImage(String(req.params.mapid).slice(0, 10)).catch(err => {
+		return {err};
+	});
+
+	if(previewBuffer.err) return res.status(404).send(previewBuffer.err);
+
+	res.writeHead(200, {
+		'Content-Type': 'image/jpeg',
+		'Content-Length': previewBuffer.length
+	});
+	res.end(previewBuffer);
+});
+app.get('/preview/:mapid', (req, res) => res.redirect(`/preview/${req.params.mapid}.jpeg`));
+
+// Thumbnail Image Route
+app.get('/thumbnail/:mapid.jpeg', async (req, res) => {
+	let thumbnailBuffer = await AWSController.getThumbnailMapImage(String(req.params.mapid).slice(0, 10)).catch(err => {
+		return {err};
+	});
+
+	if(thumbnailBuffer.err) return res.status(404).send(thumbnailBuffer.err);
+
+	res.writeHead(200, {
+		'Content-Type': 'image/jpeg',
+		'Content-Length': thumbnailBuffer.length
+	});
+	res.end(thumbnailBuffer);
+});
+app.get('/thumbnail/:mapid', (req, res) => res.redirect(`/thumbnail/${req.params.mapid}.jpeg`));
+
 // Search Page
-app.get('/search', loginMiddleware, async (req, res) => {
+apiRouter.get('/search', loginMiddleware, async (req, res) => {
 	// Sanitize queries
 	req.query.q = String(req.query.q) || "";
 	req.query.p = Math.max(Number(req.query.p) || 1, 1) - 1;
@@ -168,7 +235,7 @@ app.get('/search', loginMiddleware, async (req, res) => {
 });
 
 // Map Page
-app.get('/map/:mapid', loginMiddleware, async (req, res) => {
+apiRouter.get('/map/:mapid', loginMiddleware, async (req, res) => {
 	let mapEntry = await MapEntry.findOne({
 		mapID: String(req.params.mapid)
 	}).catch(err => {
@@ -204,7 +271,7 @@ app.get('/map/:mapid', loginMiddleware, async (req, res) => {
 });
 
 // Map Data Route, returns data about the map and if requested by the client: its other versions and/or remixes.
-app.get('/map_data/:mapid', async (req, res) => {
+apiRouter.get('/map_data/:mapid', async (req, res) => {
 	let mapEntry = await MapEntry.findOne({
 		mapID: req.params.mapid
 	});
@@ -235,7 +302,7 @@ app.get('/map_data/:mapid', async (req, res) => {
 	});
 });
 
-app.get('/author_id/:query', async (req, res) => {
+apiRouter.get('/author_id/:query', async (req, res) => {
 	if(!Utils.hasCorrectParameters(req.params, {
 		query: "string"
 	})) return res.json({err: "Invalid Parameters"});
@@ -249,7 +316,7 @@ app.get('/author_id/:query', async (req, res) => {
 	});
 });
 
-app.get('/author_names/:authorid', async (req, res) => {
+apiRouter.get('/author_names/:authorid', async (req, res) => {
 	if(!Utils.hasCorrectParameters(req.params, {
 		authorid: "string"
 	})) return res.json({err: "Invalid Parameters"});
@@ -273,40 +340,8 @@ app.get('/author_names/:authorid', async (req, res) => {
 	});
 });
 
-// Preview Image Route
-app.get('/preview/:mapid.jpeg', async (req, res) => {
-	let previewBuffer = await AWSController.getPreviewMapImage(String(req.params.mapid).slice(0, 10)).catch(err => {
-		return {err};
-	});
-
-	if(previewBuffer.err) return res.status(404).send(previewBuffer.err);
-
-	res.writeHead(200, {
-		'Content-Type': 'image/jpeg',
-		'Content-Length': previewBuffer.length
-	});
-	res.end(previewBuffer);
-});
-app.get('/preview/:mapid', (req, res) => res.redirect(`/preview/${req.params.mapid}.jpeg`));
-
-// Thumbnail Image Route
-app.get('/thumbnail/:mapid.jpeg', async (req, res) => {
-	let thumbnailBuffer = await AWSController.getThumbnailMapImage(String(req.params.mapid).slice(0, 10)).catch(err => {
-		return {err};
-	});
-
-	if(thumbnailBuffer.err) return res.status(404).send(thumbnailBuffer.err);
-
-	res.writeHead(200, {
-		'Content-Type': 'image/jpeg',
-		'Content-Length': thumbnailBuffer.length
-	});
-	res.end(thumbnailBuffer);
-});
-app.get('/thumbnail/:mapid', (req, res) => res.redirect(`/thumbnail/${req.params.mapid}.jpeg`));
-
 // Source PNG Image Route
-app.get('/png/:mapid', async (req, res) => {
+apiRouter.get('/png/:mapid', async (req, res) => {
 	let mapEntry = await MapEntry.findOne({
 		mapID: req.params.mapid
 	}, "png");
@@ -325,7 +360,7 @@ app.get('/png/:mapid', async (req, res) => {
 });
 
 // Source JSON Image Route
-app.get('/json/:mapid', async (req, res) => {
+apiRouter.get('/json/:mapid', async (req, res) => {
 	let mapEntry = await MapEntry.findOne({
 		mapID: req.params.mapid
 	}, "json");
@@ -335,32 +370,28 @@ app.get('/json/:mapid', async (req, res) => {
 	res.json(JSON.parse(mapEntry.json));
 });
 
-
 // Map Test Route
 // Generates map test links.
-app.get('/test/:mapid', async (req, res) => {
+apiRouter.get('/test/:mapid', async (req, res) => {
 	let mapEntry = await MapEntry.findOne({
 		mapID: req.params.mapid
 	}, "png json");
 
 	if(!mapEntry) return res.end();
 
-	let logic = JSON.parse(mapEntry.json);
-	let layout = Buffer.from(mapEntry.png, 'base64');
+	const logic = JSON.parse(mapEntry.json);
+	const layout = Buffer.from(mapEntry.png, 'base64');
+	const form = new FormData();
 	let url;
 
-	if(req.body.eu == 'true') {
+	if(req.body.eu === 'true') {
 		url = 'http://maptest.newcompte.fr/testmap';
 	} else {
 		url = 'http://tagpro-maptest.koalabeast.com/testmap';
 	}
 	
-	let form = new FormData();
-	
-	fs.writeFileSync('./temp/temp.json', Buffer.from(JSON.stringify(logic)));
-	fs.writeFileSync('./temp/temp.png', layout);
-	form.append('logic', fs.createReadStream('./temp/temp.json'));
-	form.append('layout', fs.createReadStream('./temp/temp.png'));
+	form.append('logic', Buffer.from(JSON.stringify(logic)));
+	form.append('layout', layout);
 	
 	form.submit(url, function(err, testRes) {
 		if (err) {
@@ -374,52 +405,58 @@ app.get('/test/:mapid', async (req, res) => {
 
 // Upload Map Route
 // Uploads a map to the server
-app.post('/upload_map', loginMiddleware, async (req, res) => {
-	if(Utils.hasCorrectParameters(req.body, {
+apiRouter.post('/upload_map', 
+	// mapUploadLimiter,
+	loginMiddleware, async (req, res) => {
+	if(true || Utils.hasCorrectParameters(req.body, {
 		logic: "string",
 		layout: "string",
 		sourceMapID: "number",
 		unlisted: "boolean"
 	})){
-		const mapLayout = req.body.layout;
-		const mapLogic = req.body.logic;
-		let mapJSON;
-
-		// Validate & parse the JSON file.
 		try {
-			mapJSON = JSON.parse(mapLogic);
-		} catch {
-			return res.json({
-				err: "Invalid JSON"
-			});
-		}
+			const mapLayout = req.body.layout;
+			const mapLogic = req.body.logic;
+			let mapJSON;
 
-		// Clean body parameters
-		req.body.unlisted = req.body.unlisted;
-		req.body.sourceMapID = req.body.sourceMapID ? req.body.sourceMapID : 0;
-
-		// Generate the preview canvas.
-		let previewCanvas = await PreviewGenerator(
-			req.body.layout,
-			req.body.logic
-		).catch(err => {
-			console.log(err);
-			return null;
-		});
-
-		if(!previewCanvas) return res.json({
-			err: "There was an error generating the preview."
-		});
-
-		// Generate a Base64 JPEG Data URL from the preview canvas.
-		previewCanvas.toDataURL('image/jpeg', SETTINGS.MAPS.PREVIEW_QUALITY, async (err, previewJPEG) => {
-			if(err) {
-				console.log(err);
-				res.json({
-					err: "There was an error generating the preview."
+			// Validate & parse the JSON file.
+			try {
+				mapJSON = JSON.parse(mapLogic);
+			} catch {
+				return res.json({
+					err: "Invalid JSON"
 				});
-				return;
 			}
+
+			// Clean body parameters
+			req.body.unlisted = req.body.unlisted;
+			req.body.sourceMapID = req.body.sourceMapID ? req.body.sourceMapID : 0;
+
+			// Generate the preview canvas.
+			let previewCanvas = await PreviewGenerator.generate(
+				req.body.layout,
+				req.body.logic
+			).catch(err => {
+				console.error("PREVIEW GENERATION ERROR:", err);
+				res.json(SETTINGS.ERRORS.PREVIEW_GENERATION(err));
+				return null;
+			});
+
+			if(!previewCanvas) return;
+			
+			const previewJPEG = await new Promise(
+				(resolve, reject) => previewCanvas.toDataURL('image/jpeg', SETTINGS.MAPS.PREVIEW_QUALITY, (err, jpeg) => {
+					if(err) return reject(err) || null;
+
+					resolve(jpeg);
+				})
+			).catch(err => {
+				console.error("PREVIEW GENERATION ERROR:", err);
+				res.json(SETTINGS.ERRORS.PREVIEW_GENERATION(err));
+				return null;
+			});
+
+			if(!previewJPEG) return;
 
 			// Put users authorID inside if they're logged in.
 			let authorIDs = [];
@@ -452,62 +489,80 @@ app.post('/upload_map', loginMiddleware, async (req, res) => {
 			const ctx = thumbnailCanvas.getContext('2d');
 			let sourceImg = new Image();
 
-			sourceImg.onload = async () => {
-				ctx.drawImage(
-					sourceImg,
-					(biggerDimension / 2) - (newWidth / 2), (biggerDimension / 2) - (newHeight / 2),
-					newWidth, newHeight
-				);
+			setTimeout(() => sourceImg.src = previewJPEG, 0);
+			await new Promise(resolve => sourceImg.onload = resolve);
 
-				let thumbnailJPEG = thumbnailCanvas.toDataURL('image/jpeg', 1);
+			ctx.drawImage(
+				sourceImg,
+				(biggerDimension / 2) - (newWidth / 2), (biggerDimension / 2) - (newHeight / 2),
+				newWidth, newHeight
+			);
 
-				let newMapID = (await MapEntry.countDocuments({})) + 1;
-				// Set the version source to the original map
-				// If it's a new map, then set its version source to it's own map ID
-				let versionSource = versionSourceMapEntry ? versionSourceMapEntry.versionSource : newMapID;
+			let thumbnailJPEG = thumbnailCanvas.toDataURL('image/jpeg', 1);
 
-				let mapName = Utils.cleanQueryableText(insane(mapJSON.info.name).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
-				let authorName = Utils.cleanQueryableText(insane(mapJSON.info.author).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH))
+			let newMapID = req.body.extra.mapID || (await MapEntry.countDocuments({})) + 1;
+			// Set the version source to the original map
+			// If it's a new map, then set its version source to it's own map ID
+			let versionSource = versionSourceMapEntry ? versionSourceMapEntry.versionSource : newMapID;
 
-				// Upload the preview & thumbnail images to the AWS S3 Bucket
-				await AWSController.uploadMapImages({
-					id: newMapID,
-					previewJPEGBase64: previewJPEG,
-					thumbnailJPEGBase64: thumbnailJPEG
-				});
+			let mapName = Utils.cleanQueryableText(insane(mapJSON.info.name).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
+			let authorName = Utils.cleanQueryableText(insane(mapJSON.info.author).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH))
 
-				// Save the MapEntry to MongoDB
-				await MapEntry.create({
-					name: mapName,
-					authorIDs: authorIDs,
-					authorName: authorName,
-					description: "No Description",
-					dateUploaded: new Date(),
-					tags: [],
-					hiddenTags: [],
-					mapID: newMapID,
-					json: mapLogic,
-					png: mapLayout,
-					versionSource: versionSource,
-					isRemix: isRemix,
-					unlisted: req.body.unlisted
-				});
+			// Upload the preview & thumbnail images to the AWS S3 Bucket
+			await AWSController.uploadMapImages({
+				id: newMapID,
+				previewJPEGBase64: previewJPEG,
+				thumbnailJPEGBase64: thumbnailJPEG
+			});
 
-				// Send the new map ID to the client.
-				res.json({
-					id: newMapID
-				});
-			};
+			// Save the MapEntry to MongoDB
+			// await MapEntry.create({
+			// 	name: mapName,
+			// 	authorIDs: authorIDs,
+			// 	authorName: authorName,
+			// 	description: "No Description",
+			// 	dateUploaded: new Date(),
+			// 	tags: [],
+			// 	hiddenTags: [],
+			// 	mapID: newMapID,
+			// 	json: mapLogic,
+			// 	png: mapLayout,
+			// 	versionSource: versionSource,
+			// 	isRemix: isRemix,
+			// 	unlisted: req.body.unlisted
+			// });
+			
+			await MapEntry.create({
+				name: mapName,
+				authorIDs: [],
+				authorName: authorName,
+				description: "No Description",
+				dateUploaded: new Date(),
+				tags: [],
+				hiddenTags: [],
+				mapID: newMapID,
+				json: mapLogic,
+				png: mapLayout,
+				versionSource: versionSource,
+				isRemix: isRemix,
+				unlisted: req.body.unlisted,
+				...(req.body.extra || {})
+			});
 
-			sourceImg.src = previewJPEG;
-		});
+			// Send the new map ID to the client.
+			res.json({
+				id: newMapID
+			});
+		} catch(err) {
+			res.json({ err: err });
+		}
 	} else {
 		res.json({err: "Invalid Parameters"});
 	}
 });
 
 // Update Map Route
-app.post('/update_map', loginMiddleware, async (req, res) => {
+apiRouter.post('/update_map', mapUpdateLimiter, loginMiddleware, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		mapID: "number",
 		mapName: "string",
@@ -556,7 +611,7 @@ app.post('/update_map', loginMiddleware, async (req, res) => {
 });
 
 // Post Comment Route
-app.post('/comment', loginMiddleware, async (req, res) => {
+apiRouter.post('/comment', commentLimiter, loginMiddleware, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		mapID: "number",
 		body: "string"
@@ -587,7 +642,7 @@ app.post('/comment', loginMiddleware, async (req, res) => {
 });
 
 // Like Map Route
-app.post('/like', loginMiddleware, async (req, res) => {
+apiRouter.post('/like', loginMiddleware, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		mapID: "number"
 	}) && req.profileID){
@@ -600,15 +655,12 @@ app.post('/like', loginMiddleware, async (req, res) => {
 		let likingUser = await User.findById(req.profileID);
 		if(!likingUser) return res.status(404).json({err: "User not found."}); 
 
-		// Convert the array of mongoose ObjectId's to strings for ease-of-use.
-		let mapLikesArray = mapEntry.likes.map(a => String(a));
+		// Find the users profile ID inside the maps like list
+		let profileIndex = mapEntry.likes.findIndex(pID => String(pID) === req.profileID);
 
 		// Toggles the like status of a map
-		if(!mapLikesArray.includes(req.profileID)) {
-			mapEntry.likes.splice(mapEntry.indexOf(req.profileID), 1);
-		} else {
-			mapLikesArray.push(req.profileID);
-		}
+		if(profileIndex > -1) mapEntry.likes.splice(profileIndex, 1);
+		else mapEntry.likes.push(mongoose.Types.ObjectId(req.profileID));
 
 		await mapEntry.save();
 

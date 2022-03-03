@@ -12,19 +12,19 @@
 		<%- include('nav'); %>
 
 		<main role="main" class="container">
-			<div class="row">
+			<div class="row mb-2">
 				<div class="col-md-8">
 					<div class="card">
-						<img src="/preview/<%- map.mapID %>" class="card-img-top mt-2" alt="...">
+						<img src="/preview/<%- map.mapID %>" class="card-img-top" alt="<%- map.name %> by <%- map.authorName %>">
 						<div class="card-body">
 							<div class="text-center">
 								<h5 class="card-title">
-									<b><%= map.name %></b> by <b><%= map.authorName %></b>
+									<b><%- map.name %></b> by <b><%- map.authorName %></b>
 								</h5>
 								<!-- <p class="card-text">Look at this map.</p> -->
 							</div>
 							<hr>
-							<div class="btn-group w-100" role="group" aria-label="Basic example">
+							<div class="btn-group w-100" role="group" aria-label="Map Controls">
 								<a type="button" class="btn btn-primary" href="/test/<%- map.mapID %>">Test</a>
 								<a type="button" class="btn btn-primary" href="/preview/<%- map.mapID %>">Fullsize Preview</a>
 								<a type="button" class="btn btn-primary" href="/png/<%- map.mapID %>">.PNG</a>
@@ -121,12 +121,14 @@
 				</div>
 			</div>
 			<hr>
-			<div class="markdown-container mt-2">
-				<textarea id="commentInput"></textarea>
+			<div class="comment-editor-container mb-2">
+				<div class="markdown-container">
+					<textarea id="commentInput"></textarea>
+				</div>
+				<button class="btn btn-primary w-100" id="submitCommentBtn">Submit</button>
+				<hr>
 			</div>
-			<button class="btn btn-primary w-100" id="submitCommentBtn">Submit</button>
-			<hr>
-			<div class="card">
+			<div class="card mb-2">
 				<div class="card-header">
 					Comments
 				</div>
@@ -205,6 +207,12 @@
 				</div>
 			</div>
 		</div>
+
+		<footer class="py-3 bg-primary text-light">
+			<div class="container">
+				<p class="text-center m-0">Developed by Electro ⚡</p>
+			</div>
+		</footer>
 
 		<script type="text/javascript">window.MAP_DATA = <%- JSON.stringify(map) %></script>
 

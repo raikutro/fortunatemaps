@@ -1,4 +1,5 @@
-const markdownEditor = new SimpleMDE({ element: document.getElementById("commentInput") });
+const markdownEditor = new SimpleMDE({ element: document.querySelector('#commentInput') });
+const commentEditorContainer = document.querySelector('.comment-editor-container');
 
 let lastAuthorSearchInput = "";
 
@@ -31,6 +32,10 @@ $("#descriptionText").val(window.MAP_DATA.description);
 $("#tagsGroup .dropdown-item").click(function(e){
 	tagInput.addTag($(this).attr("data-type"));
 });
+
+if(window.CONTEXT.PROFILE_ID === null) {
+	commentEditorContainer.style.display = "none";
+}
 
 setInterval(() => {
 	let authorSearchInput = $("#authorsInput").val().slice(0, 24);
@@ -99,7 +104,7 @@ $("#submitCommentBtn").click(() => {
 function updateComments() {
 	$("#commentsContainer").empty();
 	window.MAP_DATA.comments.forEach(comment => {
-		let renderedMarkdown = marked(comment.body);
+		let renderedMarkdown = marked.parse(comment.body);
 		let cleanMarkdown = DOMPurify.sanitize(renderedMarkdown);
 
 		$("#commentsContainer").append(`
@@ -138,7 +143,9 @@ function updateProfileLinks() {
 
 	ids = Array.from(new Set(ids));
 
-	fetch("/author_names/" + ids.join(",")).then(a => a.json()).then(json => {
+	if(ids.length === 0) return null;
+
+	return fetch("/author_names/" + ids.join(",")).then(a => a.json()).then(json => {
 		$(".profile-link").each(function(idx){
 			let id = $(this).attr("href").split("/")[2];
 			$(this).text(json.usernames[id]);
