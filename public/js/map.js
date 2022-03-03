@@ -42,7 +42,11 @@ $("#tagsGroup .dropdown-item").click(function(e){
 });
 
 setInterval(() => {
-	let authorSearchInput = $("#authorsInput").val().slice(0, 24);
+	let authorSearchInput = $("#authorsInput").val().trim().slice(0, 24);
+
+	if(authorSearchInput.length === 0) {
+		$("#authorSearchList").hide();
+	} else $("#authorSearchList").show();
 
 	if(authorSearchInput !== lastAuthorSearchInput) {
 		if(authorSearchInput.length > 2 && authorSearchInput.length < 24) {

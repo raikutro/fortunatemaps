@@ -152,18 +152,17 @@
 							<input type="text" class="form-control" id="mapAuthorInput" value="<%- map.authorName %>" maxlength="<%- SETTINGS.SITE.AUTHOR_LENGTH %>" placeholder="Map Author">
 						</div>
 						<hr>
-						<b class="tag-container">Authors: <span id="authorsDisplay">
-							
-						</span></b>
+
+						<b class="tag-container">Authors: <span id="authorsDisplay"></span></b>
 						<div class="input-group mt-2" id="authorsGroup">
-							<input type="text" class="form-control" id="authorsInput" placeholder="Author ID or Username" maxlength="24">
+							<input type="text" class="form-control" id="authorsInput" placeholder="Author ID or Username" maxlength="24" autocomplete="no">
 							<div class="input-group-append">
 								<button type="button" class="btn btn-secondary" id="addAuthorBtn">Add</button>
 							</div>
 						</div>
-						<ul id="authorSearchList">
-							
-						</ul>
+						<ul id="authorSearchList"></ul>
+
+						<p></p>
 
 						<b class="tag-container">Tags: <span id="tagsDisplay">
 							
