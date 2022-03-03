@@ -11,6 +11,19 @@
 		<%- include('nav'); %>
 
 		<main role="main" class="container">
+			<div class="text-center">
+				<code>
+					<%-
+						[
+							(query.length !== 0 ? `Query: ${query}` : null),
+							(parsedSpecials.tag.length !== 0 ? `Tags: ${parsedSpecials.tag.join(", ")}` : null),
+							(parsedSpecials.author.length !== 0 ? `Authors: ${parsedSpecials.author.join(", ")}` : null),
+							(parsedSpecials.authorText.length !== 0 ? `Author Text: ${parsedSpecials.authorText.join(", ")}` : null)
+						].filter(t => t).join(" | ")
+					%>
+				</code>
+			</div>
+			<hr>
 			<div class="map-container">
 				<%- include('maplister'); %>
 			</div>

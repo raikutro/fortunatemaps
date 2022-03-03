@@ -138,17 +138,27 @@ app.get('/search', loginMiddleware, async (req, res) => {
 	req.query.q = String(req.query.q) || "";
 	req.query.p = Math.max(Number(req.query.p) || 1, 1) - 1;
 
-	// Grab "@"'s and "#"'s and the text that comes after.
-	let specialQueries = req.query.q.match(/(^|\s)([#@][a-z\d-]+)/gi) || [];
+	// Grab "@", "@@", and "#" and the text that comes after.
+	const specialQueries = req.query.q.match(/(^|)((@@|@|#)[a-z\d-]+)/gi) || [];
+
+	// Get all the "@" queries.
+	const rawQueries = {
+		author: specialQueries.filter(a => a.startsWith("@") && !a.startsWith("@@")),
+		tag: specialQueries.filter(a => a.startsWith("#")),
+		authorText: specialQueries.filter(a => a.startsWith("@@")),
+	};
 
 	// This monster of a statement gets all "@" queries and converts them to a list of user ids.
-	let authorQueries = (await Promise.all(specialQueries.filter(a => a.includes("@")).map(a => new Promise(async (resolve) => {
+	const authorQueries = (await Promise.all(rawQueries.author.map(a => new Promise(async (resolve) => {
 		let user = (await User.findOne({username: new RegExp(Utils.makeAlphanumeric(a), "i")}, "_id")) || {_id: ""};
 		resolve(user._id);
 	})))).filter(a => a.length !== 0);
 	
 	// Get all the "#" queries and sanitize them.
-	let tagQueries = specialQueries.filter(a => a.includes("#")).map(a => new RegExp(Utils.makeAlphanumeric(a).trim(), "i"));
+	const tagQueries = rawQueries.tag.map(a => new RegExp(Utils.makeAlphanumeric(a).trim(), "i"));
+
+	// Get all the "@@" queries and sanitize them.
+	const authorTextQueries = rawQueries.authorText.map(a => new RegExp(Utils.makeAlphanumeric(a).trim(), "i"));
 
 	// Remove all the special queries from the actual query
 	specialQueries.forEach(specialQuery => {
@@ -157,8 +167,6 @@ app.get('/search', loginMiddleware, async (req, res) => {
 
 	// Trim off the whitespace
 	req.query.q = req.query.q.trim();
-
-	console.log(req.query.q, tagQueries, authorQueries);
 
 	let finalQuery = {
 		name: new RegExp(req.query.q, 'i'),
@@ -176,12 +184,13 @@ app.get('/search', loginMiddleware, async (req, res) => {
 		.limit(SETTINGS.SITE.MAPS_PER_PAGE)
 		.sort({ dateUploaded: -1 });
 
-	// console.log(req.query);
-
 	res.render('search', {
 		...(await Utils.templateEngineData(req)),
 		query: req.query.q,
 		page: req.query.p + 1,
+		parsedSpecials: {
+			...rawQueries
+		},
 		maps
 	});
 });
