@@ -34,7 +34,11 @@
 				profileID ?
 					`<a class="settings-button" href="/settings"><i class="fas fa-cog"></i></a>
 					<a class="sign-out-button" href="/sign_out"><i class="fas fa-sign-out-alt"></i></a>` :
-					`<a class="sign-in-button" href="/sign_in"><i class="fas fa-sign-in-alt"></i></a>`
+					`<a class="sign-in-link" href="/sign_in">
+						<div class="sign-in-button">
+							<img src="/assets/logos/ctfauth.png"/> <span>Sign in with CTFAuth</span>
+						</div>
+					</a>`
 			%>
 		</div>
 	</div>

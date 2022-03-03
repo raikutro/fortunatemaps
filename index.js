@@ -122,8 +122,20 @@ function loadLoginTokens() {
 }
 
 let loginMiddleware = (req, res, next) => {
+	req.getProfile = () => null;
 	if(loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]]){
 		req.profileID = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]].profileID;
+		req.getProfile = async () => {
+			if(!req.profileData) req.profileData = await User.findById(req.profileID)
+			.then(doc => doc.toObject())
+			.catch(err => {
+				console.error(err);
+
+				return null;
+			});
+
+			return req.profileData;
+		};
 	} else req.profileID = false;
 
 	next();
@@ -134,7 +146,7 @@ app.get('/', loginMiddleware, async (req, res) => {
 	let maps = await MapEntry.find({ unlisted: false }).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
 
 	res.render('index', {
-		...(Utils.templateEngineData(req)),
+		...(await Utils.templateEngineData(req)),
 		query: "",
 		page: 1,
 		maps
@@ -142,9 +154,9 @@ app.get('/', loginMiddleware, async (req, res) => {
 });
 
 // Map Editor
-app.get('/editor', loginMiddleware, (req, res) => {
+app.get('/editor', loginMiddleware, async (req, res) => {
 	res.render('editor', {
-		...(Utils.templateEngineData(req))
+		...(await Utils.templateEngineData(req))
 	});
 });
 
@@ -227,7 +239,7 @@ apiRouter.get('/search', loginMiddleware, async (req, res) => {
 	// console.log(req.query);
 
 	res.render('search', {
-		...(Utils.templateEngineData(req)),
+		...(await Utils.templateEngineData(req)),
 		query: req.query.q,
 		page: req.query.p + 1,
 		maps
@@ -245,11 +257,8 @@ apiRouter.get('/map/:mapid', loginMiddleware, async (req, res) => {
 
 	if(!mapEntry) return res.redirect("/");
 
-	let isAdmin = req.profileID ? (await User.findById(req.profileID, "isAdmin").catch(err => {
-		// console.log(err);
-		res.send("Invalid User ID");
-		return {isAdmin: false};
-	})).isAdmin : false;
+	const userProfile = await req.getProfile();
+	const isAdmin = userProfile ? userProfile.isAdmin : false;
 
 	let mapVersions = await MapEntry.find({
 		versionSource: mapEntry.versionSource,
@@ -262,7 +271,7 @@ apiRouter.get('/map/:mapid', loginMiddleware, async (req, res) => {
 	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
 
 	res.render('map', {
-		...(Utils.templateEngineData(req)),
+		...(await Utils.templateEngineData(req)),
 		map: mapEntry,
 		mapVersions,
 		mapRemixes,
@@ -576,15 +585,17 @@ apiRouter.post('/update_map', mapUpdateLimiter, loginMiddleware, async (req, res
 			mapID: req.body.mapID
 		});
 
+		const userProfile = await req.getProfile();
+
 		if(!mapEntry) return res.status(404).json({err: "Map not found."});
 
-		if(!mapEntry.authorIDs.includes(req.profileID))  return res.status(404).json({err: "User is not an author of this map."});
+		if(!mapEntry.authorIDs.includes(req.profileID) && !userProfile.isAdmin) return res.status(404).json({err: "User is not an author of this map."});
 
 		// Sanitize inputs
 		let tagsArray = Array.from(req.body.tags);
 		let authorsArray = Array.from(req.body.authors).map(a => String(a)).slice(0, SETTINGS.SITE.MAX_AUTHORS);
 
-		if(authorsArray.length === 0) return res.json({err: "Empty Author Array"});
+		if(authorsArray.length === 0 && !userProfile.isAdmin) return res.json({err: "Empty Author Array"});
 		if(authorsArray.some(a => a.length !== 24)) return res.json({err: "Invalid Author Array"});
 
 		if(tagsArray.length > 0) {

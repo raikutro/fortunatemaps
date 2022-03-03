@@ -53,12 +53,10 @@ Utils.isAlphanumeric = text => Boolean(text.match(/^[a-zA-Z0-9_]*$/gi));
 
 Utils.makeAlphanumeric = text => text.replace(/[^a-zA-Z0-9-]/gi, "");
 
-Utils.templateEngineData = (req) => {return {
+Utils.templateEngineData = async (req) => ({
 	SETTINGS,
-	CONTEXT: {
-		PROFILE_ID: req.profileID || null
-	},
-	profileID: req.profileID
-}};
+	profileID: req.profileID,
+	profile: req.getProfile ? await req.getProfile() : null
+});
 
 module.exports = Utils;

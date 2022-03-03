@@ -74,7 +74,7 @@
 								</div>
 							</div>
 							<hr>
-							<%- map.authorIDs.includes(profileID) ? `
+							<%- map.authorIDs.includes(profileID) || isAdmin ? `
 							<button class="btn btn-primary w-100" data-toggle="modal" data-target="#mapSettingsModal">Map Settings</button>
 							<hr>
 							` : "" %>
