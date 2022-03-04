@@ -421,36 +421,59 @@ app.get('/json/:mapid', (req, res) => res.redirect(`/json/${req.params.mapid}.js
 // Map Test Route
 // Generates map test links.
 apiRouter.get('/test/:mapid', async (req, res) => {
+	res.send(`
+<script>fetch(location.href.replace('/test/', '/create_test_link/'), {
+    method: 'POST'
+}).then(r => r.json()).then(json => {
+    if(json.err) return alert("ERROR: " + json.err);
+    location.href = json.url;
+});</script>
+`);
+});
+
+apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 	const mapID = Number(req.params.mapid);
-	if(!mapID) return res.send("Invalid Map ID");
+	if(!mapID) return res.json(SETTINGS.ERRORS.INVALID_MAP_ID());
 
 	let mapEntry = await MapEntry.findOne({
 		mapID: mapID
 	}, "png json");
 
-	if(!mapEntry) return res.end();
+	if(!mapEntry) return res.json(SETTINGS.ERRORS.NOT_FOUND("Map Entry Not Found"));
 
-	const logic = JSON.parse(mapEntry.json);
 	const layout = Buffer.from(mapEntry.png, 'base64');
+	const logic = Buffer.from(mapEntry.json);
+
 	const form = new FormData();
 	let url;
 
-	if(req.body.eu === 'true') {
+	if(req.query.eu) {
 		url = 'http://maptest.newcompte.fr/testmap';
 	} else {
-		url = 'http://tagpro-maptest.koalabeast.com/testmap';
+		url = 'https://tagpro-maptest-dallas.koalabeast.com/';
 	}
+
+	const {host, pathname} = new URL(url);
+
+	form.append('layout', layout, { filename: 'map.png', contentType: 'application/octet-stream' });
+	form.append('logic', logic, { filename: 'map.json', contentType: 'application/octet-stream' });
 	
-	form.append('logic', Buffer.from(JSON.stringify(logic)));
-	form.append('layout', layout);
-	
-	form.submit(url, function(err, testRes) {
-		if (err) {
-			res.send('Sorry, we could not start up a test map. ' + err.toString());
-		} else {
-			testRes.resume();
-			res.redirect(testRes.headers.location);
-		}
+	const testURL = await fetch(url, {
+		method: 'POST',
+		body: form,
+	}).then(r => {
+		// console.log(r.headers, r.status, r.statusText, r.ok, r.url);
+		return r.ok ? r.url : null;
+	}).catch(err => {
+		console.error(err);
+		res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL());
+		return null;
+	});
+
+	if(!testURL) return;
+
+	res.json({
+		url: testURL
 	});
 });
 

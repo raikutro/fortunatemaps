@@ -95,6 +95,8 @@ const SETTINGS = {
 		LOGIN_ERROR: errCode({ err: "An error occurred while logging in", code: "LOGIN.LOGIN_ERROR" }),
 		ALREADY_REGISTERED: errCode({ err: "This profile has already been registered", code: "REGISTER.ALREADY_REGISTERED" }),
 		INVALID_MAP_ID: errCode({ err: "That map ID is invalid", code: "SEARCH.INVALID_MAP_ID" }),
+		NOT_FOUND: errCode({ err: "That resource could not be located", code: "SEARCH.NOT_FOUND" }),
+		TEST_MAP_LINK_FAIL: errCode({ err: "Sorry, we could not start up a test map.", code: "TEST.TEST_MAP_LINK_FAIL" }),
 		PREVIEW_GENERATION: errCode({ err: "An error occurred while generating map preview", code: "CREATION.PREVIEW_GENERATION" }),
 		PREVIEW_WRITING: errCode({ err: "An error occurred while saving the map preview", code: "CREATION.PREVIEW_WRITING" }),
 		THUMBNAIL_GENERATION: errCode({ err: "An error occurred while generating map thumbnail", code: "CREATION.THUMBNAIL_GENERATION" })
