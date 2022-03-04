@@ -5,9 +5,6 @@ const fetch = require('node-fetch');
 const MapEntry = require('../models/MapEntry');
 const User = require('../models/User');
 
-// Middleware
-const LoginMiddleware = require('../middleware/LoginMiddleware');
-
 const Utils = require('../Utils');
 const SETTINGS = require('../Settings');
 
@@ -16,18 +13,18 @@ const DEFAULT_JSONBIN_DATA = {
 };
 
 module.exports = (app, loginTokens) => {
-	app.get('/register', async (req, res) => {
-		let profileData = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]];
+	const LoginMiddleware = require('../middleware/LoginMiddleware')(loginTokens);
 
-		if(profileData) {
-			let user = (await User.findById(profileData.profileID)).toObject();
+	app.get('/register', LoginMiddleware, async (req, res) => {
+		const user = await req.getProfile();
 
+		if(user) {
 			// Check if the user has been registered yet
 			if(user.username.length === 0) {
 				res.render('register', {
 					...(await Utils.templateEngineData(req)),
-					profileID: profileData.profileID,
-					tagproProfile: profileData.tagproProfile
+					profileID: user._id,
+					tagproProfile: user.tagproProfile
 				});
 			} else {
 				res.redirect("/#err=" + SETTINGS.ERRORS.ALREADY_REGISTERED().code);
@@ -70,7 +67,7 @@ module.exports = (app, loginTokens) => {
 	});
 
 	app.get('/p/:id', (req, res) => res.redirect("/profile/" + req.params.id));
-	app.get('/profile/:id', async (req, res) => {
+	app.get('/profile/:id', LoginMiddleware, async (req, res) => {
 		req.params.id = String(req.params.id);
 		let user;
 
@@ -84,32 +81,29 @@ module.exports = (app, loginTokens) => {
 			user = user.toObject();
 
 			let maps = await MapEntry.find({ authorIDs: user._id }).limit(20).sort({ dateUploaded: -1 });
-			let profileData = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]];
+			let profileID = req.profileID;
 			let renderData = {...(await Utils.templateEngineData(req)), user, maps};
 
-			if(profileData){
-				if(profileData.profileID === String(user._id)) {
+			if(profileID){
+				if(profileID === String(user._id)) {
 					if(user.username.length === 0) {
 						res.redirect("/register");
 					} else {
 						res.render('profile', {
 							...renderData,
-							isOwner: true,
-							profileID: profileData.profileID
+							isOwner: true
 						});
 					}
 				} else {
 					res.render('profile', {
 						...renderData,
-						isOwner: false,
-						profileID: profileData.profileID
+						isOwner: false
 					});
 				}
 			} else {
 				res.render('profile', {
 					...renderData,
-					isOwner: false,
-					profileID: false
+					isOwner: false
 				});
 			}
 		} else {
@@ -157,9 +151,10 @@ module.exports = (app, loginTokens) => {
 		}
 	});
 
-	app.post('/register', async (req, res) => {
-		let profileID = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]].profileID;
-		if(profileID && Utils.hasCorrectParameters(req.body, {
+	app.post('/register', LoginMiddleware, async (req, res) => {
+		const user = await req.getProfile(true);
+
+		if(user && Utils.hasCorrectParameters(req.body, {
 			username: "string"
 		})) {
 			if(!Utils.isAlphanumeric(req.body.username)) return res.json({err: "Usernames must be alphanumeric."});
@@ -169,8 +164,6 @@ module.exports = (app, loginTokens) => {
 
 			let isUsernameUsed = await User.findOne({username: req.body.username}, "username");
 			if(isUsernameUsed) return res.json({err: "That username is already in use."});
-
-			let user = await User.findById(profileID);
 			
 			// Check if the user has been registered yet
 			if(user.username.length === 0) {
@@ -192,18 +185,17 @@ module.exports = (app, loginTokens) => {
 		}
 	});
 
-	app.post('/settings', async (req, res) => {
-		let profileID = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]].profileID;
-		if(profileID && Utils.hasCorrectParameters(req.body, {
+	app.post('/settings', LoginMiddleware, async (req, res) => {
+		const user = await req.getProfile(true);
+
+		if(user && Utils.hasCorrectParameters(req.body, {
 			discord: "string",
 			reddit: "string",
 			bio: "string"
 		})) {
-			req.body.discord = req.body.discord.trim().slice(0, 30);
+			req.body.discord = req.body.discord.trim().slice(0, 37);
 			req.body.reddit = req.body.reddit.replace('/u/', '').trim().slice(0, 30);
 			req.body.bio = req.body.bio.trim().slice(0, 500);
-
-			let user = await User.findById(profileID);
 			
 			user.social.discord = req.body.discord;
 			user.social.reddit = req.body.reddit;
@@ -215,9 +207,7 @@ module.exports = (app, loginTokens) => {
 				success: true
 			});
 		} else {
-			res.json({
-				err: "Invalid token"
-			});
+			res.json(SETTINGS.ERRORS.INVALID_LOGIN_TOKEN());
 		}
 	});
 

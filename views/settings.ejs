@@ -27,13 +27,13 @@
 				<hr>
 				<b>Socials</b>
 				<div class="input-group mt-2">
-					<input type="text" class="form-control" id="discordSocialInput" value="<%- user.social.discord %>" maxlength="30" placeholder="Discord Username">
-					<input type="text" class="form-control" id="redditSocialInput" value="<%- user.social.reddit %>" maxlength="30" placeholder="Reddit Username">
+					<input type="text" class="form-control" id="discordSocialInput" value="<%- profile.social.discord %>" maxlength="30" placeholder="Discord Username">
+					<input type="text" class="form-control" id="redditSocialInput" value="<%- profile.social.reddit %>" maxlength="30" placeholder="Reddit Username">
 				</div>
 				<hr>
 				<b>Biography</b>
 				<div class="markdown-container mt-2">
-					<textarea id="biographyInput"><%- user.bio %></textarea>
+					<textarea id="biographyInput"><%- profile.bio %></textarea>
 				</div>
 				<hr>
 				<button class="btn btn-primary w-100" id="settingsBtn">Save Settings</button>

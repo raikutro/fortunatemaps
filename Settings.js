@@ -93,6 +93,7 @@ const SETTINGS = {
 	},
 	ERRORS: {
 		LOGIN_ERROR: errCode({ err: "An error occurred while logging in", code: "LOGIN.LOGIN_ERROR" }),
+		INVALID_LOGIN_TOKEN: errCode({ err: "Your login token has expired", code: "LOGIN.INVALID_TOKEN" }),
 		ALREADY_REGISTERED: errCode({ err: "This profile has already been registered", code: "REGISTER.ALREADY_REGISTERED" }),
 		INVALID_MAP_ID: errCode({ err: "That map ID is invalid", code: "SEARCH.INVALID_MAP_ID" }),
 		NOT_FOUND: errCode({ err: "That resource could not be located", code: "SEARCH.NOT_FOUND" }),

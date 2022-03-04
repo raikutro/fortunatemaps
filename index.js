@@ -28,9 +28,6 @@ const AWSController = require('./components/aws_controller');
 // Routes
 const AccountRoutes = require('./routes/account_routes');
 
-// Middleware
-const LoginMiddleware = require('./middleware/LoginMiddleware');
-
 // Basic Utility Functions
 const Utils = require('./Utils');
 
@@ -75,6 +72,9 @@ const commentLimiter = rateLimit({
 });
 
 let loginTokens = {};
+
+// Middleware
+const LoginMiddleware = require('./middleware/LoginMiddleware')(loginTokens);
 
 // Connect to the MongoDB Instance
 mongoose.connect(process.env.MONGODB_URL, {
