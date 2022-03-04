@@ -4,6 +4,7 @@ const SETTINGS = {
 	DEV_MODE: (process.env.NODE_ENV || "").toUpperCase() === "DEVELOPMENT",
 	MAPS: {
 		PREVIEW_QUALITY: 0.7,
+		THUMBNAIL_QUALITY: 0.9,
 		THUMBNAIL_SIZE: 400
 	},
 	SITE: {
@@ -41,7 +42,7 @@ const SETTINGS = {
 				textColor: "#EEEEEE"
 			}
 		},
-		ADMIN_ONLY_TAGS: ["ROTATION"],
+		ADMIN_ONLY_TAGS: ["ROTATION", "RETIRED", "UMDUMP"],
 		TAGS: {
 			CTF: {
 				name: "CTF",
@@ -82,16 +83,29 @@ const SETTINGS = {
 				name: "Retired",
 				backgroundColor: "linear-gradient(90deg, #C4C4C4, #D1D1D1)",
 				textColor: "#111111"
+			},
+			"UMDUMP": {
+				name: "U-M Transfer",
+				backgroundColor: "#003F00",
+				textColor: "#eee"
 			}
 		}
 	},
-	ERROR_CODES: {
-		LOGIN_ERROR: 1,
-		ALREADY_REGISTERED: 2
+	ERRORS: {
+		LOGIN_ERROR: errCode({ err: "An error occurred while logging in", code: "LOGIN.LOGIN_ERROR" }),
+		ALREADY_REGISTERED: errCode({ err: "This profile has already been registered", code: "REGISTER.ALREADY_REGISTERED" }),
+		INVALID_MAP_ID: errCode({ err: "That map ID is invalid", code: "SEARCH.INVALID_MAP_ID" }),
+		PREVIEW_GENERATION: errCode({ err: "An error occurred while generating map preview", code: "CREATION.PREVIEW_GENERATION" }),
+		PREVIEW_WRITING: errCode({ err: "An error occurred while saving the map preview", code: "CREATION.PREVIEW_WRITING" }),
+		THUMBNAIL_GENERATION: errCode({ err: "An error occurred while generating map thumbnail", code: "CREATION.THUMBNAIL_GENERATION" })
 	},
 	FILLERS: {
 		BIO: ["404 Biography Not Found", "No Description", "Nothing to be said here", "I'm too lazy to write a biography."]
 	}
 };
+
+function errCode({err, code}) {
+	return customErr => ({err: err + (customErr ? ": " : "") + (customErr || "")});
+}
 
 module.exports = SETTINGS;

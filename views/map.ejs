@@ -15,7 +15,13 @@
 			<div class="row mb-2">
 				<div class="col-md-8">
 					<div class="card">
-						<img src="/preview/<%- map.mapID %>" class="card-img-top" alt="<%- map.name %> by <%- map.authorName %>">
+						<img
+							src="/png/<%- map.mapID %>.png"
+							data-lazyrendermode="pixelated"
+							data-src="/preview/<%- map.mapID %>.jpeg"
+							class="card-img-top"
+							alt="<%- map.name %> by <%- map.authorName %>"
+						/>
 						<div class="card-body">
 							<div class="text-center">
 								<h5 class="card-title">

@@ -155,7 +155,7 @@ const generate = (layout, logic, textureName="VANILLA") => {
 const generateThumbnail = async (previewCanvas, { thumbnailSize=400 }={}) => {
 	let newWidth;
 	let newHeight;
-	if(previewCanvas.width > previewCanvas.height) {
+	if(previewCanvas.width < previewCanvas.height) {
 		let ratio = previewCanvas.width / previewCanvas.height;
 		newWidth = thumbnailSize * ratio;
 		newHeight = thumbnailSize;
@@ -164,19 +164,17 @@ const generateThumbnail = async (previewCanvas, { thumbnailSize=400 }={}) => {
 		newWidth = thumbnailSize;
 		newHeight = thumbnailSize * ratio;
 	}
-	let biggerDimension = Math.max(newWidth, newHeight);
+
+	newWidth = Math.floor(newWidth);
+	newHeight = Math.floor(newHeight);
 
 	// Create the thumbnail canvas
-	const thumbnailCanvas = createCanvas(biggerDimension, biggerDimension);
+	const thumbnailCanvas = createCanvas(thumbnailSize, thumbnailSize);
 	const ctx = thumbnailCanvas.getContext('2d');
-	// let sourceImg = new Image();
-
-	// setTimeout(() => sourceImg.src = previewB64 || previewCanvas.toBuffer(), 0);
-	// await new Promise(resolve => sourceImg.onload = resolve);
 
 	ctx.drawImage(
 		previewCanvas,
-		(biggerDimension / 2) - (newWidth / 2), (biggerDimension / 2) - (newHeight / 2),
+		(thumbnailSize / 2) - (newWidth / 2), (thumbnailSize / 2) - (newHeight / 2),
 		newWidth, newHeight
 	);
 

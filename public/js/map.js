@@ -42,9 +42,7 @@ $("#tagsGroup .dropdown-item").click(function(e){
 	tagInput.addTag($(this).attr("data-type"));
 });
 
-if(window.CONTEXT.PROFILE_ID === null) {
-	commentEditorContainer.style.display = "none";
-}
+if(!window.PROFILE._id) commentEditorContainer.style.display = "none";
 
 setInterval(() => {
 	let authorSearchInput = $("#authorsInput").val().trim().slice(0, 24);

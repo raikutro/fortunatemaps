@@ -169,7 +169,10 @@ app.get('/editor', loginMiddleware, async (req, res) => {
 
 // Preview Image Route
 app.get('/preview/:mapid.jpeg', async (req, res) => {
-	let previewBuffer = await AWSController.getPreviewMapImage(String(req.params.mapid).slice(0, 10)).catch(err => {
+	const mapID = Number(req.params.mapid);
+	if(!mapID) return res.send("Invalid Map ID");
+
+	let previewBuffer = await AWSController.getPreviewMapImage(String(mapID).slice(0, 10)).catch(err => {
 		return {err};
 	});
 
@@ -185,7 +188,10 @@ app.get('/preview/:mapid', (req, res) => res.redirect(`/preview/${req.params.map
 
 // Thumbnail Image Route
 app.get('/thumbnail/:mapid.jpeg', async (req, res) => {
-	let thumbnailBuffer = await AWSController.getThumbnailMapImage(String(req.params.mapid).slice(0, 10)).catch(err => {
+	const mapID = Number(req.params.mapid);
+	if(!mapID) return res.send("Invalid Map ID");
+
+	let thumbnailBuffer = await AWSController.getThumbnailMapImage(String(mapID).slice(0, 10)).catch(err => {
 		return {err};
 	});
 
@@ -267,8 +273,11 @@ apiRouter.get('/search', loginMiddleware, async (req, res) => {
 
 // Map Page
 apiRouter.get('/map/:mapid', loginMiddleware, async (req, res) => {
+	const mapID = Number(req.params.mapid);
+	if(!mapID) return res.redirect("/");
+	
 	let mapEntry = await MapEntry.findOne({
-		mapID: String(req.params.mapid)
+		mapID: String(mapID)
 	}).catch(err => {
 		// console.log(err);
 		// res.send("Invalid Map ID");
@@ -300,8 +309,11 @@ apiRouter.get('/map/:mapid', loginMiddleware, async (req, res) => {
 
 // Map Data Route, returns data about the map and if requested by the client: its other versions and/or remixes.
 apiRouter.get('/map_data/:mapid', async (req, res) => {
+	const mapID = Number(req.params.mapid);
+	if(!mapID) return res.json(SETTINGS.ERRORS.INVALID_MAP_ID());
+
 	let mapEntry = await MapEntry.findOne({
-		mapID: req.params.mapid
+		mapID: mapID
 	});
 
 	if(!mapEntry) return res.json({
@@ -369,9 +381,12 @@ apiRouter.get('/author_names/:authorid', async (req, res) => {
 });
 
 // Source PNG Image Route
-apiRouter.get('/png/:mapid', async (req, res) => {
+apiRouter.get('/png/:mapid.png', async (req, res) => {
+	const mapID = Number(req.params.mapid);
+	if(!mapID) return res.send("Invalid Map ID");
+
 	let mapEntry = await MapEntry.findOne({
-		mapID: req.params.mapid
+		mapID
 	}, "png");
 
 	if(!mapEntry) return res.redirect("/");
@@ -386,23 +401,31 @@ apiRouter.get('/png/:mapid', async (req, res) => {
 	});
 	res.end(img);
 });
+app.get('/png/:mapid', (req, res) => res.redirect(`/png/${req.params.mapid}.png`));
 
 // Source JSON Image Route
-apiRouter.get('/json/:mapid', async (req, res) => {
+apiRouter.get('/json/:mapid.json', async (req, res) => {
+	const mapID = Number(req.params.mapid);
+	if(!mapID) return res.send("Invalid Map ID");
+
 	let mapEntry = await MapEntry.findOne({
-		mapID: req.params.mapid
+		mapID
 	}, "json");
 
 	if(!mapEntry) return res.redirect("/");
 
 	res.json(JSON.parse(mapEntry.json));
 });
+app.get('/json/:mapid', (req, res) => res.redirect(`/json/${req.params.mapid}.json`));
 
 // Map Test Route
 // Generates map test links.
 apiRouter.get('/test/:mapid', async (req, res) => {
+	const mapID = Number(req.params.mapid);
+	if(!mapID) return res.send("Invalid Map ID");
+
 	let mapEntry = await MapEntry.findOne({
-		mapID: req.params.mapid
+		mapID: mapID
 	}, "png json");
 
 	if(!mapEntry) return res.end();
@@ -479,12 +502,29 @@ apiRouter.post('/upload_map',
 					resolve(jpeg);
 				})
 			).catch(err => {
-				console.error("PREVIEW GENERATION ERROR:", err);
-				res.json(SETTINGS.ERRORS.PREVIEW_GENERATION(err));
+				console.error("PREVIEW WRITING ERROR:", err);
+				res.json(SETTINGS.ERRORS.PREVIEW_WRITING(err));
 				return null;
 			});
 
 			if(!previewJPEG) return;
+
+			const thumbnailJPEG = await new Promise(async (resolve, reject) => {
+				const thumbnailCanvas = await PreviewGenerator.generateThumbnail(previewCanvas);
+
+				thumbnailCanvas.toDataURL('image/jpeg', SETTINGS.MAPS.THUMBNAIL_QUALITY, (err, jpeg) => {
+					if(err) return reject(err) || null;
+
+					resolve(jpeg);
+				});
+			}).catch(err => {
+				console.error("THUMBNAIL GENERATION ERROR:", err);
+				res.json(SETTINGS.ERRORS.THUMBNAIL_GENERATION(err));
+
+				return null;
+			});
+
+			if(!thumbnailJPEG) return;
 
 			// Put users authorID inside if they're logged in.
 			let authorIDs = [];
@@ -501,41 +541,10 @@ apiRouter.post('/upload_map',
 			let isRemix = versionSourceMapEntry !== 0 ? false : (
 				!versionSourceMapEntry.authorIDs.includes(req.profileID)
 			);
-
-			// Three Final States:
+			// The Three Final States of isRemix and versionSource in the MapEntry:
 			// 1. isRemix = true + versionSource > 0 = Map is a remix
 			// 2. isRemix = false + versionSource === 0 = Map is original
 			// 3. isRemix = false + versionSource > 0 = Map is a new version
-
-			// Find the best way to scale the preview image to turn it into a thumbnail
-			let newWidth;
-			let newHeight;
-			if(previewCanvas.width > previewCanvas.height) {
-				let ratio = previewCanvas.width / previewCanvas.height;
-				newWidth = SETTINGS.MAPS.THUMBNAIL_SIZE * ratio;
-				newHeight = SETTINGS.MAPS.THUMBNAIL_SIZE;
-			} else {
-				let ratio = previewCanvas.height / previewCanvas.width;
-				newWidth = SETTINGS.MAPS.THUMBNAIL_SIZE;
-				newHeight = SETTINGS.MAPS.THUMBNAIL_SIZE * ratio;
-			}
-			let biggerDimension = Math.max(newWidth, newHeight);
-
-			// Create the thumbnail canvas
-			let thumbnailCanvas = createCanvas(biggerDimension, biggerDimension);
-			const ctx = thumbnailCanvas.getContext('2d');
-			let sourceImg = new Image();
-
-			setTimeout(() => sourceImg.src = previewJPEG, 0);
-			await new Promise(resolve => sourceImg.onload = resolve);
-
-			ctx.drawImage(
-				sourceImg,
-				(biggerDimension / 2) - (newWidth / 2), (biggerDimension / 2) - (newHeight / 2),
-				newWidth, newHeight
-			);
-
-			let thumbnailJPEG = thumbnailCanvas.toDataURL('image/jpeg', 1);
 
 			let newMapID = req.body.extra.mapID || (await MapEntry.countDocuments({})) + 1;
 			// Set the version source to the original map

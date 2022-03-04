@@ -3,7 +3,14 @@
 	maps.map(map => { // lol
 		return `
 			<div class="card map-card">
-				<a href="/map/${map.mapID}" class="map-image-link"><img src="/thumbnail/${map.mapID}.jpeg" class="card-img-top" alt="${map.name}"></a>
+				<a href="/map/${map.mapID}" class="map-image-link">
+					<img
+						src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mN89xMAAtsB6TFppm8AAAAASUVORK5CYII="
+						data-src="/thumbnail/${map.mapID}.jpeg"
+						class="card-img-top"
+						alt="${map.name}"
+					/>
+				</a>
 				<div class="card-body">
 					<a href="/map/${map.mapID}" class="map-link"><p class="card-text text-center">
 						<b>${map.name
