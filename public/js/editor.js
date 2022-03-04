@@ -14,7 +14,7 @@ if(URL_VARS["mapid"]) {
 }
 
 window.addEventListener("message", event => {
-	console.log(event)
+	// console.log(event)
 }, false);
 
 function makeID() {
