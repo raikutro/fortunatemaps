@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const SETTINGS = require('../Settings');
 
 module.exports = (loginTokens) => {
 	return (req, res, next) => {
