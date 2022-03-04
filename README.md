@@ -2,7 +2,7 @@
 
 A TagPro map hosting website
 
-## Technologies
+## Stack
 - Node.js
 - Express.js
 - MongoDB
