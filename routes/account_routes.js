@@ -2,11 +2,14 @@ const fetch = require('node-fetch');
 // const insane = require('insane');
 
 // Mongoose Models
-const MapEntry = require("../models/MapEntry");
-const User = require("../models/User");
+const MapEntry = require('../models/MapEntry');
+const User = require('../models/User');
 
-const Utils = require("../Utils");
-const SETTINGS = require("../Settings");
+// Middleware
+const LoginMiddleware = require('../middleware/LoginMiddleware');
+
+const Utils = require('../Utils');
+const SETTINGS = require('../Settings');
 
 const DEFAULT_JSONBIN_DATA = {
 	"fake": null
@@ -34,15 +37,10 @@ module.exports = (app, loginTokens) => {
 		}
 	});
 
-	app.get('/settings', async (req, res) => {
-		let profileData = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]];
-		if(profileData) {
-			let user = (await User.findById(profileData.profileID)).toObject();
-
+	app.get('/settings', LoginMiddleware, async (req, res) => {
+		if(req.profileID) {
 			res.render('settings', {
-				...(await Utils.templateEngineData(req)),
-				profileID: profileData.profileID,
-				user
+				...(await Utils.templateEngineData(req))
 			});
 		} else {
 			res.redirect("/");
@@ -202,7 +200,7 @@ module.exports = (app, loginTokens) => {
 			bio: "string"
 		})) {
 			req.body.discord = req.body.discord.trim().slice(0, 30);
-			req.body.reddit = req.body.reddit.trim().slice(0, 30);
+			req.body.reddit = req.body.reddit.replace('/u/', '').trim().slice(0, 30);
 			req.body.bio = req.body.bio.trim().slice(0, 500);
 
 			let user = await User.findById(profileID);

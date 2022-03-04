@@ -20,23 +20,26 @@ const PORT = process.env.PORT || 80;
 
 // The TagProEdit.com module.
 // The source code is now its own module.
-const TagproEditMapEditor = require("./editor/app");
+const TagproEditMapEditor = require('./editor/app');
 
-const PreviewGenerator = require("./components/preview_generator");
-const AWSController = require("./components/aws_controller");
+const PreviewGenerator = require('./components/preview_generator');
+const AWSController = require('./components/aws_controller');
 
 // Routes
-const AccountRoutes = require("./routes/account_routes");
+const AccountRoutes = require('./routes/account_routes');
+
+// Middleware
+const LoginMiddleware = require('./middleware/LoginMiddleware');
 
 // Basic Utility Functions
-const Utils = require("./Utils");
+const Utils = require('./Utils');
 
 // Settings
-const SETTINGS = require("./Settings");
+const SETTINGS = require('./Settings');
 
 // Mongoose Models
-const MapEntry = require("./models/MapEntry");
-const User = require("./models/User");
+const MapEntry = require('./models/MapEntry');
+const User = require('./models/User');
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
@@ -121,35 +124,9 @@ function loadLoginTokens() {
 	});
 }
 
-let loginMiddleware = (req, res, next) => {
-	req.profileID = false;
-	req.getProfile = () => null;
-
-	if(process.env.PROFILE_ID_OVERRIDE) {
-		req.profileID = process.env.PROFILE_ID_OVERRIDE;
-	} else if(loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]]){
-		req.profileID = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]].profileID;
-	}
-
-	if(!req.profileID) return next();
-
-	req.getProfile = async () => {
-		if(!req.profileData) req.profileData = await User.findById(req.profileID)
-		.then(doc => doc.toObject())
-		.catch(err => {
-			console.error(err);
-
-			return null;
-		});
-
-		return req.profileData;
-	};
-
-	next();
-};
 
 // Home Page
-app.get('/', loginMiddleware, async (req, res) => {
+app.get('/', LoginMiddleware, async (req, res) => {
 	let maps = await MapEntry.find({ unlisted: false }).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
 
 	res.render('index', {
@@ -161,7 +138,7 @@ app.get('/', loginMiddleware, async (req, res) => {
 });
 
 // Map Editor
-app.get('/editor', loginMiddleware, async (req, res) => {
+app.get('/editor', LoginMiddleware, async (req, res) => {
 	res.render('editor', {
 		...(await Utils.templateEngineData(req))
 	});
@@ -206,7 +183,7 @@ app.get('/thumbnail/:mapid.jpeg', async (req, res) => {
 app.get('/thumbnail/:mapid', (req, res) => res.redirect(`/thumbnail/${req.params.mapid}.jpeg`));
 
 // Search Page
-apiRouter.get('/search', loginMiddleware, async (req, res) => {
+apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	// Sanitize queries
 	req.query.q = String(req.query.q) || "";
 	req.query.p = Math.max(Number(req.query.p) || 1, 1) - 1;
@@ -272,7 +249,7 @@ apiRouter.get('/search', loginMiddleware, async (req, res) => {
 });
 
 // Map Page
-apiRouter.get('/map/:mapid', loginMiddleware, async (req, res) => {
+apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 	const mapID = Number(req.params.mapid);
 	if(!mapID) return res.redirect("/");
 	
@@ -481,7 +458,7 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 // Uploads a map to the server
 apiRouter.post('/upload_map', 
 	// mapUploadLimiter,
-	loginMiddleware, async (req, res) => {
+	LoginMiddleware, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		logic: "string",
 		layout: "string",
@@ -614,7 +591,7 @@ apiRouter.post('/upload_map',
 });
 
 // Update Map Route
-apiRouter.post('/update_map', mapUpdateLimiter, loginMiddleware, async (req, res) => {
+apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		mapID: "number",
 		mapName: "string",
@@ -668,7 +645,7 @@ apiRouter.post('/update_map', mapUpdateLimiter, loginMiddleware, async (req, res
 });
 
 // Post Comment Route
-apiRouter.post('/comment', commentLimiter, loginMiddleware, async (req, res) => {
+apiRouter.post('/comment', commentLimiter, LoginMiddleware, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		mapID: "number",
 		body: "string"
@@ -699,7 +676,7 @@ apiRouter.post('/comment', commentLimiter, loginMiddleware, async (req, res) => 
 });
 
 // Like Map Route
-apiRouter.post('/like', loginMiddleware, async (req, res) => {
+apiRouter.post('/like', LoginMiddleware, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		mapID: "number"
 	}) && req.profileID){
