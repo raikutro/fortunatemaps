@@ -174,3 +174,9 @@ function updateUserIDNameMap(obj) {
 
 	authorInput.render();
 }
+
+function alignCards() {
+	document.querySelector('.stats-card').style.height = document.querySelector('.card').getBoundingClientRect().height + "px"
+}
+setInterval(alignCards, 1000);
+window.addEventListener('resize', alignCards);

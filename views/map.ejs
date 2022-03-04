@@ -16,7 +16,7 @@
 				<div class="col-md-8">
 					<div class="card">
 						<img
-							src="/png/<%- map.mapID %>.png"
+							src="data:image/png;base64,<%- map.png %>"
 							data-lazyrendermode="pixelated"
 							data-src="/preview/<%- map.mapID %>.jpeg"
 							class="card-img-top"
@@ -121,7 +121,7 @@
 								</table>
 							</div>
 							<hr>
-							<p><%- map.description %></p>
+							<pre class="map-description"><%- map.description %></pre>
 						</div>
 					</div>
 				</div>
