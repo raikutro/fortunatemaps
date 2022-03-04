@@ -242,6 +242,7 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	// Remove field queries if they don't need to be there
 	if(authorQueries.length === 0) delete finalQuery.authorIDs;
 	if(tagQueries.length === 0) delete finalQuery.tags;
+	if(authorTextQueries.length === 0) delete finalQuery.authorName;
 
 	let maps = await MapEntry.find(finalQuery, "name mapID authorName")
 		.skip(skipNum)
