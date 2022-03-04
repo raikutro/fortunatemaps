@@ -8,12 +8,12 @@ const s3 = new AWS.S3({apiVersion: '2006-03-01'});
 module.exports.uploadMapImages = ({id, previewJPEGBase64, thumbnailJPEGBase64}) => {
 	return new Promise(async (resolve, reject) => {
 		let previewData = await uploadFileUsingBase64(
-			`preview_${id}.jpeg`,
+			`previews/preview_${id}.jpeg`,
 			previewJPEGBase64.slice(previewJPEGBase64.indexOf(","))
 		).catch(reject);
 
 		let thumbnailData = await uploadFileUsingBase64(
-			`thumbnail_${id}.jpeg`,
+			`thumbnails/thumbnail_${id}.jpeg`,
 			thumbnailJPEGBase64.slice(thumbnailJPEGBase64.indexOf(","))
 		).catch(reject);
 
@@ -25,7 +25,7 @@ module.exports.getPreviewMapImage = (id) => {
 	return new Promise(async (resolve, reject) => {
 		if(isNaN(Number(id))) return reject("Invalid ID");
 
-		let previewFile = await getFile(`preview_${id}.jpeg`).catch(reject);
+		let previewFile = await getFile(`previews/preview_${id}.jpeg`).catch(reject);
 		if(!previewFile) return reject("Failed to retrieve preview image.");
 		// console.log(previewFile);
 
@@ -37,7 +37,7 @@ module.exports.getThumbnailMapImage = (id) => {
 	return new Promise(async (resolve, reject) => {
 		if(isNaN(Number(id))) return reject("Invalid ID");
 
-		let thumbnailFile = await getFile(`thumbnail_${id}.jpeg`).catch(reject);
+		let thumbnailFile = await getFile(`thumbnails/thumbnail_${id}.jpeg`).catch(reject);
 		if(!thumbnailFile) return reject("Failed to retrieve thumbnail image.");
 		// console.log(thumbnailFile);
 

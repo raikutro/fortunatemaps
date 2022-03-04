@@ -127,7 +127,7 @@ function loadLoginTokens() {
 
 // Home Page
 app.get('/', LoginMiddleware, async (req, res) => {
-	let maps = await MapEntry.find({ unlisted: false }).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
+	let maps = await MapEntry.find({ unlisted: false }).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
 
 	res.render('index', {
 		...(await Utils.templateEngineData(req)),
@@ -234,7 +234,7 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	let maps = await MapEntry.find(finalQuery, "name mapID authorName")
 		.skip((req.query.p * SETTINGS.SITE.MAPS_PER_PAGE))
 		.limit(SETTINGS.SITE.MAPS_PER_PAGE)
-		.sort({ dateUploaded: -1 });
+		.sort({ mapID: -1 });
 
 	res.render('search', {
 		...(await Utils.templateEngineData(req)),
@@ -457,7 +457,7 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 // Upload Map Route
 // Uploads a map to the server
 apiRouter.post('/upload_map', 
-	// mapUploadLimiter,
+	mapUploadLimiter,
 	LoginMiddleware, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		logic: "string",
@@ -538,7 +538,7 @@ apiRouter.post('/upload_map',
 			// isRemix is true if a versionSource was given and the submitter is not an author of the original source
 			// isRemix is false if a versionSource was given and the submitter is an author of the original source
 			// isRemix is false if a versionSource was not given
-			let isRemix = versionSourceMapEntry !== 0 ? false : (
+			let isRemix = versionSourceMapEntry === 0 ? false : (
 				!versionSourceMapEntry.authorIDs.includes(req.profileID)
 			);
 			// The Three Final States of isRemix and versionSource in the MapEntry:
@@ -546,7 +546,7 @@ apiRouter.post('/upload_map',
 			// 2. isRemix = false + versionSource === 0 = Map is original
 			// 3. isRemix = false + versionSource > 0 = Map is a new version
 
-			let newMapID = req.body.extra.mapID || (await MapEntry.countDocuments({})) + 1;
+			let newMapID = await MapEntry.countDocuments({}) + 1;
 			// Set the version source to the original map
 			// If it's a new map, then set its version source to it's own map ID
 			let versionSource = versionSourceMapEntry ? versionSourceMapEntry.versionSource : newMapID;
@@ -583,7 +583,8 @@ apiRouter.post('/upload_map',
 				id: newMapID
 			});
 		} catch(err) {
-			res.json({ err: err });
+			console.error(err);
+			res.json({ err: "An unexpected error occurred" });
 		}
 	} else {
 		res.json({err: "Invalid Parameters"});
