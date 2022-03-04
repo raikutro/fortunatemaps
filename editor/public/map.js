@@ -2377,7 +2377,7 @@ $(function() {
 				addAlert('danger','Error: '+validStr,2000);
 				return false;
 			}
-			$.post('https://cors-anywhere.herokuapp.com/http://tagproedit.com/test.php', {logic: JSON.stringify(makeLogic()), layout: getPngBase64(), server: i}, function(data) {
+			$.post('https://parretlabs.xyz:8006/proxy?link=http://tagproedit.com/test.php', {logic: JSON.stringify(makeLogic()), layout: getPngBase64(), server: i}, function(data) {
 				if (data) {
 					var win = window.open(data, 'tagpro');
 					if(win)
@@ -2393,26 +2393,26 @@ $(function() {
 			return false;
 		}; }(i));
 		
-	var exportServers = document.getElementById('menuExport').getElementsByTagName('a');
-	for(var i = 0; i < 2; i++)
-		exportServers[i+1].addEventListener('click', function(i) { return function(e) {
-			var validStr = isValidMapStr();
-			if (validStr != "Valid") {
-				addAlert('danger','Error: '+validStr,2000);
-				return false;
-			}
-			$.post('https://cors-anywhere.herokuapp.com/http://tagproedit.com/test.php', {logic: JSON.stringify(makeLogic()), layout: getPngBase64(), cloud: i}, function(data) {
-				if (data) {
-					addAlert('success','Map uploaded successfully!',2000);
-					var win = window.open(data, 'tagpro');
-					if(win)
-						win.focus();
-				} else {
-					addAlert('danger','Error: Publication failed',2000);
-				}
-			});
-			return false;
-		}; }(i));
+	// var exportServers = document.getElementById('menuExport').getElementsByTagName('a');
+	// for(var i = 0; i < 2; i++)
+	// 	exportServers[i+1].addEventListener('click', function(i) { return function(e) {
+	// 		var validStr = isValidMapStr();
+	// 		if (validStr != "Valid") {
+	// 			addAlert('danger','Error: '+validStr,2000);
+	// 			return false;
+	// 		}
+	// 		$.post('https://parretlabs.xyz:8006/proxy?link=http://tagproedit.com/test.php', {logic: JSON.stringify(makeLogic()), layout: getPngBase64(), cloud: i}, function(data) {
+	// 			if (data) {
+	// 				addAlert('success','Map uploaded successfully!',2000);
+	// 				var win = window.open(data, 'tagpro');
+	// 				if(win)
+	// 					win.focus();
+	// 			} else {
+	// 				addAlert('danger','Error: Publication failed',2000);
+	// 			}
+	// 		});
+	// 		return false;
+	// 	}; }(i));
 	
 	function setBrushTileType(type) {
 		$('.tileTypeSelectionIndicator').css('display', 'none');

@@ -5,7 +5,9 @@ const SETTINGS = {
 	MAPS: {
 		PREVIEW_QUALITY: 0.7,
 		THUMBNAIL_QUALITY: 0.9,
-		THUMBNAIL_SIZE: 400
+		THUMBNAIL_SIZE: 400,
+		MAX_PNG_LENGTH: 2 ** 12,
+		MAX_JSON_LENGTH: 2 ** 17,
 	},
 	SITE: {
 		MAPS_PER_PAGE: 24,
@@ -97,19 +99,29 @@ const SETTINGS = {
 		ALREADY_REGISTERED: errCode({ err: "This profile has already been registered", code: "REGISTER.ALREADY_REGISTERED" }),
 		INVALID_MAP_ID: errCode({ err: "That map ID is invalid", code: "SEARCH.INVALID_MAP_ID" }),
 		NOT_FOUND: errCode({ err: "That resource could not be located", code: "SEARCH.NOT_FOUND" }),
-		MAX_PAGE_LIMIT: errCode({ err: "The page you were trying to access is out of range. Please use a smaller value.", code: "SEARCH.MAX_PAGE_LIMIT" }),
-		TEST_MAP_LINK_FAIL: errCode({ err: "Sorry, we could not start up a test map.", code: "TEST.TEST_MAP_LINK_FAIL" }),
+		MAX_PAGE_LIMIT: errCode({ err: "The page you were trying to access is out of range. Please use a smaller value", code: "SEARCH.MAX_PAGE_LIMIT" }),
+		TEST_MAP_LINK_FAIL: errCode({ err: "Sorry, we could not start up a test map", code: "TEST.TEST_MAP_LINK_FAIL" }),
+		UPLOAD_MAX_SIZE: errCode({ err: "A size error occurred while uploading your map.", code: "UPLOAD.MAX_SIZE"}),
 		PREVIEW_GENERATION: errCode({ err: "An error occurred while generating map preview", code: "CREATION.PREVIEW_GENERATION" }),
 		PREVIEW_WRITING: errCode({ err: "An error occurred while saving the map preview", code: "CREATION.PREVIEW_WRITING" }),
 		THUMBNAIL_GENERATION: errCode({ err: "An error occurred while generating map thumbnail", code: "CREATION.THUMBNAIL_GENERATION" })
 	},
 	FILLERS: {
 		BIO: ["404 Biography Not Found", "No Description", "Nothing to be said here", "I'm too lazy to write a biography."]
+	},
+	PACK: () => {
+		return {
+			...SETTINGS,
+			ERRORS: Object.keys(SETTINGS.ERRORS).reduce((acc, key) => ({
+				...acc,
+				[key]: SETTINGS.ERRORS[key]()
+			}), {})
+		};
 	}
 };
 
 function errCode({err, code}) {
-	return customErr => ({err: err + (customErr ? ": " : "") + (customErr || "")});
+	return customErr => ({err: err + (customErr ? ": " : "") + (customErr || ""), code});
 }
 
 module.exports = SETTINGS;

@@ -20,6 +20,6 @@ if(location.hash.startsWith('#err=')) {
 	const errorID = atob(location.hash.replace('#err=', ''));
 	const errorMessage = window.SETTINGS.ERRORS[errorID];
 
-	alert("Error: " + errorMessage);
+	alert(`Error: [${errorMessage.code}] ${errorMessage.err}`);
 	location.hash = "";
 }

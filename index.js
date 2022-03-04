@@ -74,7 +74,7 @@ const commentLimiter = rateLimit({
 let DATABASE_STATS = {
 	mapCount: Infinity,
 	highestMapID: 100000,
-	getMaxPage: () => Math.round(DATABASE_STATS.mapCount / SETTINGS.SITE.MAPS_PER_PAGE)
+	getMaxPage: () => Math.round(DATABASE_STATS.mapCount / SETTINGS.SITE.MAPS_PER_PAGE) - 1
 };
 let loginTokens = {};
 
@@ -194,11 +194,10 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	req.query.q = String(req.query.q) || "";
 	req.query.p = Math.max(Number(req.query.p) || 1, 1) - 1;
 
-	const skipNum = req.query.p * SETTINGS.SITE.MAPS_PER_PAGE;
-
-	console.log(skipNum, DATABASE_STATS.mapCount);
-
-	if(skipNum > DATABASE_STATS.mapCount) return res.redirect('/#err=' + btoa(MAX_PAGE_LIMIT));
+	let skipNum = req.query.p * SETTINGS.SITE.MAPS_PER_PAGE;
+	if(skipNum > DATABASE_STATS.getMaxPage() * SETTINGS.SITE.MAPS_PER_PAGE) {
+		req.query.p = DATABASE_STATS.getMaxPage();
+	}
 
 	const rawSearchQuery = req.query.q;
 
@@ -482,6 +481,14 @@ apiRouter.post('/upload_map',
 			const mapLayout = req.body.layout;
 			const mapLogic = req.body.logic;
 			let mapJSON;
+
+			if(mapLayout.length > SETTINGS.MAPS.MAX_PNG_LENGTH) return res.json(
+				SETTINGS.ERRORS.MAP_MAX_SIZE(`The PNG File in base64 form must be less than ${SETTINGS.MAPS.MAX_PNG_LENGTH} in length.`)
+			);
+
+			if(mapLogic.length > SETTINGS.MAPS.MAX_JSON_LENGTH) return res.json(
+				SETTINGS.ERRORS.UPLOAD_MAX_SIZE(`The JSON must be less than ${SETTINGS.MAPS.MAX_JSON_LENGTH} in length.`)
+			);
 
 			// Validate & parse the JSON file.
 			try {
