@@ -71,6 +71,11 @@ const commentLimiter = rateLimit({
 	legacyHeaders: false,
 });
 
+let DATABASE_STATS = {
+	mapCount: Infinity,
+	highestMapID: 100000,
+	getMaxPage: () => Math.round(DATABASE_STATS.mapCount / SETTINGS.SITE.MAPS_PER_PAGE)
+};
 let loginTokens = {};
 
 // Middleware
@@ -79,14 +84,15 @@ const LoginMiddleware = require('./middleware/LoginMiddleware')(loginTokens);
 // Connect to the MongoDB Instance
 mongoose.connect(process.env.MONGODB_URL, {
 	useNewUrlParser: true,
-	useUnifiedTopology: true,
-}).then(() => {
+	useUnifiedTopology: true
+}).then(async () => {
 	console.log("Connected to MongoDB");
 
-	loadLoginTokens().then(() => {
-		httpServer.listen(PORT, () => {
-			console.log('listening on *:' + PORT);
-		});
+	await loadLoginTokens();
+	await saveDatabaseStats();
+
+	httpServer.listen(PORT, () => {
+		console.log('listening on *:' + PORT);
 	});
 }).catch(err => console.error(err));
 mongoose.set('debug', false);
@@ -124,7 +130,6 @@ function loadLoginTokens() {
 	});
 }
 
-
 // Home Page
 app.get('/', LoginMiddleware, async (req, res) => {
 	let maps = await MapEntry.find({ unlisted: false }).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
@@ -133,7 +138,8 @@ app.get('/', LoginMiddleware, async (req, res) => {
 		...(await Utils.templateEngineData(req)),
 		query: "",
 		page: 1,
-		maps
+		maps,
+		maxPage: DATABASE_STATS.getMaxPage()
 	});
 });
 
@@ -188,6 +194,12 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	req.query.q = String(req.query.q) || "";
 	req.query.p = Math.max(Number(req.query.p) || 1, 1) - 1;
 
+	const skipNum = req.query.p * SETTINGS.SITE.MAPS_PER_PAGE;
+
+	console.log(skipNum, DATABASE_STATS.mapCount);
+
+	if(skipNum > DATABASE_STATS.mapCount) return res.redirect('/#err=' + btoa(MAX_PAGE_LIMIT));
+
 	const rawSearchQuery = req.query.q;
 
 	// Grab "@", "@@", and "#" and the text that comes after.
@@ -232,9 +244,9 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	if(tagQueries.length === 0) delete finalQuery.tags;
 
 	let maps = await MapEntry.find(finalQuery, "name mapID authorName")
-		.skip((req.query.p * SETTINGS.SITE.MAPS_PER_PAGE))
+		.skip(skipNum)
 		.limit(SETTINGS.SITE.MAPS_PER_PAGE)
-		.sort({ mapID: -1 });
+		.sort({ mapID: -1 })
 
 	res.render('search', {
 		...(await Utils.templateEngineData(req)),
@@ -244,7 +256,8 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 			query: req.query.q,
 			...rawQueries
 		},
-		maps
+		maps,
+		maxPage: DATABASE_STATS.getMaxPage()
 	});
 });
 
@@ -268,12 +281,12 @@ apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 	let mapVersions = await MapEntry.find({
 		versionSource: mapEntry.versionSource,
 		isRemix: false
-	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
+	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
 
 	let mapRemixes = await MapEntry.find({
 		versionSource: mapEntry.versionSource,
 		isRemix: true
-	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
+	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
 
 	res.render('map', {
 		...(await Utils.templateEngineData(req)),
@@ -304,12 +317,12 @@ apiRouter.get('/map_data/:mapid', async (req, res) => {
 		mapVersions = await MapEntry.find({
 			versionSource: mapEntry.versionSource,
 			isRemix: false
-		}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
+		}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
 
 		mapRemixes = await MapEntry.find({
 			versionSource: mapEntry.versionSource,
 			isRemix: true
-		}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ dateUploaded: -1 });
+		}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
 	}
 
 	res.json({
@@ -546,7 +559,7 @@ apiRouter.post('/upload_map',
 			// 2. isRemix = false + versionSource === 0 = Map is original
 			// 3. isRemix = false + versionSource > 0 = Map is a new version
 
-			let newMapID = await MapEntry.countDocuments({}) + 1;
+			let newMapID = await getHighestMapID() + 1;
 			// Set the version source to the original map
 			// If it's a new map, then set its version source to it's own map ID
 			let versionSource = versionSourceMapEntry ? versionSourceMapEntry.versionSource : newMapID;
@@ -708,3 +721,20 @@ apiRouter.post('/like', LoginMiddleware, async (req, res) => {
 // Link the map editor route
 app.use('/map_editor', TagproEditMapEditor(new express.Router(), httpServer));
 app.use('/', express.static(path.join(__dirname, 'public')));
+
+setInterval(saveDatabaseStats, 15000);
+
+async function saveDatabaseStats() {
+	DATABASE_STATS = {
+		...DATABASE_STATS,
+		mapCount: await MapEntry.countDocuments({}),
+		highestMapID: await getHighestMapID()
+	};
+}
+
+async function getHighestMapID() {
+	return MapEntry.find({})
+		.sort({ mapID: -1 })
+		.limit(1)
+		.then(maps => maps[0] ? maps[0].mapID : 1);
+}

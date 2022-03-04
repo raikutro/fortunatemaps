@@ -40,6 +40,8 @@ const MapEntrySchema = new Schema({
 	unlisted: {type: Boolean}
 });
 
+MapEntrySchema.index({ mapID: -1, dateUploaded: -1 });
+
 const MapEntry = mongoose.model('MapEntry', MapEntrySchema);
 
 module.exports = MapEntry;

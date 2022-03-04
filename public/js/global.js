@@ -15,3 +15,11 @@ Array.from(document.querySelectorAll('[data-src]')).forEach(elem => {
 	if(elem.dataset.lazyrendermode) elem.style.imageRendering = elem.dataset.lazyrendermode;
 	lazyImage.src = elem.dataset.src;
 });
+
+if(location.hash.startsWith('#err=')) {
+	const errorID = atob(location.hash.replace('#err=', ''));
+	const errorMessage = window.SETTINGS.ERRORS[errorID];
+
+	alert("Error: " + errorMessage);
+	location.hash = "";
+}

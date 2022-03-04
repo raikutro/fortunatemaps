@@ -7,8 +7,8 @@
 		</li>
 		<%-
 			(() => {
-				const lowestPageIndex = Math.max(1, page - 4);
-				const range = Math.min(9, Infinity - page);
+				const range = Math.min(9, maxPage);
+				const lowestPageIndex = Math.min(Math.max(1, page - Math.floor(range / 2)), maxPage - range + 1);
 
 				return Array(range).fill(0).map((x, idx) => `
 					<li class="page-item ${page === lowestPageIndex + idx ? "active" : ""}">

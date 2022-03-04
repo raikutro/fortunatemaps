@@ -8,7 +8,7 @@ const SETTINGS = {
 		THUMBNAIL_SIZE: 400
 	},
 	SITE: {
-		MAPS_PER_PAGE: 20,
+		MAPS_PER_PAGE: 24,
 		LOGIN_EXPIRATION_TIME_LIMIT: 100 * 24 * 3600000,
 		COOKIE_TOKEN_NAME: "nekotizer",
 		MAP_NAME_LENGTH: 150,
@@ -97,6 +97,7 @@ const SETTINGS = {
 		ALREADY_REGISTERED: errCode({ err: "This profile has already been registered", code: "REGISTER.ALREADY_REGISTERED" }),
 		INVALID_MAP_ID: errCode({ err: "That map ID is invalid", code: "SEARCH.INVALID_MAP_ID" }),
 		NOT_FOUND: errCode({ err: "That resource could not be located", code: "SEARCH.NOT_FOUND" }),
+		MAX_PAGE_LIMIT: errCode({ err: "The page you were trying to access is out of range. Please use a smaller value.", code: "SEARCH.MAX_PAGE_LIMIT" }),
 		TEST_MAP_LINK_FAIL: errCode({ err: "Sorry, we could not start up a test map.", code: "TEST.TEST_MAP_LINK_FAIL" }),
 		PREVIEW_GENERATION: errCode({ err: "An error occurred while generating map preview", code: "CREATION.PREVIEW_GENERATION" }),
 		PREVIEW_WRITING: errCode({ err: "An error occurred while saving the map preview", code: "CREATION.PREVIEW_WRITING" }),
