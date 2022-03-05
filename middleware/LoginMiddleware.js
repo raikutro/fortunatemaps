@@ -3,7 +3,7 @@ const SETTINGS = require('../Settings');
 
 module.exports = (sharedTokens) => {
 	return (req, res, next) => {
-		console.log(process.env.PROFILE_ID_OVERRIDE, loginTokens);
+		// console.log(process.env.PROFILE_ID_OVERRIDE, sharedTokens.login);
 
 		if(process.env.PROFILE_ID_OVERRIDE) {
 			req.profileID = process.env.PROFILE_ID_OVERRIDE;
