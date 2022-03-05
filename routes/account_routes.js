@@ -12,8 +12,8 @@ const DEFAULT_JSONBIN_DATA = {
 	"fake": null
 };
 
-module.exports = (app, loginTokens) => {
-	const LoginMiddleware = require('../middleware/LoginMiddleware')(loginTokens);
+module.exports = (app, sharedTokens) => {
+	const LoginMiddleware = require('../middleware/LoginMiddleware')(sharedTokens.login);
 
 	app.get('/register', LoginMiddleware, async (req, res) => {
 		const user = await req.getProfile();
@@ -133,13 +133,13 @@ module.exports = (app, loginTokens) => {
 				});
 			}
 
-			loginTokens[req.body.verificationToken] = {
+			sharedTokens.login[req.body.verificationToken] = {
 				profileID: String(userAccount._id),
 				tagproProfile: req.body.profileID,
 				loginDate: Date.now()
 			};
 
-			saveTokens(loginTokens);
+			saveTokens(sharedTokens.login);
 
 			res.json({
 				redirectURL: (SETTINGS.DEV_MODE ? (SETTINGS.NGROK_URL || "http://localhost") : "https://fortunatemaps.herokuapp.com") + "/profile/" + userAccount._id
@@ -213,15 +213,15 @@ module.exports = (app, loginTokens) => {
 
 	// Check expiration of tokens every 10 mins
 	setInterval(function() {
-		Object.keys(loginTokens).forEach(key => {
+		Object.keys(sharedTokens.login).forEach(key => {
 			if(key === "fake") return;
 
-			if(Date.now() - loginTokens[key].loginDate > SETTINGS.SITE.LOGIN_EXPIRATION_TIME_LIMIT) {
-				delete loginTokens[key];
+			if(Date.now() - sharedTokens.login[key].loginDate > SETTINGS.SITE.LOGIN_EXPIRATION_TIME_LIMIT) {
+				delete sharedTokens.login[key];
 			}
 		});
 
-		saveTokens(loginTokens);
+		saveTokens(sharedTokens.login);
 	}, 10 * 60 * 1000);
 }
 

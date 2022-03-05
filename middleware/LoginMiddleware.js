@@ -1,16 +1,16 @@
 const User = require('../models/User');
 const SETTINGS = require('../Settings');
 
-module.exports = (loginTokens) => {
+module.exports = (sharedTokens) => {
 	return (req, res, next) => {
 		req.profileID = false;
 		req.getProfile = () => null;
 
 		if(process.env.PROFILE_ID_OVERRIDE) {
 			req.profileID = process.env.PROFILE_ID_OVERRIDE;
-		} else if(loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]]){
-			req.loginToken = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]];
-			req.profileID = loginTokens[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]].profileID;
+		} else if(sharedTokens.login[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]]){
+			req.loginToken = sharedTokens.login[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]];
+			req.profileID = sharedTokens.login[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]].profileID;
 		}
 
 		if(!req.profileID) return next();

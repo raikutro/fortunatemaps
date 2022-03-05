@@ -76,10 +76,13 @@ let DATABASE_STATS = {
 	highestMapID: 100000,
 	getMaxPage: () => Math.round(DATABASE_STATS.mapCount / SETTINGS.SITE.MAPS_PER_PAGE) - 1
 };
-let loginTokens = {};
+
+let sharedTokens = {
+	login: {}
+};
 
 // Middleware
-const LoginMiddleware = require('./middleware/LoginMiddleware')(loginTokens);
+const LoginMiddleware = require('./middleware/LoginMiddleware')(sharedTokens);
 
 // Connect to the MongoDB Instance
 mongoose.connect(process.env.MONGODB_URL, {
@@ -120,9 +123,9 @@ function loadLoginTokens() {
 			"secret-key": process.env.JSONBIN_API_KEY
 		}
 	}).then(a => a.json()).then(json => {
-		loginTokens = json || {};
+		sharedTokens.login = json || {};
 
-		AccountRoutes(app, loginTokens);
+		AccountRoutes(app, sharedTokens);
 
 		console.log("Retrieved Tokens");
 	}).catch(err => {
