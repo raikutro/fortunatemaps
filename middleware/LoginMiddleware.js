@@ -3,8 +3,7 @@ const SETTINGS = require('../Settings');
 
 module.exports = (sharedTokens) => {
 	return (req, res, next) => {
-		req.profileID = false;
-		req.getProfile = () => null;
+		console.log(process.env.PROFILE_ID_OVERRIDE, loginTokens);
 
 		if(process.env.PROFILE_ID_OVERRIDE) {
 			req.profileID = process.env.PROFILE_ID_OVERRIDE;
@@ -13,16 +12,18 @@ module.exports = (sharedTokens) => {
 			req.profileID = sharedTokens.login[req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME]].profileID;
 		}
 
-		if(!req.profileID) return next();
-
 		req.getProfile = async (useDocument) => {
-			if(!req.profileData) req.profileData = await User.findById(req.profileID)
-			.then(doc => useDocument ? doc : doc.toObject())
-			.catch(err => {
-				console.error(err);
+			if(!req.profileID) {
+				req.profileData = null;
+			} else if(!req.profileData) {
+				req.profileData = await User.findById(req.profileID)
+				.then(doc => useDocument ? doc : doc.toObject())
+				.catch(err => {
+					console.error(err);
 
-				return null;
-			});
+					return null;
+				});
+			}
 
 			return req.profileData;
 		};
