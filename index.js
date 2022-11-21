@@ -301,6 +301,12 @@ apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 	});
 });
 
+// This enables legacy unfortunate-maps.jukejuice.com/show/NNN URLs to be properly redirected to fortunate-maps.
+apiRouter.get('/show/:mapid', async (req, res) => {
+  const mapID = Number(req.params.mapid);
+  res.redirect(`/map/${mapID}`);
+});
+
 // Map Data Route, returns data about the map and if requested by the client: its other versions and/or remixes.
 apiRouter.get('/map_data/:mapid', async (req, res) => {
 	const mapID = Number(req.params.mapid);
