@@ -118,7 +118,7 @@ console.log(SETTINGS.DEV_MODE ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUC
 
 // Retrieve login tokens stored in jsonbin
 function loadLoginTokens() {
-	return fetch(`https://api.jsonbin.io/b/${process.env.JSONBIN_ID}`, {
+	return fetch(`https://api.jsonbin.io/v3/b/${process.env.JSONBIN_ID}`, {
 		headers: {
 			"secret-key": process.env.JSONBIN_API_KEY
 		}

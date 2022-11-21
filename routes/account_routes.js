@@ -229,7 +229,7 @@ function saveTokens(loginTokens) {
 	let sendableTokens = DEFAULT_JSONBIN_DATA;
 	if(Object.keys(loginTokens).length !== 0) sendableTokens = loginTokens;
 	
-	return fetch(`https://api.jsonbin.io/b/${process.env.JSONBIN_ID}`, {
+	return fetch(`https://api.jsonbin.io/v3/b/${process.env.JSONBIN_ID}`, {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
