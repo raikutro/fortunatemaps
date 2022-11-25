@@ -14,6 +14,9 @@
       "admin_tools/"
     ]
   },
+  "engines": {
+    "node": "13.3.0"
+  },
   "author": "Electro",
   "license": "ISC",
   "dependencies": {
