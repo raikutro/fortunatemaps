@@ -11,7 +11,6 @@ const cookieParser = require('cookie-parser');
 const FormData = require('form-data');
 const rateLimit = require('express-rate-limit');
 const insane = require('insane');
-const { createCanvas, Image } = require('canvas');
 
 const app = express();
 const httpServer = http.Server(app);

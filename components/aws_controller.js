@@ -63,7 +63,7 @@ function uploadFileUsingBase64(fileName, base64) {
 		let uploadParams = {Bucket: BUCKET_NAME, Key: fileName};
 
 		uploadParams.Body = Buffer.from(base64, 'base64');
-		s3.upload(uploadParams, (err, data) => {
+		s3.putObject(uploadParams, (err, data) => {
 			if(err) return reject(err);
 			if(!data) return reject("No data was uploaded.");
 
