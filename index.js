@@ -320,26 +320,7 @@ apiRouter.get('/show/:mapid', LoginMiddleware, async (req, res) => {
 
 	if(!mapEntry) return res.redirect("/");
 
-	const userProfile = await req.getProfile();
-	const isAdmin = userProfile ? userProfile.isAdmin : false;
-
-	let mapVersions = await MapEntry.find({
-		versionSource: mapEntry.versionSource,
-		isRemix: false
-	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
-
-	let mapRemixes = await MapEntry.find({
-		versionSource: mapEntry.versionSource,
-		isRemix: true
-	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
-
-	res.render('map', {
-		...(await Utils.templateEngineData(req)),
-		map: mapEntry,
-		mapVersions,
-		mapRemixes,
-		isAdmin
-	});
+	res.redirect("/map/" + mapEntry.mapID);
 });
 
 // Map Data Route, returns data about the map and if requested by the client: its other versions and/or remixes.
