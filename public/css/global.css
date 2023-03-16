@@ -77,6 +77,12 @@ body {
 
 .map-card .card-img-top {
 	display: inline-block;
+	display: inline-block;
+    image-rendering: pixelated;
+    background-color: black;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 .map-image-link {
