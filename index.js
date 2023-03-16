@@ -95,6 +95,8 @@ mongoose.connect(process.env.MONGODB_URL, {
 	await loadLoginTokens();
 	await saveDatabaseStats();
 
+	AccountRoutes(app, sharedTokens);
+
 	httpServer.listen(PORT, () => {
 		console.log('listening on *:' + PORT);
 	});

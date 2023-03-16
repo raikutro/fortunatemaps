@@ -1,5 +1,4 @@
 const fetch = require('node-fetch');
-// const insane = require('insane');
 
 // Mongoose Models
 const MapEntry = require('../models/MapEntry');
@@ -10,7 +9,7 @@ const Utils = require('../Utils');
 const SETTINGS = require('../Settings');
 
 module.exports = (app, sharedTokens) => {
-	const LoginMiddleware = require('../middleware/LoginMiddleware')(sharedTokens.login);
+	const LoginMiddleware = require('../middleware/LoginMiddleware')(sharedTokens);
 
 	app.get('/register', LoginMiddleware, async (req, res) => {
 		const user = await req.getProfile();
@@ -223,7 +222,7 @@ module.exports = (app, sharedTokens) => {
 }
 
 async function saveTokens(loginTokens) {
-	let serverInfo = await MapEntry.findOne({});
+	let serverInfo = await ServerInfo.findOne({});
 
 	serverInfo.loginTokens = loginTokens;
 
