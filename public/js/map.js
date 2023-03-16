@@ -36,6 +36,7 @@ updateProfileLinks();
 tagInput.init(window.MAP_DATA.tags);
 authorInput.init(window.MAP_DATA.authorIDs);
 
+$(`[data-map-property="date"]`).text(new Date(window.MAP_DATA.dateUploaded).toLocaleString());
 $("#descriptionText").val(window.MAP_DATA.description);
 
 $("#tagsGroup .dropdown-item").click(function(e){

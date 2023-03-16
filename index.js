@@ -1,4 +1,6 @@
 require('dotenv').config();
+console.log("Loading FortunateMaps Server...");
+
 const express = require('express');
 const path = require('path');
 const http = require('http');
