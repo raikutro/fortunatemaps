@@ -74,7 +74,7 @@ const commentLimiter = rateLimit({
 let DATABASE_STATS = {
 	mapCount: Infinity,
 	highestMapID: 100000,
-	getMaxPage: () => Math.round(DATABASE_STATS.mapCount / SETTINGS.SITE.MAPS_PER_PAGE) - 1
+	getMaxPage: () => Math.max(Math.round(DATABASE_STATS.mapCount / SETTINGS.SITE.MAPS_PER_PAGE) - 1, 1)
 };
 
 let sharedTokens = {
@@ -114,7 +114,7 @@ app.use('/', apiRouter);
 
 // apiRouter.use(generalDBLimiter);
 
-console.log(SETTINGS.DEV_MODE ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUCTION MODE");
+console.log(process.env.NODE_ENV === "DEVELOPMENT" ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUCTION MODE");
 
 // Retrieve login tokens stored in jsonbin
 function loadLoginTokens() {
@@ -441,11 +441,7 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 	const form = new FormData();
 	let url;
 
-	if(req.query.eu) {
-		url = 'http://maptest.newcompte.fr/testmap';
-	} else {
-		url = 'https://tagpro-maptest-dallas.koalabeast.com/';
-	}
+	url = 'https://tagpro-maptest-dallas.koalabeast.com/';
 
 	const {host, pathname} = new URL(url);
 
@@ -460,7 +456,51 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 		return r.ok ? r.url : null;
 	}).catch(err => {
 		console.error(err);
-		res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL());
+		res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL('Map Test Server Failed, ' + err));
+		return null;
+	});
+
+	if(!testURL) return;
+
+	res.json({
+		url: testURL
+	});
+});
+
+apiRouter.post('/testmap', async (req, res) => {
+	if(!req.body.logic) return res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL("Missing Map Logic"));
+	if(!req.body.layout) return res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL("Missing Map Layout"));
+
+	let mapJSON;
+
+	try {
+		mapJSON = JSON.stringify(JSON.parse(req.body.logic));
+	} catch(e) {
+		return res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL("Invalid Map Logic"));
+	}
+
+	const layout = Buffer.from(req.body.layout, 'base64');
+	const logic = Buffer.from(req.body.logic);
+
+	const form = new FormData();
+	let url;
+
+	url = 'https://tagpro-maptest-dallas.koalabeast.com/';
+
+	const {host, pathname} = new URL(url);
+
+	form.append('layout', layout, { filename: 'map.png', contentType: 'application/octet-stream' });
+	form.append('logic', logic, { filename: 'map.json', contentType: 'application/octet-stream' });
+	
+	const testURL = await fetch(url, {
+		method: 'POST',
+		body: form,
+	}).then(r => {
+		// console.log(r.headers, r.status, r.statusText, r.ok, r.url);
+		return r.ok ? r.url : null;
+	}).catch(err => {
+		console.error(err);
+		res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL('Map Test Server Failed, ' + err));
 		return null;
 	});
 

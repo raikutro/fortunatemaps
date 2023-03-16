@@ -2373,19 +2373,29 @@ $(function() {
 	for(var i = 0; i < testServers.length; i++)
 		testServers[i].addEventListener('click', function(i) { return function(e) {
 			var validStr = isValidMapStr();
-			if (validStr != "Valid") {
+			if (validStr !== "Valid") {
 				addAlert('danger','Error: '+validStr,2000);
 				return false;
 			}
-			$.post('https://parretlabs.xyz:8006/proxy?link=http://tagproedit.com/test.php', {logic: JSON.stringify(makeLogic()), layout: getPngBase64(), server: i}, function(data) {
-				if (data) {
-					var win = window.open(data, 'tagpro');
+			fetch('/testmap', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					logic: JSON.stringify(makeLogic()),
+					layout: getPngBase64(),
+					server: testServers[i].dataset.server
+				})
+			}).then(r => r.json()).then(json => {
+				if (json.url) {
+					var win = window.open(json.url, 'tagpro');
 					if(win)
 						win.focus();
 					else
 						addAlert('danger','Please set your pop-up blocker to allow pop-ups',2000);
-					socket.emit('action', { action: 'test', url: data });
-					addChat('<span><span>' + urlify(data) + '</span><br></span>');
+					socket.emit('action', { action: 'test', url: json.url });
+					addChat('<span><span>' + urlify(json.url) + '</span><br></span>');
 				} else {
 					addAlert('danger','Error: Test couldn\'t get started',2000);
 				}
