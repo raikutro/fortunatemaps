@@ -12,7 +12,7 @@ A TagPro map hosting website
 
 ## Setup
 ```
-git clone https://github.com/ParretLabs/fortunatemaps.git
+git clone https://github.com/raikutro/fortunatemaps.git
 cd fortunatemaps
 npm i
 node index.js
