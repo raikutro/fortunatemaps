@@ -6,13 +6,13 @@ const SETTINGS = {
 		PREVIEW_QUALITY: 0.7,
 		THUMBNAIL_QUALITY: 0.9,
 		THUMBNAIL_SIZE: 400,
-		MAX_PNG_LENGTH: 2 ** 12,
+		MAX_PNG_LENGTH: 2 ** 13,
 		MAX_JSON_LENGTH: 2 ** 17,
 	},
 	SITE: {
 		MAPS_PER_PAGE: 24,
 		LOGIN_EXPIRATION_TIME_LIMIT: 100 * 24 * 3600000,
-		COOKIE_TOKEN_NAME: "nekotizer",
+		COOKIE_TOKEN_NAME: process.env.COOKIE_TOKEN_NAME,
 		MAP_NAME_LENGTH: 150,
 		AUTHOR_LENGTH: 150,
 		TAG_NAME_MAX_LENGTH: 16,
@@ -97,10 +97,12 @@ const SETTINGS = {
 		LOGIN_ERROR: errCode({ err: "An error occurred while logging in", code: "LOGIN.LOGIN_ERROR" }),
 		INVALID_LOGIN_TOKEN: errCode({ err: "Your login token has expired", code: "LOGIN.INVALID_TOKEN" }),
 		ALREADY_REGISTERED: errCode({ err: "This profile has already been registered", code: "REGISTER.ALREADY_REGISTERED" }),
+		
 		INVALID_MAP_ID: errCode({ err: "That map ID is invalid", code: "SEARCH.INVALID_MAP_ID" }),
 		NOT_FOUND: errCode({ err: "That resource could not be located", code: "SEARCH.NOT_FOUND" }),
 		MAX_PAGE_LIMIT: errCode({ err: "The page you were trying to access is out of range. Please use a smaller value", code: "SEARCH.MAX_PAGE_LIMIT" }),
 		TEST_MAP_LINK_FAIL: errCode({ err: "Sorry, we could not start up a test map", code: "TEST.TEST_MAP_LINK_FAIL" }),
+		
 		UPLOAD_MAX_SIZE: errCode({ err: "A size error occurred while uploading your map.", code: "UPLOAD.MAX_SIZE"}),
 		PREVIEW_GENERATION: errCode({ err: "An error occurred while generating map preview", code: "CREATION.PREVIEW_GENERATION" }),
 		PREVIEW_WRITING: errCode({ err: "An error occurred while saving the map preview", code: "CREATION.PREVIEW_WRITING" }),

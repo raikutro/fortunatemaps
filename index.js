@@ -119,7 +119,7 @@ let announcementHTML = null;
 
 // apiRouter.use(generalDBLimiter);
 
-console.log(process.env.NODE_ENV === "DEVELOPMENT" ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUCTION MODE");
+console.log(SETTINGS.DEV_MODE ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUCTION MODE");
 
 // Retrieve login tokens stored in jsonbin
 async function loadLoginTokens() {
@@ -279,6 +279,43 @@ apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 	}).catch(err => {
 		// console.log(err);
 		// res.send("Invalid Map ID");
+	});
+
+	if(!mapEntry) return res.redirect("/");
+
+	const userProfile = await req.getProfile();
+	const isAdmin = userProfile ? userProfile.isAdmin : false;
+
+	let mapVersions = await MapEntry.find({
+		versionSource: mapEntry.versionSource,
+		isRemix: false
+	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
+
+	let mapRemixes = await MapEntry.find({
+		versionSource: mapEntry.versionSource,
+		isRemix: true
+	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
+
+	res.render('map', {
+		...(await Utils.templateEngineData(req)),
+		map: mapEntry,
+		mapVersions,
+		mapRemixes,
+		isAdmin
+	});
+});
+
+
+// UM Map Page
+apiRouter.get('/show/:mapid', LoginMiddleware, async (req, res) => {
+	const mapID = Number(req.params.mapid);
+	if(!mapID) return res.redirect("/");
+	
+	let mapEntry = await MapEntry.findOne({
+		authorIDs: { $size: 0 },
+		description: { "$regex": `-- Original U-M ID: ${String(mapID).slice(0, 8)} --` }
+	}).catch(err => {
+		return null;
 	});
 
 	if(!mapEntry) return res.redirect("/");
@@ -532,7 +569,7 @@ apiRouter.post('/upload_map',
 			let mapJSON;
 
 			if(mapLayout.length > SETTINGS.MAPS.MAX_PNG_LENGTH) return res.json(
-				SETTINGS.ERRORS.MAP_MAX_SIZE(`The PNG File in base64 form must be less than ${SETTINGS.MAPS.MAX_PNG_LENGTH} in length.`)
+				SETTINGS.ERRORS.UPLOAD_MAX_SIZE(`The PNG File in base64 form must be less than ${SETTINGS.MAPS.MAX_PNG_LENGTH} in length.`)
 			);
 
 			if(mapLogic.length > SETTINGS.MAPS.MAX_JSON_LENGTH) return res.json(
