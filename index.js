@@ -37,6 +37,7 @@ const SETTINGS = require('./Settings');
 // Mongoose Models
 const MapEntry = require('./models/MapEntry');
 const User = require('./models/User');
+const ServerInfo = require('./models/ServerInfo');
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
@@ -117,20 +118,18 @@ app.use('/', apiRouter);
 console.log(process.env.NODE_ENV === "DEVELOPMENT" ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUCTION MODE");
 
 // Retrieve login tokens stored in jsonbin
-function loadLoginTokens() {
-	return fetch(`https://api.jsonbin.io/v3/b/${process.env.JSONBIN_ID}`, {
-		headers: {
-			"secret-key": process.env.JSONBIN_API_KEY
-		}
-	}).then(a => a.json()).then(json => {
-		sharedTokens.login = json || {};
+async function loadLoginTokens() {
+	const serverInfo = await ServerInfo.findOne({});
 
-		AccountRoutes(app, sharedTokens);
+	if(!serverInfo) {
+		console.log("No ServerInfo found, creating new ServerInfo.");
+		await ServerInfo.create({
+			loginTokens: {}
+		});
+		return await loadLoginTokens();
+	}
 
-		console.log("Retrieved Tokens");
-	}).catch(err => {
-		console.log("Error while saving tokens: ", err);
-	});
+	sharedTokens.login = serverInfo.loginTokens || {};
 }
 
 // Home Page

@@ -4,13 +4,10 @@ const fetch = require('node-fetch');
 // Mongoose Models
 const MapEntry = require('../models/MapEntry');
 const User = require('../models/User');
+const ServerInfo = require('../models/ServerInfo');
 
 const Utils = require('../Utils');
 const SETTINGS = require('../Settings');
-
-const DEFAULT_JSONBIN_DATA = {
-	"fake": null
-};
 
 module.exports = (app, sharedTokens) => {
 	const LoginMiddleware = require('../middleware/LoginMiddleware')(sharedTokens.login);
@@ -225,19 +222,12 @@ module.exports = (app, sharedTokens) => {
 	}, 10 * 60 * 1000);
 }
 
-function saveTokens(loginTokens) {
-	let sendableTokens = DEFAULT_JSONBIN_DATA;
-	if(Object.keys(loginTokens).length !== 0) sendableTokens = loginTokens;
+async function saveTokens(loginTokens) {
+	let serverInfo = await MapEntry.findOne({});
+
+	serverInfo.loginTokens = loginTokens;
+
+	await serverInfo.save();
 	
-	return fetch(`https://api.jsonbin.io/v3/b/${process.env.JSONBIN_ID}`, {
-		method: "PUT",
-		headers: {
-			"Content-Type": "application/json",
-			"secret-key": process.env.JSONBIN_API_KEY
-		},
-		body: JSON.stringify(sendableTokens)
-	}).then(a => a.json()).catch(err => {
-		console.log(sendableTokens);
-		console.log("Error while saving tokens: ", err);
-	});
+	return serverInfo.loginTokens;
 }
