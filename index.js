@@ -86,6 +86,8 @@ let sharedTokens = {
 const LoginMiddleware = require('./middleware/LoginMiddleware')(sharedTokens);
 
 // Connect to the MongoDB Instance
+mongoose.set('debug', false);
+mongoose.set('strictQuery', true);
 mongoose.connect(process.env.MONGODB_URL, {
 	useNewUrlParser: true,
 	useUnifiedTopology: true
@@ -101,7 +103,6 @@ mongoose.connect(process.env.MONGODB_URL, {
 		console.log('listening on *:' + PORT);
 	});
 }).catch(err => console.error(err));
-mongoose.set('debug', false);
 
 if(process.env._ && process.env._.includes("heroku")) {
 	console.log("HEROKU DETECTED");
