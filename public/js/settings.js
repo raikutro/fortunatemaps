@@ -39,6 +39,25 @@ $("#settingsBtn").click(() => {
 	});
 });
 
+$("#sendAnnouncementBtn").click(() => {
+	$("#sendAnnouncementBtn").prop("disabled", true);
+	fetch("/send_announcement", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			announcement: prompt("Announcement:")
+		})
+	}).then(a =>a.json()).then(json => {
+		$("#sendAnnouncementBtn").prop("disabled", false);
+		if(json.err) return alert("Error: " + json.err);
+		if(!json.success) return alert("Error: Failed");
+
+		alert("Sent!");
+	});
+});
+
 function saveSettings(){
 	localStorage.setItem("localSettings", JSON.stringify(localSettings));
 }

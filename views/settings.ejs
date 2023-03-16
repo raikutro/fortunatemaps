@@ -37,6 +37,11 @@
 				</div>
 				<hr>
 				<button class="btn btn-primary w-100" id="settingsBtn">Save Settings</button>
+				<hr>
+				<%- profile.isAdmin ? `
+				<button class="btn btn-danger w-100" id="sendAnnouncementBtn">Send Announcement</button>
+				<hr>
+				` : "" %>
 			</div>
 		</main>
 

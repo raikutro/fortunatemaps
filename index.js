@@ -115,6 +115,8 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 app.use('/', apiRouter);
 
+let announcementHTML = null;
+
 // apiRouter.use(generalDBLimiter);
 
 console.log(process.env.NODE_ENV === "DEVELOPMENT" ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUCTION MODE");
@@ -143,6 +145,7 @@ app.get('/', LoginMiddleware, async (req, res) => {
 		query: "",
 		page: 1,
 		maps,
+		announcementHTML,
 		maxPage: DATABASE_STATS.getMaxPage()
 	});
 });
@@ -769,6 +772,19 @@ apiRouter.post('/like', LoginMiddleware, async (req, res) => {
 			success: true
 		});
 	}
+});
+
+apiRouter.post('/send_announcement', LoginMiddleware, async (req, res) => {
+	const userProfile = await req.getProfile();
+	const isAdmin = userProfile ? userProfile.isAdmin : false;
+
+	if(!isAdmin) return res.status(401);
+
+	announcementHTML = req.body.announcement;
+
+	res.json({
+		success: true
+	});
 });
 
 // Link the map editor route
