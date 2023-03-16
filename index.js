@@ -512,7 +512,13 @@ apiRouter.post('/testmap', async (req, res) => {
 	const form = new FormData();
 	let url;
 
-	url = 'https://tagpro-maptest-dallas.koalabeast.com/';
+	if(req.body.server === 'paris') {
+		url = 'https://tagpro-maptest-paris.koalabeast.com/';
+	} else if(req.body.server === 'sydney') {
+		url = 'https://tagpro-maptest-sydney.koalabeast.com/';
+	} else {
+		url = 'https://tagpro-maptest-dallas.koalabeast.com/';
+	}
 
 	const {host, pathname} = new URL(url);
 
@@ -522,10 +528,7 @@ apiRouter.post('/testmap', async (req, res) => {
 	const testURL = await fetch(url, {
 		method: 'POST',
 		body: form,
-	}).then(r => {
-		// console.log(r.headers, r.status, r.statusText, r.ok, r.url);
-		return r.ok ? r.url : null;
-	}).catch(err => {
+	}).then(r => r.ok ? r.url : null).catch(err => {
 		console.error(err);
 		res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL('Map Test Server Failed, ' + err));
 		return null;
