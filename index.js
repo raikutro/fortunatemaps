@@ -170,9 +170,11 @@ app.get('/preview/:mapid.jpeg', async (req, res) => {
 
 	res.writeHead(200, {
 		'Content-Type': 'image/jpeg',
-		'Content-Length': previewBuffer.length
+		'Content-Length': previewBuffer.headers['content-length'],
+		'Cache-Control': 'max-age=604800'
 	});
-	res.end(previewBuffer);
+	previewBuffer.on('end', () => res.end());
+	previewBuffer.pipe(res);
 });
 app.get('/preview/:mapid', (req, res) => res.redirect(`/preview/${req.params.mapid}.jpeg`));
 
@@ -189,9 +191,11 @@ app.get('/thumbnail/:mapid.jpeg', async (req, res) => {
 
 	res.writeHead(200, {
 		'Content-Type': 'image/jpeg',
-		'Content-Length': thumbnailBuffer.length
+		'Content-Length': thumbnailBuffer.headers['content-length'],
+		'Cache-Control': 'max-age=604800'
 	});
-	res.end(thumbnailBuffer);
+	thumbnailBuffer.on('end', () => res.end());
+	thumbnailBuffer.pipe(res);
 });
 app.get('/thumbnail/:mapid', (req, res) => res.redirect(`/thumbnail/${req.params.mapid}.jpeg`));
 

@@ -1,9 +1,8 @@
-const AWS = require('aws-sdk');
-AWS.config.update({region: 'us-west-1'});
+const { S3 } = require("@aws-sdk/client-s3");
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
 
-const s3 = new AWS.S3({apiVersion: '2006-03-01'});
+const s3 = new S3({apiVersion: '2006-03-01', region: 'us-west-1'});
 
 module.exports.uploadMapImages = ({id, previewJPEGBase64, thumbnailJPEGBase64}) => {
 	return new Promise(async (resolve, reject) => {
