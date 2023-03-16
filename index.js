@@ -82,8 +82,12 @@ let sharedTokens = {
 	login: {}
 };
 
+let announcementHTML = null;
+
 // Middleware
 const LoginMiddleware = require('./middleware/LoginMiddleware')(sharedTokens);
+
+console.log(SETTINGS.DEV_MODE ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUCTION MODE");
 
 // Connect to the MongoDB Instance
 mongoose.set('debug', false);
@@ -116,11 +120,7 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 app.use('/', apiRouter);
 
-let announcementHTML = null;
-
 // apiRouter.use(generalDBLimiter);
-
-console.log(SETTINGS.DEV_MODE ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUCTION MODE");
 
 // Retrieve login tokens stored in jsonbin
 async function loadLoginTokens() {
