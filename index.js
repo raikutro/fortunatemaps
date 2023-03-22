@@ -179,6 +179,7 @@ app.get('/preview/:mapid.jpeg', async (req, res) => {
 	previewBuffer.pipe(res);
 });
 app.get('/preview/:mapid', (req, res) => res.redirect(`/preview/${req.params.mapid}.jpeg`));
+app.get('/static/previews/:mapid.png', (req, res) => res.redirect(`/preview/${req.params.mapid}.jpeg`));
 
 // Thumbnail Image Route
 app.get('/thumbnail/:mapid.jpeg', async (req, res) => {
