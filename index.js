@@ -179,7 +179,6 @@ app.get('/preview/:mapid.jpeg', async (req, res) => {
 	previewBuffer.pipe(res);
 });
 app.get('/preview/:mapid', (req, res) => res.redirect(`/preview/${req.params.mapid}.jpeg`));
-app.get('/static/previews/:mapid.png', (req, res) => res.redirect(`/preview/${req.params.mapid}.jpeg`));
 
 // Thumbnail Image Route
 app.get('/thumbnail/:mapid.jpeg', async (req, res) => {
@@ -328,6 +327,22 @@ apiRouter.get('/show/:mapid', LoginMiddleware, async (req, res) => {
 	if(!mapEntry) return res.redirect("/");
 
 	res.redirect("/map/" + mapEntry.mapID);
+});
+
+apiRouter.get('/static/previews/:mapid.png', LoginMiddleware, async (req, res) => {
+	const mapID = Number(req.params.mapid);
+	if(!mapID) return res.redirect("/assets/logo.png");
+	
+	let mapEntry = await MapEntry.findOne({
+		authorIDs: { $size: 0 },
+		description: { "$regex": `-- Original U-M ID: ${String(mapID).slice(0, 8)} --` }
+	}).catch(err => {
+		return null;
+	});
+
+	if(!mapEntry) return res.redirect("/assets/logo.png");
+
+	res.redirect(`/preview/${mapEntry.mapID}.jpeg`);
 });
 
 // Map Data Route, returns data about the map and if requested by the client: its other versions and/or remixes.
