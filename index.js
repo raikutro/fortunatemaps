@@ -22,6 +22,7 @@ const PORT = process.env.PORT || 80;
 // The TagProEdit.com module.
 // The source code is now its own module.
 const TagproEditMapEditor = require('./editor/app');
+console.log("Loaded tagproedit.com editor");
 
 const PreviewGenerator = require('./components/preview_generator');
 const AWSController = require('./components/aws_controller');
