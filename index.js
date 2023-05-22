@@ -37,9 +37,10 @@ const Utils = require('./Utils');
 const SETTINGS = require('./Settings');
 
 // Mongoose Models
-const MapEntry = require('./models/MapEntry');
-const User = require('./models/User');
-const ServerInfo = require('./models/ServerInfo');
+// Models cannot be initiated until DB connection.
+let MapEntry = null;
+let User = null;
+let ServerInfo = null;
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
@@ -102,6 +103,11 @@ mongoose.connect(process.env.MONGODB_URL, {
 
 	await loadLoginTokens();
 	await saveDatabaseStats();
+
+	// Mongoose Models
+	MapEntry = require('./models/MapEntry');
+	User = require('./models/User');
+	ServerInfo = require('./models/ServerInfo');
 
 	AccountRoutes(app, sharedTokens);
 
