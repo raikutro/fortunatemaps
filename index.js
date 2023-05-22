@@ -101,13 +101,13 @@ mongoose.connect(process.env.MONGODB_URL, {
 }).then(async () => {
 	console.log("Connected to MongoDB");
 
-	await loadLoginTokens();
-	await saveDatabaseStats();
-
 	// Mongoose Models
 	MapEntry = require('./models/MapEntry');
 	User = require('./models/User');
 	ServerInfo = require('./models/ServerInfo');
+	
+	await loadLoginTokens();
+	await saveDatabaseStats();
 
 	AccountRoutes(app, sharedTokens);
 
