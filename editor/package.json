@@ -12,7 +12,7 @@
     "assert": "^1.4.0",
     "body-parser": "^1.15.1",
     "express": "^4.13.4",
-    "mongodb": ">=3.1.13",
+    "mongodb": ">=5.6.0",
     "socket.io": "^3.0.0",
     "static-eval": "^2.1.0"
   }
