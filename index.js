@@ -756,6 +756,20 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, async (req, res
 		mapEntry.authorIDs = authorsArray;
 		mapEntry.unlisted = req.body.unlisted;
 
+		// Update the map logic field
+		try {
+			let mapJSON = JSON.parse(mapEntry.json);
+
+			mapJSON.info.name = mapName;
+			mapJSON.info.author = mapAuthor;
+
+			mapEntry.json = mapJSON;
+		} catch {
+			return res.json({
+				err: "Invalid JSON"
+			});
+		}
+
 		await mapEntry.save();
 
 		res.json({
