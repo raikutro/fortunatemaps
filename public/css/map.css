@@ -39,6 +39,7 @@
 }
 
 .map-description {
+	text-wrap: wrap;
 	overflow-x: hidden;
 	overflow-y: auto;
 	height: 100%;
