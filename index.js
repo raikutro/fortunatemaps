@@ -763,7 +763,7 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, async (req, res
 			mapJSON.info.name = mapName;
 			mapJSON.info.author = mapAuthor;
 
-			mapEntry.json = mapJSON;
+			mapEntry.json = JSON.stringify(mapJSON);
 		} catch {
 			return res.json({
 				err: "Invalid JSON"
