@@ -46,17 +46,17 @@ const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
 // Express Router for API routes.
 const apiRouter = express.Router();
-// 300 requests per 30 seconds
+// 200 requests per 30 seconds
 const generalDBLimiter = rateLimit({
 	windowMs: 30 * 1000,
-	max: Infinity,
+	max: 200,
 	standardHeaders: true,
 	legacyHeaders: false,
 });
 // 20 requests per 5 minutes
 const mapUploadLimiter = rateLimit({
 	windowMs: 5 * 60 * 1000,
-	max: Infinity,
+	max: 20,
 	standardHeaders: true,
 	legacyHeaders: false,
 });
@@ -128,7 +128,7 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 app.use('/', apiRouter);
 
-// apiRouter.use(generalDBLimiter);
+apiRouter.use(generalDBLimiter);
 
 // Retrieve login tokens stored in jsonbin
 async function loadLoginTokens() {
