@@ -141,11 +141,11 @@ module.exports = (app, sharedTokens) => {
 			saveTokens(sharedTokens.login);
 
 			res.json({
-				redirectURL: (SETTINGS.DEV_MODE ? (SETTINGS.NGROK_URL || "http://localhost") : "https://fortunatemaps.subaverage.site") + "/profile/" + userAccount._id
+				redirectURL: (SETTINGS.DEV_MODE ? (SETTINGS.NGROK_URL || "http://localhost") : "https://fortunatemaps.herokuapp.com") + "/profile/" + userAccount._id
 			});
 		} else {
 			res.json({
-				redirectURL: (SETTINGS.DEV_MODE ? (SETTINGS.NGROK_URL || "http://localhost") : "https://fortunatemaps.subaverage.site") + "/#err=" + SETTINGS.ERRORS.LOGIN_ERROR().code
+				redirectURL: (SETTINGS.DEV_MODE ? (SETTINGS.NGROK_URL || "http://localhost") : "https://fortunatemaps.herokuapp.com") + "/#err=" + SETTINGS.ERRORS.LOGIN_ERROR().code
 			});
 		}
 	});
