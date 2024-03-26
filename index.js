@@ -124,7 +124,7 @@ if(process.env._ && process.env._.includes("heroku")) {
 app.set('view engine', 'ejs');
 
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '2mb' }));
 app.use(cookieParser());
 app.use('/', apiRouter);
 
