@@ -252,7 +252,7 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	req.query.q = req.query.q.trim();
 
 	let finalQuery = {
-		name: new RegExp(req.query.q, 'i'),
+		name: req.query.q,
 		authorIDs: { $all: authorQueries },
 		tags: { $all: tagQueries },
 		authorName: authorTextQueries,
