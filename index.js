@@ -505,11 +505,13 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 	form.append('layout', layout, { filename: 'map.png', contentType: 'application/octet-stream' });
 	form.append('logic', logic, { filename: 'map.json', contentType: 'application/octet-stream' });
 	
+	console.log(mapEntry);
+
 	const testURL = await fetch(url, {
 		method: 'POST',
 		body: form,
 	}).then(r => {
-		// console.log(r.headers, r.status, r.statusText, r.ok, r.url);
+		console.log(r.headers, r.status, r.statusText, r.ok, r.url);
 		return r.ok ? r.url : null;
 	}).catch(err => {
 		console.error(err);
