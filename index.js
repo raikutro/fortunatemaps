@@ -735,6 +735,7 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, async (req, res
 
 		const userProfile = await req.getProfile();
 
+		if(!userProfile) return res.status(404).json({err: "User not found."});
 		if(!mapEntry) return res.status(404).json({err: "Map not found."});
 
 		if(!mapEntry.authorIDs.includes(req.profileID) && !userProfile.isAdmin) return res.status(404).json({err: "User is not an author of this map."});
