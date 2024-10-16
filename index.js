@@ -18,6 +18,7 @@ const app = express();
 const httpServer = http.Server(app);
 
 const PORT = process.env.PORT || 80;
+const MAPTEST_URL = process.env.MAPTEST_URL || 'tagpro.koalabeast.com';
 
 // The TagProEdit.com module.
 // The source code is now its own module.
@@ -496,22 +497,18 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 	const logic = Buffer.from(mapEntry.json);
 
 	const form = new FormData();
-	let url;
-
-	url = 'https://tagpro-maptest-dallas.koalabeast.com/';
+	let url = `https://${MAPTEST_URL}/groups/testmap`;
 
 	const {host, pathname} = new URL(url);
 
 	form.append('layout', layout, { filename: 'map.png', contentType: 'application/octet-stream' });
 	form.append('logic', logic, { filename: 'map.json', contentType: 'application/octet-stream' });
-	
-	console.log(mapEntry);
 
 	const testURL = await fetch(url, {
 		method: 'POST',
 		body: form,
-	}).then(r => {
-		console.log(r.headers, r.status, r.statusText, r.ok, r.url);
+	}).then(async (r) => {
+		// console.log(r.headers, r.status, r.statusText, r.ok, r.url, await r.text());
 		return r.ok ? r.url : null;
 	}).catch(err => {
 		console.error(err);
@@ -542,15 +539,7 @@ apiRouter.post('/testmap', async (req, res) => {
 	const logic = Buffer.from(req.body.logic);
 
 	const form = new FormData();
-	let url;
-
-	if(req.body.server === 'paris') {
-		url = 'https://tagpro-maptest-paris.koalabeast.com/';
-	} else if(req.body.server === 'sydney') {
-		url = 'https://tagpro-maptest-sydney.koalabeast.com/';
-	} else {
-		url = 'https://tagpro-maptest-dallas.koalabeast.com/';
-	}
+	let url = `https://${MAPTEST_URL}/groups/testmap`;
 
 	const {host, pathname} = new URL(url);
 
