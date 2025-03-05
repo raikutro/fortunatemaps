@@ -250,7 +250,7 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	});
 
 	// Trim off the whitespace
-	req.query.q = req.query.q.trim();
+	req.query.q = Utils.makeAlphanumeric(req.query.q.trim()).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH);
 
 	try {
 		req.query.q = new RegExp(req.query.q, 'i');
