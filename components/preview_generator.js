@@ -35,6 +35,17 @@ let assetsLoaded = false;
 	});
 })();
 
+
+class MapCanvas {
+	constructor(width, height) {
+		this.image = new Jimp({ width: 256, height: 256, color: 0x0 });
+	}
+
+	drawImage(src, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
+
+	}
+}
+
 const generate = (layout, logic, textureName="VANILLA") => {
 	return new Promise(async (resolve, reject) => {
 		await waitForLoadedAssets();

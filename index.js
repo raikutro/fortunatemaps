@@ -143,6 +143,8 @@ async function loadLoginTokens() {
 		return await loadLoginTokens();
 	}
 
+	console.log(serverInfo)
+
 	sharedTokens.login = serverInfo.loginTokens || {};
 }
 
