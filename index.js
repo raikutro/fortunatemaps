@@ -495,13 +495,15 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 
 	if(!mapEntry) return res.json(SETTINGS.ERRORS.NOT_FOUND("Map Entry Not Found"));
 
-	const layout = Utils.Compression.decompressMapLayout(mapEntry.png).toString("base64");
-	const logic = Buffer.from(JSON.stringify(Utils.Compression.decompressMapLogic(mapEntry.json)), 'ascii');
+	const layout = await Utils.Compression.decompressMapLayout(mapEntry.png);
+	const logic = JSON.stringify(await Utils.Compression.decompressMapLogic(mapEntry.json));
 
 	const form = new FormData();
 	let url = `https://${MAPTEST_URL}/groups/testmap`;
 
 	const {host, pathname} = new URL(url);
+
+	console.log(layout, logic);
 
 	form.append('layout', layout, { filename: 'map.png', contentType: 'application/octet-stream' });
 	form.append('logic', logic, { filename: 'map.json', contentType: 'application/octet-stream' });
@@ -510,7 +512,7 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 		method: 'POST',
 		body: form,
 	}).then(async (r) => {
-		// console.log(r.headers, r.status, r.statusText, r.ok, r.url, await r.text());
+		console.log(r.headers, r.status, r.statusText, r.ok, r.url, await r.text());
 		return r.ok ? r.url : null;
 	}).catch(err => {
 		console.error(err);
