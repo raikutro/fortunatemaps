@@ -495,8 +495,8 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 
 	if(!mapEntry) return res.json(SETTINGS.ERRORS.NOT_FOUND("Map Entry Not Found"));
 
-	const layout = decompressMapLayout(mapEntry.png).toString("base64");
-	const logic = Buffer.from(JSON.stringify(decompressMapLogic(mapEntry.json)), 'ascii');
+	const layout = Utils.Compression.decompressMapLayout(mapEntry.png).toString("base64");
+	const logic = Buffer.from(JSON.stringify(Utils.Compression.decompressMapLogic(mapEntry.json)), 'ascii');
 
 	const form = new FormData();
 	let url = `https://${MAPTEST_URL}/groups/testmap`;
