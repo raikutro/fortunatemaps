@@ -244,17 +244,19 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 		authorText: specialQueries.filter(a => a.startsWith("@@")),
 	};
 
+	const sanitizeQuery = str => Utils.cleanQuery(str);
+
 	// This monster of a statement gets all "@" queries and converts them to a list of user ids.
 	const authorQueries = (await Promise.all(rawQueries.author.map(a => new Promise(async (resolve) => {
-		let user = (await User.findOne({username: new RegExp(Utils.makeAlphanumeric(a), "i")}, "_id")) || {_id: ""};
+		let user = (await User.findOne({username: new RegExp(sanitizeQuery(a), "i")}, "_id")) || {_id: ""};
 		resolve(user._id);
 	})))).filter(a => a.length !== 0);
 	
 	// Get all the "#" queries and sanitize them.
-	const tagQueries = rawQueries.tag.map(a => new RegExp(Utils.makeAlphanumeric(a).trim(), "i"));
+	const tagQueries = rawQueries.tag.map(a => new RegExp(sanitizeQuery(a).trim(), "i"));
 
 	// Get all the "@@" queries and sanitize them.
-	const authorTextQueries = rawQueries.authorText.map(a => new RegExp(Utils.makeAlphanumeric(a).trim(), "i"));
+	const authorTextQueries = rawQueries.authorText.map(a => new RegExp(sanitizeQuery(a).trim(), "i"));
 
 	// Remove all the special queries from the actual query
 	specialQueries.forEach(specialQuery => {
@@ -262,7 +264,7 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	});
 
 	// Trim off the whitespace
-	req.query.q = Utils.makeAlphanumeric(req.query.q.trim()).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH);
+	req.query.q = sanitizeQuery(req.query.q.trim()).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH);
 
 	try {
 		req.query.q = new RegExp(req.query.q, 'i');
@@ -445,7 +447,7 @@ apiRouter.get('/author_names/:authorid', async (req, res) => {
 	let authorIDs = req.params.authorid.split(",");
 	if(authorIDs.some(a => a.length !== 24)) return res.json({ usernames: [] });
 
-	authorIDs = authorIDs.map(a => mongoose.Types.ObjectId(a));
+	authorIDs = authorIDs.map(a => new mongoose.Types.ObjectId(a));
 
 	let users = await User.find({ 
 		_id: {
@@ -813,7 +815,7 @@ apiRouter.post('/like', LoginMiddleware, async (req, res) => {
 
 		// Toggles the like status of a map
 		if(profileIndex > -1) mapEntry.likes.splice(profileIndex, 1);
-		else mapEntry.likes.push(mongoose.Types.ObjectId(req.profileID));
+		else mapEntry.likes.push(new mongoose.Types.ObjectId(req.profileID));
 
 		await mapEntry.save();
 

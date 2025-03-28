@@ -94,6 +94,10 @@ Utils.cleanQueryableText = text => {
 	return text.replace(/[#@]/g, "");
 };
 
+Utils.cleanQuery = text => {
+	return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 Utils.isAlphanumeric = text => Boolean(text.match(/^[a-zA-Z0-9_]*$/gi));
 
 Utils.makeAlphanumeric = text => text.replace(/[^a-zA-Z0-9-]/gi, "");
