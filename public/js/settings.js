@@ -1,17 +1,31 @@
 const markdownEditor = new SimpleMDE({ element: document.getElementById("biographyInput") });
+const texturePackSelectorElem = document.getElementById("texturePackSelector");
 
 let localSettings = JSON.parse(localStorage.getItem("localSettings") || "{}");
+
+SETTINGS.TEXTURES.forEach(pack => {
+	texturePackSelectorElem.innerHTML += `<option value="${pack.url}">${pack.name} by ${pack.author}</option>`;
+});
 
 Object.keys(localSettings).forEach(key => {
 	let value = localSettings[key];
 
 	if(typeof value === "boolean") $(`.local-setting[data-setting=${key}]`).prop("checked", value);
+	if(typeof value === "string") $(`.local-setting[data-setting=${key}]`).val(value);
 });
 
-$(".local-setting").click(function(){
-	let value = null;
+$(".local-setting[type='checkbox']").on("click", function(){
+	let value = $(this).prop("checked");
 
-	if($(this).attr("type") === "checkbox") value = $(this).prop("checked");
+	localSettings[$(this).attr("data-setting")] = value;
+
+	saveSettings();
+});
+
+$("select.local-setting").on("change", function(){
+	let value = $(this).val();
+
+	console.log(value);
 
 	localSettings[$(this).attr("data-setting")] = value;
 
