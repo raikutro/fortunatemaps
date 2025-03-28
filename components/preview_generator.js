@@ -163,7 +163,7 @@ const generate = (layout, logic, textureName="VANILLA") => {
 				}
 
 				if(SETTINGS.IS_WALL(tileType)) {
-					drawWallTile(canvas, wallMap, x, y, textureName);
+					drawWall(canvas, x, y, SETTINGS.TILE_NAMES[tileType], neighborObj);
 				} else if(SETTINGS.TILE_COORDINATES[SETTINGS.TILE_NAMES[tileType]]) {
 					canvas.drawImage(
 						TILES[textureName].GENERAL,
