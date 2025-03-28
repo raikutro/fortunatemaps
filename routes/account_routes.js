@@ -80,6 +80,14 @@ module.exports = (app, sharedTokens) => {
 			user = user.toObject();
 
 			let maps = await MapEntry.find({ authorIDs: user._id }).limit(20).sort({ dateUploaded: -1 });
+
+			maps = maps.map(d => {
+				let doc = d.toObject();
+				doc.png = doc.png.toString('base64');
+				doc.json = doc.json.toString('base64');
+				return doc;
+			});
+
 			let profileID = req.profileID;
 			let renderData = {...(await Utils.templateEngineData(req)), user, maps};
 
