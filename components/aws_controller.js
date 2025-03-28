@@ -4,8 +4,8 @@ const BUCKET_NAME = process.env.BUCKET_NAME;
 
 const s3 = new S3({apiVersion: '2006-03-01', region: 'us-west-1'});
 
-const PREVIEW_PATH = "previews_dev/";
-const THUMBNAIL_PATH = "thumbnails_dev/";
+const PREVIEW_PATH = "previews";
+const THUMBNAIL_PATH = "thumbnails";
 
 module.exports.uploadMapImages = ({id, previewJPEGBase64, thumbnailJPEGBase64}) => {
 	return new Promise(async (resolve, reject) => {
