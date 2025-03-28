@@ -97,8 +97,7 @@ console.log(SETTINGS.DEV_MODE ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUC
 mongoose.set('debug', false);
 mongoose.set('strictQuery', true);
 mongoose.connect(process.env.MONGODB_URL, {
-	useNewUrlParser: true,
-	useUnifiedTopology: true
+	
 }).then(async () => {
 	console.log("Connected to MongoDB");
 
