@@ -542,6 +542,19 @@ window.GENERATE_MAP_PREVIEW = async function(originalPNGImage, mapJSONData) {
 	}
 	// console.log("[FM] Floor and gate tiles drawn");
 
+	if (mapJSONData && mapJSONData.portals) {
+		Object.entries(mapJSONData.portals).forEach(([key, portalData]) => {
+			if (!portalData.hasOwnProperty("destination")) {
+				const [x, y] = key.split(",").map(Number);
+				const sx = 4 * config.tileSize; // source x: tile column 4
+				const sy = 0 * config.tileSize; // source y: tile row 0
+				finalCtx.drawImage(images.portal, sx, sy, config.tileSize, config.tileSize,
+					x * config.tileSize, y * config.tileSize, config.tileSize, config.tileSize);
+				console.log(`[FM] Exit portal drawn at ${x},${y}`);
+			}
+		});
+	}
+
 	for (let y = 0; y < wallMap.length; y++) {
 		for (let x = 0; x < wallMap[0].length; x++) {
 			if (wallMap[y][x] !== 0) {
