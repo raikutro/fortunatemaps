@@ -55,7 +55,8 @@ class MapCanvas {
 		// console.log(src);
 		let clonedSrc = src.clone();
 		clonedSrc.crop({ x: sx, y: sy, w: sWidth, h: sHeight});
-		if(dWidth !== null) clonedSrc.resize({ w: dWidth, h: dHeight });
+		// console.log(dWidth, dHeight);
+		if(dWidth !== null && dWidth !== 0 && dHeight !== 0) clonedSrc.resize({ w: dWidth, h: dHeight });
 
 		// this.image.blit({ src: clonedSrc, x: dx, y: dy });
 		this.image.composite(clonedSrc, dx, dy);

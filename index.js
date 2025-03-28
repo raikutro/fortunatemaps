@@ -389,6 +389,11 @@ apiRouter.get('/map_data/:mapid', async (req, res) => {
 		}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
 	}
 
+	mapEntry = mapEntry.toObject();
+
+	mapEntry.png = (await Utils.Compression.decompressMapLayout(Buffer.from(mapEntry.png.toString('base64'), 'base64'))).toString('base64');
+	mapEntry.json = JSON.stringify(await Utils.Compression.decompressMapLogic(Buffer.from(mapEntry.json.toString('base64'), 'base64')));
+
 	res.json({
 		map: mapEntry,
 		mapVersions,
