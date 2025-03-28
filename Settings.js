@@ -2,7 +2,7 @@ const textures ={"texturePacks":[{"name":"Classic","author":"LuckySpammer","url"
 
 const SETTINGS = {
 	NGROK_URL: process.env.NGROK_URL,
-	CTF_AUTH_URL: "https://ctfauth.herokuapp.com/api/v2",
+	CTF_AUTH_URL: "https://ctfauth.subaverage.site/api/v2",
 	DEV_MODE: (process.env.NODE_ENV || "").toUpperCase() === "DEVELOPMENT",
 	MAPS: {
 		PREVIEW_QUALITY: 70,
