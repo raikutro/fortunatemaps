@@ -771,12 +771,12 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, async (req, res
 
 		// Update the map logic field
 		try {
-			let mapJSON = JSON.parse(mapEntry.json);
+			let mapJSON = await Utils.Compression.decompressMapLogic(mapEntry.json);
 
 			mapJSON.info.name = mapName;
 			mapJSON.info.author = mapAuthor;
 
-			mapEntry.json = JSON.stringify(mapJSON);
+			mapEntry.json = await Utils.Compression.compressMapLogic(mapJSON);
 		} catch {
 			return res.json({
 				err: "Invalid JSON"
