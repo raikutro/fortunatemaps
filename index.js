@@ -19,6 +19,7 @@ const httpServer = http.Server(app);
 
 const PORT = process.env.PORT || 80;
 const MAPTEST_URL = process.env.MAPTEST_URL || 'tagpro.koalabeast.com';
+const TEMP_FILE_PATH = './temp';
 
 // The TagProEdit.com module.
 // The source code is now its own module.
@@ -26,7 +27,6 @@ const TagproEditMapEditor = require('./editor/app');
 console.log("Loaded tagproedit.com editor");
 
 const PreviewGenerator = require('./components/preview_generator');
-const AWSController = require('./components/aws_controller');
 
 // Routes
 const AccountRoutes = require('./routes/account_routes');
@@ -152,6 +152,13 @@ async function loadLoginTokens() {
 app.get('/', LoginMiddleware, async (req, res) => {
 	let maps = await MapEntry.find({ unlisted: false }).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
 
+	maps = maps.map(d => {
+		let doc = d.toObject();
+		doc.png = doc.png.toString('base64');
+		doc.json = doc.json.toString('base64');
+		return doc;
+	});
+
 	res.render('index', {
 		...(await Utils.templateEngineData(req)),
 		query: "",
@@ -174,41 +181,35 @@ app.get('/preview/:mapid.jpeg', async (req, res) => {
 	const mapID = Number(req.params.mapid);
 	if(!mapID) return res.send("Invalid Map ID");
 
-	let previewBuffer = await AWSController.getPreviewMapImage(String(mapID).slice(0, 10)).catch(err => {
-		return {err};
-	});
+	// Check if map exists in TEMP_FILE_PATH folder. if it does, send the file, if it doesn't, generate the file preview and send it.
+	if(!fs.existsSync(`${TEMP_FILE_PATH}/${mapID}.jpeg`)) {
+		let mapEntry = await MapEntry.findOne({
+			mapID
+		}, "png json");
 
-	if(previewBuffer.err) return res.status(404).send(previewBuffer.err);
+		if(!mapEntry) return res.redirect("/");
 
-	res.writeHead(200, {
-		'Content-Type': 'image/jpeg',
-		'Content-Length': previewBuffer.headers['content-length'],
-		'Cache-Control': 'max-age=604800'
-	});
-	previewBuffer.on('end', () => res.end());
-	previewBuffer.pipe(res);
+		const sourcePNG = (await Utils.Compression.decompressMapLayout(mapEntry.png)).toString('base64');
+		const sourceJSON = JSON.stringify(await Utils.Compression.decompressMapLogic(mapEntry.json));
+
+		let previewCanvas = await PreviewGenerator.generate(
+			sourcePNG,
+			sourceJSON
+		).catch(err => {
+			console.error("PREVIEW GENERATION ERROR:", err);
+			res.json(SETTINGS.ERRORS.PREVIEW_GENERATION(err));
+			return null;
+		});
+
+		await previewCanvas.image.write(`${TEMP_FILE_PATH}/${mapID}.jpeg`);
+	}
+
+	res.sendFile(path.join(__dirname, `${TEMP_FILE_PATH}/${mapID}.jpeg`));
 });
 app.get('/preview/:mapid', (req, res) => res.redirect(`/preview/${req.params.mapid}.jpeg`));
 
 // Thumbnail Image Route
-app.get('/thumbnail/:mapid.jpeg', async (req, res) => {
-	const mapID = Number(req.params.mapid);
-	if(!mapID) return res.send("Invalid Map ID");
-
-	let thumbnailBuffer = await AWSController.getThumbnailMapImage(String(mapID).slice(0, 10)).catch(err => {
-		return {err};
-	});
-
-	if(thumbnailBuffer.err) return res.status(404).send(thumbnailBuffer.err);
-
-	res.writeHead(200, {
-		'Content-Type': 'image/jpeg',
-		'Content-Length': thumbnailBuffer.headers['content-length'],
-		'Cache-Control': 'max-age=604800'
-	});
-	thumbnailBuffer.on('end', () => res.end());
-	thumbnailBuffer.pipe(res);
-});
+app.get('/thumbnail/:mapid.jpeg', (req, res) => res.redirect(`/preview/${req.params.mapid}.jpeg`));
 app.get('/thumbnail/:mapid', (req, res) => res.redirect(`/thumbnail/${req.params.mapid}.jpeg`));
 
 // Search Page
@@ -273,10 +274,17 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	if(tagQueries.length === 0) delete finalQuery.tags;
 	if(authorTextQueries.length === 0) delete finalQuery.authorName;
 
-	let maps = await MapEntry.find(finalQuery, "name mapID authorName")
+	let maps = await MapEntry.find(finalQuery, "name mapID authorName png json")
 		.skip(skipNum)
 		.limit(SETTINGS.SITE.MAPS_PER_PAGE)
-		.sort({ mapID: -1 })
+		.sort({ mapID: -1 });
+
+	maps = maps.map(d => {
+		let doc = d.toObject();
+		doc.png = doc.png.toString('base64');
+		doc.json = doc.json.toString('base64');
+		return doc;
+	});
 
 	res.render('search', {
 		...(await Utils.templateEngineData(req)),
@@ -317,6 +325,11 @@ apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 		versionSource: mapEntry.versionSource,
 		isRemix: true
 	}).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
+
+	mapEntry = mapEntry.toObject();
+
+	mapEntry.png = mapEntry.png.toString('base64');
+	mapEntry.json = mapEntry.json.toString('base64');
 
 	res.render('map', {
 		...(await Utils.templateEngineData(req)),
@@ -608,49 +621,6 @@ apiRouter.post('/upload_map',
 			req.body.unlisted = req.body.unlisted;
 			req.body.sourceMapID = req.body.sourceMapID ? req.body.sourceMapID : 0;
 
-			// Generate the preview canvas.
-			let previewCanvas = await PreviewGenerator.generate(
-				req.body.layout,
-				req.body.logic
-			).catch(err => {
-				console.error("PREVIEW GENERATION ERROR:", err);
-				res.json(SETTINGS.ERRORS.PREVIEW_GENERATION(err));
-				return null;
-			});
-
-			if(!previewCanvas) return;
-			
-			const previewJPEG = await new Promise(
-				(resolve, reject) => previewCanvas.toDataURL('image/jpeg', SETTINGS.MAPS.PREVIEW_QUALITY, (err, jpeg) => {
-					if(err) return reject(err) || null;
-
-					resolve(jpeg);
-				})
-			).catch(err => {
-				console.error("PREVIEW WRITING ERROR:", err);
-				res.json(SETTINGS.ERRORS.PREVIEW_WRITING(err));
-				return null;
-			});
-
-			if(!previewJPEG) return;
-
-			const thumbnailJPEG = await new Promise(async (resolve, reject) => {
-				const thumbnailCanvas = await PreviewGenerator.generateThumbnail(previewCanvas);
-
-				thumbnailCanvas.toDataURL('image/jpeg', SETTINGS.MAPS.THUMBNAIL_QUALITY, (err, jpeg) => {
-					if(err) return reject(err) || null;
-
-					resolve(jpeg);
-				});
-			}).catch(err => {
-				console.error("THUMBNAIL GENERATION ERROR:", err);
-				res.json(SETTINGS.ERRORS.THUMBNAIL_GENERATION(err));
-
-				return null;
-			});
-
-			if(!thumbnailJPEG) return;
-
 			// Put users authorID inside if they're logged in.
 			let authorIDs = [];
 
@@ -678,13 +648,6 @@ apiRouter.post('/upload_map',
 
 			let mapName = Utils.cleanQueryableText(insane(mapJSON.info.name).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
 			let authorName = Utils.cleanQueryableText(insane(mapJSON.info.author).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH))
-
-			// Upload the preview & thumbnail images to the AWS S3 Bucket
-			await AWSController.uploadMapImages({
-				id: newMapID,
-				previewJPEGBase64: previewJPEG,
-				thumbnailJPEGBase64: thumbnailJPEG
-			});
 
 			// Compress Map Image
 			const mapLayoutCompressedBuffer = await Utils.Compression.compressMapLayout(mapLayout);
@@ -866,6 +829,7 @@ apiRouter.post('/send_announcement', LoginMiddleware, async (req, res) => {
 
 // Link the map editor route
 app.use('/map_editor', TagproEditMapEditor(new express.Router(), httpServer));
+app.use('/vendor/msgpackr', express.static(path.join(__dirname, 'node_modules/msgpackr/dist')));
 app.use('/', express.static(path.join(__dirname, 'public')));
 
 setInterval(saveDatabaseStats, 15000);
