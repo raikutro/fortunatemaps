@@ -1,6 +1,31 @@
 const SETTINGS = require('./Settings');
 
+const { gzip, ungzip } = require('node-gzip');
+const { pack, unpack } = require('msgpackr');
+
 let Utils = {};
+
+Utils.Compression = {
+	compressMapLayout(mapLayout) {
+		const mapLayoutUncompressedBuffer = Buffer.from(mapLayout, 'base64');
+		return gzip(mapLayoutUncompressedBuffer);
+	},
+
+	decompressMapLayout(mapLayoutCompressedBuffer) {
+		return ungzip(mapLayoutCompressedBuffer);
+	},
+
+	compressMapLogic(mapJSON) {
+		const mapLogicPackedBuffer = pack(mapJSON);
+		return gzip(mapLogicPackedBuffer);
+	},
+
+	async decompressMapLogic(mapLayoutCompressedBuffer) {
+		const decompressedMapLogic = await ungzip(mapLayoutCompressedBuffer);
+		const unpackedMapLogic = unpack(decompressedMapLogic);
+		return unpackedMapLogic;
+	}
+};
 
 Utils.makeID = (length) => {
 	return Math.random().toString(36).substr(2, (length || 7) + 2);

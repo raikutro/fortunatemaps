@@ -1,4 +1,4 @@
-const { createCanvas, loadImage } = require('canvas');
+const { Jimp } = require('jimp');
 const PNGImage = require('pngjs-image');
 const ndFill = require('ndarray-fill');
 const zeros = require('zeros');
@@ -13,6 +13,8 @@ const TEXTURES = ["VANILLA"];
 let TILES = {};
 
 let assetsLoaded = false;
+
+const loadImage = (path) => Jimp.read(path);
 
 (async () => {
 	let promises = TEXTURES.map(name => {
@@ -38,12 +40,34 @@ let assetsLoaded = false;
 
 class MapCanvas {
 	constructor(width, height) {
-		this.image = new Jimp({ width: 256, height: 256, color: 0x0 });
+		this.image = new Jimp({ width: width, height: height, color: 0x0 });
 	}
 
-	drawImage(src, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight) {
-
+	get width() {
+		return this.image.width;
 	}
+
+	get height() {
+		return this.image.height;
+	}
+
+	drawImage(src, sx, sy, sWidth, sHeight, dx, dy, dWidth=null, dHeight=null) {
+		// console.log(src);
+		let clonedSrc = src.clone();
+		clonedSrc.crop({ x: sx, y: sy, w: sWidth, h: sHeight});
+		if(dWidth !== null) clonedSrc.resize({ w: dWidth, h: dHeight });
+
+		// this.image.blit({ src: clonedSrc, x: dx, y: dy });
+		this.image.composite(clonedSrc, dx, dy);
+	}
+
+	toDataURL(type, quality, callback) {
+		return callback(null, this.image.getBase64(type, {quality: quality}));
+	}
+}
+
+function rgbToHex(r, g, b) {
+	return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
 const generate = (layout, logic, textureName="VANILLA") => {
@@ -68,7 +92,7 @@ const generate = (layout, logic, textureName="VANILLA") => {
 			});
 		}
 
-		let map = await mapURLToArray(pngLink).catch(err => null);
+		let [map, mapImage] = await mapURLToArray(pngLink).catch(err => null);
 		if(!map) return reject("Invalid map");
 
 		let mapJSON;
@@ -93,13 +117,12 @@ const generate = (layout, logic, textureName="VANILLA") => {
 
 		if(!mapJSON) return reject('Invalid map json');
 
-		const canvas = createCanvas(
+		const canvas = new MapCanvas(
 			(map.shape[0] * SETTINGS.TILE_SIZE) || SETTINGS.TILE_SIZE,
 			(map.shape[1] * SETTINGS.TILE_SIZE) || SETTINGS.TILE_SIZE
 		);
-		const ctx = canvas.getContext('2d');
 		const drawTile = (tile, x, y) => {
-			ctx.drawImage(
+			canvas.drawImage(
 				tile,
 				0, 0,
 				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
@@ -107,6 +130,15 @@ const generate = (layout, logic, textureName="VANILLA") => {
 				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
 			);
 		};
+
+		const wallMap = [];
+		for (let y = 0; y < map.shape[1]; y++) {
+			wallMap[y] = [];
+			for (let x = 0; x < map.shape[0]; x++) {
+				const hex = mapImage.getColor(x, y).toString(16).padEnd('0', 6).slice(0, 6);
+				wallMap[y][x] = (SETTINGS.WALL_TYPES.hasOwnProperty(hex) ? SETTINGS.WALL_TYPES[hex].wallSolids : 0);
+			}
+		}
 
 		for (let y = 0; y < map.shape[1]; y++) {
 			for (let x = 0; x < map.shape[0]; x++) {
@@ -120,7 +152,7 @@ const generate = (layout, logic, textureName="VANILLA") => {
 				};
 
 				if(tileType !== SETTINGS.TILE_IDS.BACKGROUND) {
-					ctx.drawImage(
+					canvas.drawImage(
 						TILES[textureName].GENERAL,
 						SETTINGS.TILE_COORDINATES.FLOOR.x * SETTINGS.TILE_SIZE,
 						SETTINGS.TILE_COORDINATES.FLOOR.y * SETTINGS.TILE_SIZE,
@@ -131,9 +163,9 @@ const generate = (layout, logic, textureName="VANILLA") => {
 				}
 
 				if(SETTINGS.IS_WALL(tileType)) {
-					drawWall(ctx, x, y, SETTINGS.TILE_NAMES[tileType], neighborObj);
+					drawWallTile(canvas, wallMap, x, y, textureName);
 				} else if(SETTINGS.TILE_COORDINATES[SETTINGS.TILE_NAMES[tileType]]) {
-					ctx.drawImage(
+					canvas.drawImage(
 						TILES[textureName].GENERAL,
 						SETTINGS.TILE_COORDINATES[SETTINGS.TILE_NAMES[tileType]].x * SETTINGS.TILE_SIZE,
 						SETTINGS.TILE_COORDINATES[SETTINGS.TILE_NAMES[tileType]].y * SETTINGS.TILE_SIZE,
@@ -157,7 +189,7 @@ const generate = (layout, logic, textureName="VANILLA") => {
 			}
 		}
 
-		fillStates(ctx, mapJSON);
+		fillStates(canvas, mapJSON);
 
 		resolve(canvas);
 	});
@@ -180,14 +212,9 @@ const generateThumbnail = async (previewCanvas, { thumbnailSize=400 }={}) => {
 	newHeight = Math.floor(newHeight);
 
 	// Create the thumbnail canvas
-	const thumbnailCanvas = createCanvas(thumbnailSize, thumbnailSize);
-	const ctx = thumbnailCanvas.getContext('2d');
-
-	ctx.drawImage(
-		previewCanvas,
-		(thumbnailSize / 2) - (newWidth / 2), (thumbnailSize / 2) - (newHeight / 2),
-		newWidth, newHeight
-	);
+	const thumbnailCanvas = new MapCanvas(0,0);
+	thumbnailCanvas.image = previewCanvas.image.clone();
+	thumbnailCanvas.image.resize({w: newWidth, h: newHeight});
 
 	return thumbnailCanvas;
 };
@@ -202,7 +229,7 @@ function mapURLToArray(mapURL){
 
 			if(!array) return reject("Couldn't resolve map data.");
 
-			resolve(array);
+			resolve([array, image]);
 		});
 	});
 }
@@ -230,7 +257,6 @@ function mapImageToArray(image) {
 				return a.red === tileRGB[0] && a.green === tileRGB[1] && a.blue === tileRGB[2];
 			});
 			if(tileType === -1) {
-				// console.log(image.getColor(x, y), hexToRGB(image.getColor(x, y)));
 				tileType = SETTINGS.TILE_IDS.BACKGROUND;
 			}
 
@@ -241,7 +267,7 @@ function mapImageToArray(image) {
 	return buffer;
 }
 
-function fillStates(ctx, mapJSON, textureName="VANILLA"){
+function fillStates(canvas, mapJSON, textureName="VANILLA"){
 	if(mapJSON.fields) Object.keys(mapJSON.fields).forEach(key => {
 		let position = key.split(",");
 		position = {
@@ -253,7 +279,7 @@ function fillStates(ctx, mapJSON, textureName="VANILLA"){
 		let gateCoords = SETTINGS.TILE_COORDINATES[defaultState.toUpperCase() + "GATE"];
 
 		if(gateCoords){
-			ctx.drawImage(
+			canvas.drawImage(
 				TILES[textureName].GENERAL,
 				gateCoords.x * SETTINGS.TILE_SIZE, gateCoords.y * SETTINGS.TILE_SIZE,
 				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
@@ -272,7 +298,7 @@ function fillStates(ctx, mapJSON, textureName="VANILLA"){
 
 		// draw deactivated portal on portals with no destination
 		if(!mapJSON.portals[key].destination) {
-			ctx.drawImage(
+			canvas.drawImage(
 				TILES[textureName].PORTALS,
 				160, 0,
 				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
@@ -283,7 +309,7 @@ function fillStates(ctx, mapJSON, textureName="VANILLA"){
 	});
 
 	if(Array.isArray(mapJSON.marsballs)) mapJSON.marsballs.forEach(marsball => {
-		ctx.drawImage(
+		canvas.drawImage(
 			TILES[textureName].GENERAL,
 			480, 360,
 			SETTINGS.TILE_SIZE * 2, SETTINGS.TILE_SIZE * 2,
@@ -294,12 +320,58 @@ function fillStates(ctx, mapJSON, textureName="VANILLA"){
 	});
 }
 
-function drawWall(ctx, x, y, type, neighbors, textureName="VANILLA") {
+function wallSolidsAt(wallMap, col, row) {
+	if (col < 0 || row < 0 || row >= wallMap.length || col >= wallMap[0].length) return 0;
+	return wallMap[row][col];
+}
+
+function drawWallTile(canvas, wallMap, col, row, textureName="VANILLA") {
+	const solids = wallMap[row][col];
+	if (!solids) return;
+	for (let q = 0; q < 4; q++) {
+		const mask = (solids >> (q << 1)) & 3;
+		if (mask === 0) continue;
+		const cornerX = col + ((q & 2) === 0 ? 1 : 0);
+		const cornerY = row + (((q + 1) & 2) === 0 ? 0 : 1);
+		let aroundCorner =
+			(wallSolidsAt(wallMap, cornerX, cornerY) & 0xc0) |
+			(wallSolidsAt(wallMap, cornerX - 1, cornerY) & 0x03) |
+			(wallSolidsAt(wallMap, cornerX - 1, cornerY - 1) & 0x0c) |
+			(wallSolidsAt(wallMap, cornerX, cornerY - 1) & 0x30);
+		aroundCorner |= (aroundCorner << 8);
+		const startDirection = q * 2 + 1;
+		let cwSteps = 0;
+		while (cwSteps < 8 && (aroundCorner & (1 << (startDirection + cwSteps)))) { cwSteps++; }
+		let ccwSteps = 0;
+		while (ccwSteps < 8 && (aroundCorner & (1 << (startDirection + 7 - ccwSteps)))) { ccwSteps++; }
+		const hasChip = (mask === 3 && (((solids | (solids << 8)) >> ((q + 2) << 1)) & 3) === 0);
+		let solidStart, solidEnd;
+		if (cwSteps === 8) {
+			solidStart = solidEnd = 0;
+		} else {
+			solidEnd = (startDirection + cwSteps + 4) % 8;
+			solidStart = (startDirection - ccwSteps + 12) % 8;
+		}
+		const key = `${q}${solidStart}${solidEnd}${hasChip ? "d" : ""}`;
+		const coords = SETTINGS.QUADRANT_COORDS[key] || [5.5, 5.5];
+		let destX = col * SETTINGS.TILE_SIZE;
+		let destY = row * SETTINGS.TILE_SIZE;
+		if (q === 0) destX += SETTINGS.QUADRANT_SIZE;
+		else if (q === 1) { destX += SETTINGS.QUADRANT_SIZE; destY += SETTINGS.QUADRANT_SIZE; }
+		else if (q === 2) destY += SETTINGS.QUADRANT_SIZE;
+		const srcX = coords[0] * 40;
+		const srcY = coords[1] * 40;
+		canvas.drawImage(TILES[textureName].GENERAL, srcX, srcY, SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE,
+					  destX, destY, SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE);
+	}
+}
+
+function drawWall(canvas, x, y, type, neighbors, textureName="VANILLA") {
 	if(type === "WALL") type = "FULL";
 
 	for (let i = 0; i < 4; i++) {
 		// console.log(SETTINGS.WALL_DRAW_ORDER[i], SETTINGS.WALL_COORDINATES.FULL[i]);
-		ctx.drawImage(
+		canvas.drawImage(
 			TILES[textureName].GENERAL,
 			SETTINGS.WALL_COORDINATES[type][i][0],
 			SETTINGS.WALL_COORDINATES[type][i][1],
@@ -312,7 +384,7 @@ function drawWall(ctx, x, y, type, neighbors, textureName="VANILLA") {
 
 	Object.keys(neighbors).forEach(key => {
 		if(neighbors[key]) {
-			ctx.drawImage(
+			canvas.drawImage(
 				TILES[textureName].GENERAL,
 				SETTINGS.WALL_CONNECTIONS[type][key][0],
 				SETTINGS.WALL_CONNECTIONS[type][key][1],

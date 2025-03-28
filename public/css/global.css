@@ -2,6 +2,16 @@ body {
 	padding-top: 5rem;
 }
 
+main.container {
+	margin-bottom: 5rem;
+}
+
+footer {
+	width: 100%;
+	position: fixed;
+	bottom: 0;
+}
+
 .navbar-brand {
 	margin-left: 15%;
 }

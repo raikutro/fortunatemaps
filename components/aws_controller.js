@@ -4,15 +4,18 @@ const BUCKET_NAME = process.env.BUCKET_NAME;
 
 const s3 = new S3({apiVersion: '2006-03-01', region: 'us-west-1'});
 
+const PREVIEW_PATH = "previews_dev/";
+const THUMBNAIL_PATH = "thumbnails_dev/";
+
 module.exports.uploadMapImages = ({id, previewJPEGBase64, thumbnailJPEGBase64}) => {
 	return new Promise(async (resolve, reject) => {
 		let previewData = await uploadFileUsingBase64(
-			`previews/preview_${id}.jpeg`,
+			`${PREVIEW_PATH}/preview_${id}.jpeg`,
 			previewJPEGBase64.slice(previewJPEGBase64.indexOf(","))
 		).catch(reject);
 
 		let thumbnailData = await uploadFileUsingBase64(
-			`thumbnails/thumbnail_${id}.jpeg`,
+			`${THUMBNAIL_PATH}/thumbnail_${id}.jpeg`,
 			thumbnailJPEGBase64.slice(thumbnailJPEGBase64.indexOf(","))
 		).catch(reject);
 
@@ -24,7 +27,7 @@ module.exports.getPreviewMapImage = (id) => {
 	return new Promise(async (resolve, reject) => {
 		if(isNaN(Number(id))) return reject("Invalid ID");
 
-		let previewFile = await getFile(`previews/preview_${id}.jpeg`).catch(reject);
+		let previewFile = await getFile(`${PREVIEW_PATH}/preview_${id}.jpeg`).catch(reject);
 		if(!previewFile) return reject("Failed to retrieve preview image.");
 		// console.log(previewFile);
 
@@ -36,7 +39,7 @@ module.exports.getThumbnailMapImage = (id) => {
 	return new Promise(async (resolve, reject) => {
 		if(isNaN(Number(id))) return reject("Invalid ID");
 
-		let thumbnailFile = await getFile(`thumbnails/thumbnail_${id}.jpeg`).catch(reject);
+		let thumbnailFile = await getFile(`${THUMBNAIL_PATH}/thumbnail_${id}.jpeg`).catch(reject);
 		if(!thumbnailFile) return reject("Failed to retrieve thumbnail image.");
 		// console.log(thumbnailFile);
 

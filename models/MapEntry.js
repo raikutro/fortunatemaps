@@ -29,9 +29,9 @@ const MapEntrySchema = new Schema({
 	// Map ID
 	mapID: {type: Number},
 	// Source map JSON
-	json: {type: String},
+	json: {type: Buffer},
 	// Source map PNG
-	png: {type: String},
+	png: {type: Buffer},
 	// The original first version of the map
 	versionSource: {type: Number},
 	// Map Remix Boolean

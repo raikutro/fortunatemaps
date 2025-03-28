@@ -445,15 +445,13 @@ apiRouter.get('/png/:mapid.png', async (req, res) => {
 
 	if(!mapEntry) return res.redirect("/");
 
-	sourcePNGBase64 = mapEntry.png;
-
-	let img = Buffer.from(sourcePNGBase64, 'base64');
+	const sourcePNG = await Utils.Compression.decompressMapLayout(mapEntry.png);
 
 	res.writeHead(200, {
 		'Content-Type': 'image/png',
-		'Content-Length': img.length
+		'Content-Length': sourcePNG.length
 	});
-	res.end(img);
+	res.end(sourcePNG);
 });
 app.get('/png/:mapid', (req, res) => res.redirect(`/png/${req.params.mapid}.png`));
 
@@ -468,7 +466,9 @@ apiRouter.get('/json/:mapid.json', async (req, res) => {
 
 	if(!mapEntry) return res.redirect("/");
 
-	res.json(JSON.parse(mapEntry.json));
+	const sourceJSON = await Utils.Compression.decompressMapLogic(mapEntry.json);
+
+	res.json(sourceJSON);
 });
 app.get('/json/:mapid', (req, res) => res.redirect(`/json/${req.params.mapid}.json`));
 
@@ -495,8 +495,8 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 
 	if(!mapEntry) return res.json(SETTINGS.ERRORS.NOT_FOUND("Map Entry Not Found"));
 
-	const layout = Buffer.from(mapEntry.png, 'base64');
-	const logic = Buffer.from(mapEntry.json);
+	const layout = decompressMapLayout(mapEntry.png).toString("base64");
+	const logic = Buffer.from(JSON.stringify(decompressMapLogic(mapEntry.json)), 'ascii');
 
 	const form = new FormData();
 	let url = `https://${MAPTEST_URL}/groups/testmap`;
@@ -679,6 +679,12 @@ apiRouter.post('/upload_map',
 				thumbnailJPEGBase64: thumbnailJPEG
 			});
 
+			// Compress Map Image
+			const mapLayoutCompressedBuffer = await Utils.Compression.compressMapLayout(mapLayout);
+
+			// Compress Map Logic for Smaller Storage
+			const mapLogicCompressedBuffer = await Utils.Compression.compressMapLogic(mapJSON);
+
 			// Save the MapEntry to MongoDB
 			await MapEntry.create({
 				name: mapName,
@@ -689,8 +695,8 @@ apiRouter.post('/upload_map',
 				tags: [],
 				hiddenTags: [],
 				mapID: newMapID,
-				json: mapLogic,
-				png: mapLayout,
+				json: mapLogicCompressedBuffer,
+				png: mapLayoutCompressedBuffer,
 				versionSource: versionSource,
 				isRemix: isRemix,
 				unlisted: req.body.unlisted

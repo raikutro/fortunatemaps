@@ -3,8 +3,8 @@ const SETTINGS = {
 	CTF_AUTH_URL: "https://ctfauth.herokuapp.com/api/v2",
 	DEV_MODE: (process.env.NODE_ENV || "").toUpperCase() === "DEVELOPMENT",
 	MAPS: {
-		PREVIEW_QUALITY: 0.7,
-		THUMBNAIL_QUALITY: 0.9,
+		PREVIEW_QUALITY: 70,
+		THUMBNAIL_QUALITY: 90,
 		THUMBNAIL_SIZE: 400,
 		MAX_PNG_LENGTH: 2 ** 20,
 		MAX_JSON_LENGTH: 2 ** 20,
