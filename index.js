@@ -176,6 +176,8 @@ app.get('/editor', LoginMiddleware, async (req, res) => {
 	});
 });
 
+let generatingPreviewsTracker = {};
+
 // Preview Image Route
 app.get('/preview/:mapid.jpeg', async (req, res) => {
 	const mapID = Number(req.params.mapid);
@@ -189,6 +191,10 @@ app.get('/preview/:mapid.jpeg', async (req, res) => {
 
 		if(!mapEntry) return res.redirect("/");
 
+		if(generatingPreviewsTracker[mapID] || Object.keys(generatingPreviewsTracker).length > 5) return res.redirect(`/png/${mapID}.png`);
+
+		generatingPreviewsTracker[mapID] = true;
+
 		const sourcePNG = (await Utils.Compression.decompressMapLayout(mapEntry.png)).toString('base64');
 		const sourceJSON = JSON.stringify(await Utils.Compression.decompressMapLogic(mapEntry.json));
 
@@ -201,7 +207,11 @@ app.get('/preview/:mapid.jpeg', async (req, res) => {
 			return null;
 		});
 
-		await previewCanvas.image.write(`${TEMP_FILE_PATH}/${mapID}.jpeg`);
+		await previewCanvas.image.write(`${TEMP_FILE_PATH}/${mapID}.jpeg`, {
+			quality: 50
+		});
+
+		delete generatingPreviewsTracker[mapID];
 	}
 
 	res.sendFile(path.join(__dirname, `${TEMP_FILE_PATH}/${mapID}.jpeg`));

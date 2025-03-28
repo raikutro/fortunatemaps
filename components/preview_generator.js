@@ -37,6 +37,9 @@ const loadImage = (path) => Jimp.read(path);
 	});
 })();
 
+let cloneCache = {};
+
+const makeCacheKey = (sx, sy, sWidth, sHeight, dWidth, dHeight) => `${sx}|${sy}|${sWidth}|${sHeight}|${dWidth}|${dHeight}`;
 
 class MapCanvas {
 	constructor(width, height) {
@@ -53,13 +56,15 @@ class MapCanvas {
 
 	drawImage(src, sx, sy, sWidth, sHeight, dx, dy, dWidth=null, dHeight=null) {
 		// console.log(src);
-		let clonedSrc = src.clone();
-		clonedSrc.crop({ x: sx, y: sy, w: sWidth, h: sHeight});
-		// console.log(dWidth, dHeight);
-		if(dWidth !== null && dWidth !== 0 && dHeight !== 0) clonedSrc.resize({ w: dWidth, h: dHeight });
-
+		let cacheKey = makeCacheKey(sx, sy, sWidth, sHeight, dWidth, dHeight);
+		if(!cloneCache[cacheKey]) {
+			let clonedSrc = src.clone();
+			clonedSrc.crop({ x: sx, y: sy, w: sWidth, h: sHeight});
+			if(dWidth !== null && dWidth !== 0 && dHeight !== 0) clonedSrc.resize({ w: dWidth, h: dHeight });
+			cloneCache[cacheKey] = clonedSrc;
+		}
 		// this.image.blit({ src: clonedSrc, x: dx, y: dy });
-		this.image.composite(clonedSrc, dx, dy);
+		this.image.composite(cloneCache[cacheKey], dx, dy);
 	}
 
 	toDataURL(type, quality, callback) {
