@@ -33,6 +33,14 @@ footer {
 	margin-right: 10px;
 }
 
+#searchForm {
+	width: 40%;
+}
+
+#searchForm .input-group {
+	width: 100%;
+}
+
 .sign-in-link {
 	text-decoration: none !important;
 }
