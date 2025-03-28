@@ -7,23 +7,43 @@ let Utils = {};
 
 Utils.Compression = {
 	compressMapLayout(mapLayout) {
-		const mapLayoutUncompressedBuffer = Buffer.from(mapLayout, 'base64');
-		return gzip(mapLayoutUncompressedBuffer);
+		try {
+			const mapLayoutUncompressedBuffer = Buffer.from(mapLayout, 'base64');
+			return gzip(mapLayoutUncompressedBuffer);
+		} catch(e) {
+			console.error(mapLayout, e);
+			return null;
+		}
 	},
 
 	decompressMapLayout(mapLayoutCompressedBuffer) {
-		return ungzip(mapLayoutCompressedBuffer);
+		try {
+			return ungzip(mapLayoutCompressedBuffer);
+		} catch(e) {
+			console.error(mapLayoutCompressedBuffer, e);
+			return null;
+		}
 	},
 
 	compressMapLogic(mapJSON) {
-		const mapLogicPackedBuffer = pack(mapJSON);
-		return gzip(mapLogicPackedBuffer);
+		try {
+			const mapLogicPackedBuffer = pack(mapJSON);
+			return gzip(mapLogicPackedBuffer);
+		} catch(e) {
+			console.error(mapJSON, e);
+			return null;
+		}
 	},
 
 	async decompressMapLogic(mapLayoutCompressedBuffer) {
-		const decompressedMapLogic = await ungzip(mapLayoutCompressedBuffer);
-		const unpackedMapLogic = unpack(decompressedMapLogic);
-		return unpackedMapLogic;
+		try {
+			const decompressedMapLogic = await ungzip(mapLayoutCompressedBuffer);
+			const unpackedMapLogic = unpack(decompressedMapLogic);
+			return unpackedMapLogic;
+		} catch(e) {
+			console.error(mapLayoutCompressedBuffer, e);
+			return null;
+		}
 	}
 };
 
