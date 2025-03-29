@@ -39,7 +39,7 @@ const loadImage = (path) => Jimp.read(path);
 
 let cloneCache = {};
 
-const makeCacheKey = (sx, sy, sWidth, sHeight, dWidth, dHeight) => `${sx}|${sy}|${sWidth}|${sHeight}|${dWidth}|${dHeight}`;
+const makeCacheKey = (cacheSpace, sx, sy, sWidth, sHeight, dWidth, dHeight) => `${cacheSpace}|${sx}|${sy}|${sWidth}|${sHeight}|${dWidth}|${dHeight}`;
 
 class MapCanvas {
 	constructor(width, height) {
@@ -54,9 +54,9 @@ class MapCanvas {
 		return this.image.height;
 	}
 
-	drawImage(src, sx, sy, sWidth, sHeight, dx, dy, dWidth=null, dHeight=null) {
+	drawImage(src, sx, sy, sWidth, sHeight, dx, dy, dWidth=null, dHeight=null, cacheSpace="") {
 		// console.log(src);
-		let cacheKey = makeCacheKey(sx, sy, sWidth, sHeight, dWidth, dHeight);
+		let cacheKey = makeCacheKey(cacheSpace, sx, sy, sWidth, sHeight, dWidth, dHeight);
 		if(!cloneCache[cacheKey]) {
 			let clonedSrc = src.clone();
 			clonedSrc.crop({ x: sx, y: sy, w: sWidth, h: sHeight});
@@ -127,13 +127,14 @@ const generate = (layout, logic, textureName="VANILLA") => {
 			(map.shape[0] * SETTINGS.TILE_SIZE) || SETTINGS.TILE_SIZE,
 			(map.shape[1] * SETTINGS.TILE_SIZE) || SETTINGS.TILE_SIZE
 		);
-		const drawTile = (tile, x, y) => {
+		const drawTile = (tile, x, y, space="") => {
 			canvas.drawImage(
 				tile,
 				0, 0,
 				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
 				x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
-				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
+				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
+				space
 			);
 		};
 
@@ -177,20 +178,21 @@ const generate = (layout, logic, textureName="VANILLA") => {
 						SETTINGS.TILE_COORDINATES[SETTINGS.TILE_NAMES[tileType]].y * SETTINGS.TILE_SIZE,
 						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
 						x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
+						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
+						'G'
 					);
 				} else if(tileType === SETTINGS.TILE_IDS.BOOST) {
-					drawTile(TILES[textureName].BOOSTS, x, y);
+					drawTile(TILES[textureName].BOOSTS, x, y, SETTINGS.TILE_IDS.BOOST);
 				} else if(tileType === SETTINGS.TILE_IDS.REDBOOST) {
-					drawTile(TILES[textureName].REDBOOSTS, x, y);
+					drawTile(TILES[textureName].REDBOOSTS, x, y, SETTINGS.TILE_IDS.REDBOOST);
 				} else if(tileType === SETTINGS.TILE_IDS.BLUEBOOST) {
-					drawTile(TILES[textureName].BLUEBOOSTS, x, y);
+					drawTile(TILES[textureName].BLUEBOOSTS, x, y, SETTINGS.TILE_IDS.BLUEBOOST);
 				} else if(tileType === SETTINGS.TILE_IDS.PORTAL) {
-					drawTile(TILES[textureName].PORTALS, x, y);
+					drawTile(TILES[textureName].PORTALS, x, y, SETTINGS.TILE_IDS.PORTAL);
 				} else if(tileType === SETTINGS.TILE_IDS.REDPORTAL) {
-					drawTile(TILES[textureName].REDPORTALS, x, y);
+					drawTile(TILES[textureName].REDPORTALS, x, y, SETTINGS.TILE_IDS.REDPORTAL);
 				} else if(tileType === SETTINGS.TILE_IDS.BLUEPORTAL) {
-					drawTile(TILES[textureName].BLUEPORTALS, x, y);
+					drawTile(TILES[textureName].BLUEPORTALS, x, y, SETTINGS.TILE_IDS.BLUEPORTAL);
 				}
 			}
 		}
@@ -290,7 +292,8 @@ function fillStates(canvas, mapJSON, textureName="VANILLA"){
 				gateCoords.x * SETTINGS.TILE_SIZE, gateCoords.y * SETTINGS.TILE_SIZE,
 				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
 				position.x * SETTINGS.TILE_SIZE, position.y * SETTINGS.TILE_SIZE,
-				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
+				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
+				'G'
 			);
 		}
 	});
@@ -368,7 +371,7 @@ function drawWallTile(canvas, wallMap, col, row, textureName="VANILLA") {
 		const srcX = coords[0] * 40;
 		const srcY = coords[1] * 40;
 		canvas.drawImage(TILES[textureName].GENERAL, srcX, srcY, SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE,
-					  destX, destY, SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE);
+					  destX, destY, SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE, 'W');
 	}
 }
 
@@ -384,7 +387,8 @@ function drawWall(canvas, x, y, type, neighbors, textureName="VANILLA") {
 			SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE,
 			(x * SETTINGS.TILE_SIZE) + SETTINGS.WALL_DRAW_ORDER[i][0],
 			(y * SETTINGS.TILE_SIZE) + SETTINGS.WALL_DRAW_ORDER[i][1],
-			SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE
+			SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE,
+			'W'
 		);
 	}
 
@@ -399,7 +403,8 @@ function drawWall(canvas, x, y, type, neighbors, textureName="VANILLA") {
 				(x * SETTINGS.TILE_SIZE) + SETTINGS.WALL_CONNECTION_POSITIONS[key][0],
 				(y * SETTINGS.TILE_SIZE) + SETTINGS.WALL_CONNECTION_POSITIONS[key][1],
 				SETTINGS.WALL_CONNECTIONS[type][key][2],
-				SETTINGS.WALL_CONNECTIONS[type][key][3]
+				SETTINGS.WALL_CONNECTIONS[type][key][3],
+				'W'
 			);
 		}
 	});
