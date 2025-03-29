@@ -1,0 +1,3 @@
+[submodule "tp_analysis"]
+	path = components/tp_analysis
+	url = https://github.com/raikutro/tp_analysis
