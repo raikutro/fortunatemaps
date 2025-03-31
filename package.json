@@ -4,6 +4,7 @@
   "description": "A TagPro Map Hosting Site",
   "main": "index.js",
   "scripts": {
+    "build": "yarn-recursive --skipRoot",
     "test": "nodemon",
     "start": "node index.js"
   },
@@ -25,6 +26,8 @@
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
+    "gradient-descent": "^1.0.4",
+    "hull": "AndriiHeonia/hull",
     "insane": "^2.6.2",
     "jimp": "^1.6.0",
     "mongoose": "^8.9.5",
@@ -33,12 +36,15 @@
     "node-fetch": "^2.6.1",
     "node-gzip": "^1.1.2",
     "pngjs-image": "^0.11.7",
+    "sat": "^0.9.0",
     "socket.io": "^4.8.1",
+    "yarn-recursive": "^1.1.0",
     "zeros": "^1.0.0"
   },
   "devDependencies": {
     "cli-progress": "^3.10.0",
-    "csv-parse": "^5.0.4"
+    "csv-parse": "^5.0.4",
+    "save-pixels": "^2.3.6"
   },
   "packageManager": "yarn@1.22.21+sha1.1959a18351b811cdeedbd484a8f86c3cc3bbaf72"
 }

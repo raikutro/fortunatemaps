@@ -27,6 +27,7 @@ const TagproEditMapEditor = require('./editor/app');
 console.log("Loaded tagproedit.com editor");
 
 const PreviewGenerator = require('./components/preview_generator');
+const Masher = require('./components/masher');
 
 // Routes
 const AccountRoutes = require('./routes/account_routes');
