@@ -1,24 +1,47 @@
+// =================================================================
+// CHUNK: Chunk-based Heuristic Unification for Natural Kartography
+// =================================================================
+// 1) Split into chunks
+// 2) Choose chunks (based on heuristics)
+// 3) Reassemble/unify chunks
+
 const TPAnalysis = require('./tp_analysis').default;
 const PreviewGenerator = require('./preview_generator');
-const optimize = require('gradient-descent')
 const createHull = require('hull');
 const { buffer } = require('node:stream/consumers');
 const savePixels = require("save-pixels");
 const SAT = require('sat');
 const { createWriteStream, writeFileSync } = require('fs');
-const { mapIDToTileMap, colorize, ndarray, matrixToHTML, TILE_IDS, TILE_COLORS, SYMMETRY } = TPAnalysis;
+const { mapIDToTileMap, colorize, ndarray, matrixToHTML, spliceMatrix, TILE_IDS, TILE_COLORS, SYMMETRY } = TPAnalysis;
 
 const Masher = {};
 
 const OPTIMIZER_SETTINGS = {
 	CHUNK_HULL_CONCAVITY: 3.5,
-	DEFAULT_NUMBER_OF_MECHANICS: 4
+	DEFAULT_NUMBER_OF_MECHANICS: 4,
+	FINAL_SHAPE_SCALAR: 1.5,
+	DEBUG_MODE: false
 };
+
+const tileMapCache = {};
+const mapChunkCache = {};
 
 Masher.mashMaps = async (mapIDs) => {
 	const mapInfos = await Promise.all(mapIDs.map(async (m) => {
-		const tileMap = await mapIDToTileMap(m);
-		const { chunkMask, mapChunks, debug } = await extractMapChunks(tileMap);
+		let tileMap = tileMapCache[m];
+		if(!tileMap) {
+			tileMapCache[m] = await mapIDToTileMap(m);
+			tileMap = tileMapCache[m];
+		}
+
+		let mapChunkData = mapChunkCache[m];
+		if(!mapChunkData) {
+			mapChunkData = await extractMapChunks(tileMap);
+			mapChunkCache[m] = mapChunkData;
+		}
+
+		const { chunkMask, mapChunks, debug } = mapChunkData;
+
 		return {
 			tileMap,
 			chunkMask,
@@ -26,13 +49,6 @@ Masher.mashMaps = async (mapIDs) => {
 			debug
 		};
 	}));
-
-	const testMap = mapInfos[0].mapChunks[1].tiles;
-
-	const mapJSON = {
-		"info":{"name":"Some Map","author":"Anonymous","gameMode":"normal"},
-		"switches":{},"fields":{},"portals":{},"marsballs":[],"spawnPoints":{"red":[],"blue":[]}
-	};
 
 	const allChunks = mapInfos.map(mI => mI.mapChunks).flat();
 	const numberOfMechs = OPTIMIZER_SETTINGS.DEFAULT_NUMBER_OF_MECHANICS;
@@ -45,35 +61,72 @@ Masher.mashMaps = async (mapIDs) => {
 	const chosenBase = allChunks.find(c => c.type === 'base');
 	const chosenMechs = allChunks.filter(c => c.type === 'mech').slice(0, numberOfMechs);
 
-	for (let i = 0; i < chosenMechs.length; i++) {
-		savePixels(colorize(chosenMechs[i].tiles, TILE_COLORS), "png").pipe(createWriteStream(`./mechs/mech_${i}.png`, {
+	const optimizer = new MapOptimizer(mapSize, SYMMETRY.ROTATIONAL, chosenBase, chosenMechs);
+	// console.log(await optimizer.optimize());
+
+	const optimizedMap = optimizer.rasterize();
+
+	if(OPTIMIZER_SETTINGS.DEBUG_MODE) {
+		savePixels(colorize(chosenBase.tiles, TILE_COLORS), "png").pipe(createWriteStream(`./mechs/base.png`, {
 			autoClose: true,
 			flags: 'w'
 		}));
+
+		const hullPolygons = optimizer.shapes.map(s => s.hull.calcPoints.map(p => [p.x, p.y]));
+		const minHullPoint = hullPolygons.reduce((a, v) => a.concat(v), []).reduce((a, v) => [Math.min(a[0], v[0]), Math.min(a[1], v[1])]);
+		const maxHullPoint = hullPolygons.reduce((a, v) => a.concat(v), []).reduce((a, v) => [Math.max(a[0], v[0]), Math.max(a[1], v[1])]);
+
+		const hullSVG = TPAnalysis.createBaseDocument(maxHullPoint[0] - minHullPoint[0], maxHullPoint[1] - minHullPoint[1]);
+		const hullPolygonsNormalized = hullPolygons.map(p => p.map(v => [v[0] - minHullPoint[0], v[1] - minHullPoint[1]]));
+		TPAnalysis.addPolygonLayer(hullSVG, hullPolygonsNormalized);
+		hullSVG.css({
+			width: '75vh',
+			height: 'auto',
+		});
+
+		const baseSVG = TPAnalysis.createBaseDocument(optimizedMap.shape[0], optimizedMap.shape[1]);
+		TPAnalysis.addMatrixLayer(baseSVG, optimizedMap);
+		baseSVG.css({
+			width: '75vw',
+			height: 'auto',
+		});
+
+		const previewSVGs = [];
+		for (let i = 0; i < mapInfos.length; i++) {
+			const previewSVG = TPAnalysis.createBaseDocument(mapInfos[i].tileMap.shape[0], mapInfos[i].tileMap.shape[1]);
+			TPAnalysis.addMapPreviewLayer(previewSVG, mapIDs[i]);
+			TPAnalysis.addMatrixLayer(previewSVG, mapInfos[i].chunkMask);
+			TPAnalysis.addPolygonLayer(previewSVG, mapInfos[i].mapChunks.map(c => c.hull.translate(c.positions.centerOfMass.x, c.positions.centerOfMass.y).calcPoints.map(p => [p.x, p.y])));
+			previewSVG.css({
+				width: '75vw',
+				height: 'auto',
+			});
+			previewSVGs.push(previewSVG);
+		}
+
+		writeFileSync('view.html', `
+			${baseSVG.svg()}
+			${hullSVG.svg()}
+			${previewSVGs.map(p => p.svg()).join('')}
+			${matrixToHTML(testMap)}
+		`);
 	}
 
-	const optimizer = new MapOptimizer(mapSize, SYMMETRY.ROTATIONAL, chosenBase, chosenMechs);
-	// console.log(optimizer.cost(optimizer.getInitialOptimizationVector().map(v => v + Math.random() * 50 - 25)));
+	const mapJSON = {
+		"info":{"name":"Some Map","author":"Anonymous","gameMode":"normal"},
+		"switches":{},"fields":{},"portals":{},"marsballs":[],"spawnPoints":{"red":[],"blue":[]}
+	};
+	const sourcePNG = (await bufferStream(savePixels(colorize(optimizedMap, TILE_COLORS), "png"))).toString('base64');
 
-	console.log(await optimizer.optimize());
-
-	const hullPolygons = optimizer.shapes.map(s => s.hull.calcPoints.map(p => [p.x, p.y]));
-
-	const baseSVG = TPAnalysis.createBaseDocument(mapInfos[0].tileMap.shape[0], mapInfos[0].tileMap.shape[1]);
-	TPAnalysis.addMapPreviewLayer(baseSVG, mapIDs[0]);
-	TPAnalysis.addMatrixLayer(baseSVG, mapInfos[0].chunkMask);
-	TPAnalysis.addPolygonLayer(baseSVG, hullPolygons);
-	baseSVG.css({
-		width: '75vw',
-		height: 'auto',
+	let previewCanvas = await PreviewGenerator.generate(
+		sourcePNG,
+		JSON.stringify(mapJSON)
+	).catch(err => {
+		console.error("PREVIEW GENERATION ERROR:", err);
+		return null;
 	});
 
-	writeFileSync('view.html', `
-		${baseSVG.svg()}
-		${matrixToHTML(testMap)}
-	`);
-
-	return mapInfos;
+	return previewCanvas;
 };
 
 class MapOptimizer {
@@ -89,10 +142,10 @@ class MapOptimizer {
 			new SAT.Vector(0, targetShape.y)
 		]);
 		this.generateAffinities();
-		this.updateShapes(this.getInitialOptimizationVector(), true);
 
-		this.lowestCost = Infinity;
-		this.bestVector = this.getInitialOptimizationVector();
+		for(let i = 0; i < this.shapes.length; i++) {
+			this.shapes[i].hull.setOffset(this.shapes[i].affinity);
+		}
 	}
 
 	generateAffinities() {
@@ -102,35 +155,13 @@ class MapOptimizer {
 			} else {
 				const flagAffinity = this.base.features.flagPosition.clone().add(shape.chunk.positions.flag);
 				const centerAffinity = shape.chunk.positions.centerOfMass;
-				shape.affinity = pointAverage([flagAffinity, centerAffinity]);
+				shape.affinity = pointAverage([flagAffinity]);
 			}
 		}
 	}
 
-	getInitialOptimizationVector() {
-		return this.shapes.map(s => [s.affinity.x, s.affinity.y]).flat();
-	}
-
-	getOptimizationVector() {
-		return this.shapes.map(s => [s.hull.offset.x, s.hull.offset.y]).flat();
-	}
-
-	updateShapes(vector, setBase=false) {
-		for(let i = 0; i < this.shapes.length; i++) {
-			if(setBase && this.shapes[i].chunk.type === 'base') continue;
-			this.shapes[i].hull.setOffset(new SAT.Vector(
-				vector[i * 2],
-				vector[i * 2 + 1]
-			));
-		}
-	}
-
-	cost(vector) {
+	cost() {
 		let cost = 0;
-
-		const currentVector = this.getOptimizationVector();
-
-		this.updateShapes(vector);
 
 		const response = new SAT.Response();
 
@@ -138,11 +169,11 @@ class MapOptimizer {
 			const distFromAffinity = shape.hull.offset.clone().sub(shape.affinity).len();
 			cost += distFromAffinity;
 
-			for(const point of shape.hull.calcPoints) {
-				if(!SAT.pointInPolygon(point, this.boundingPolygon)) {
-					cost += 1000;
-				}
-			}
+			// for(const point of shape.hull.calcPoints) {
+			// 	if(!SAT.pointInPolygon(point, this.boundingPolygon)) {
+			// 		cost += 1000;
+			// 	}
+			// }
 
 			for(const shape2 of this.shapes) {
 				if(shape.id === shape2.id) continue;
@@ -154,33 +185,94 @@ class MapOptimizer {
 			}
 		}
 
-		this.updateShapes(currentVector);
-
-		if(cost < this.lowestCost) {
-			this.lowestCost = cost;
-			this.bestVector = vector;
-		}
-
 		return cost;
 	}
 
-	formattedCost(...vector) {
-		return this.cost(vector);
+	async optimize() {
+		const iterations = 100;
+		const flagAffinityScale = 0.01;
+		const collisionAffinityScale = 0.005;
+
+		const shapePositions = this.shapes.map(s => new SAT.Vector(s.hull.offset.x, s.hull.offset.y));
+
+		for(let i = 0; i < iterations; i++) {
+			for(let j = 0; j < this.shapes.length; j++) {
+				if(this.shapes[j].chunk.type === 'base') continue;
+				const shape = this.shapes[j];
+				const currentVector = shapePositions[j].clone();
+				const affinityVector = shape.affinity.clone().sub(currentVector).normalize().scale(flagAffinityScale);
+
+				const collisionAffinity = new SAT.Vector(0, 0);
+
+				for(let k = 0; k < this.shapes.length; k++) {
+					if(j === k) continue;
+					const otherShape = this.shapes[k];
+
+					const response = new SAT.Response();
+					const collided = SAT.testPolygonPolygon(shape.hull, otherShape.hull, response);
+					if(collided) {
+						collisionAffinity.add(response.overlapV.scale(-collisionAffinityScale, -collisionAffinityScale));
+						// console.log(shape.chunk.id, otherShape.chunk.id, response.overlapV.len());
+					}
+				}
+				shapePositions[j].add(collisionAffinity).add(affinityVector);// .add(centerAffinity)
+			}
+		}
+
+		for(let i = 0; i < this.shapes.length; i++) {
+			this.shapes[i].hull.setOffset(shapePositions[i]);
+		}
+
+		return this.cost();
 	}
 
-	async optimize() {
-		const initialVector = this.getInitialOptimizationVector();
-		const optimizedVector = await optimize(
-			initialVector, this.formattedCost.bind(this),
-			1, 0.1, 3000, 1
+	rasterize() {
+		const hullPolygons = this.shapes.map(s => s.hull.calcPoints.map(p => [p.x, p.y]));
+		const minHullPoint = hullPolygons.reduce((a, v) => a.concat(v), []).reduce((a, v) => [Math.min(a[0], v[0]), Math.min(a[1], v[1])]);
+		const maxHullPoint = hullPolygons.reduce((a, v) => a.concat(v), []).reduce((a, v) => [Math.max(a[0], v[0]), Math.max(a[1], v[1])]);
+
+		let bigShape = new SAT.Vector(
+			Math.round((maxHullPoint[0] - minHullPoint[0]) * OPTIMIZER_SETTINGS.FINAL_SHAPE_SCALAR),
+			Math.round((maxHullPoint[1] - minHullPoint[1]) * OPTIMIZER_SETTINGS.FINAL_SHAPE_SCALAR)
 		);
 
-		this.updateShapes(this.bestVector);
+		let tileMap = ndarray(new Float32Array(bigShape.x * bigShape.y), [bigShape.x, bigShape.y]);
 
-		return {
-			vector: this.bestVector,
-			cost: this.cost(this.bestVector)
-		};
+		let baseShape = this.shapes.find(s => s.chunk.type === 'base');
+		let mechShapes = this.shapes.filter(s => s.chunk.type === 'mech');
+
+		for(const shape of mechShapes) {
+			const shapeBounds = shape.hull.getAABB();
+			const shapeBoundsTopLeft = shapeBounds.calcPoints.reduce((a, v) => new SAT.Vector(Math.min(a.x, v.x), Math.min(a.y, v.y)))
+				.add(shape.hull.offset).sub(new SAT.Vector(0.5, 0.5));
+			const placePoint = new SAT.Vector(
+				Math.round(shapeBoundsTopLeft.x - minHullPoint[0]),
+				Math.round(shapeBoundsTopLeft.y - minHullPoint[1])
+			);
+			spliceMatrix(
+				tileMap,
+				placePoint.x, placePoint.y,
+				shape.chunk.tiles, TILE_IDS.BACKGROUND,
+				({x, y}, oldTile, newTile) => {
+					if(newTile === TILE_IDS.FLOOR && ![TILE_IDS.BACKGROUND, TILE_IDS.FLOOR].includes(oldTile)) return oldTile;
+					return newTile;
+				}
+			);
+		}
+
+		const baseBounds = baseShape.hull.getAABB();
+		const baseBoundsTopLeft = baseBounds.calcPoints.reduce((a, v) => new SAT.Vector(Math.min(a.x, v.x), Math.min(a.y, v.y)))
+			.add(baseShape.hull.offset).sub(new SAT.Vector(0.5, 0.5));
+		spliceMatrix(
+			tileMap,
+			Math.round(baseBoundsTopLeft.x - minHullPoint[0]),
+			Math.round(baseBoundsTopLeft.y - minHullPoint[1]),
+			baseShape.chunk.tiles, TILE_IDS.BACKGROUND
+		);
+
+		tileMap = TPAnalysis.symmetrify(tileMap, this.symmetry, TILE_IDS.BACKGROUND);
+
+		return tileMap;
 	}
 
 	createShape(chunk) {
@@ -317,7 +409,7 @@ async function extractMapChunks(tileMap) {
 		[TPAnalysis.TILE_IDS.YELLOWTEAMTILE]: 2,
 	});
 
-	const goals = [];
+	let goals = [];
 	const dialatedKeyElementMaskWithWalls = ndarray(new Float32Array(keyElementMask.data), keyElementMask.shape);
 
 	for (let x = 0; x < keyElementMask.shape[0]; x++) {
@@ -359,11 +451,20 @@ async function extractMapChunks(tileMap) {
 	});
 
 	const mapCenter = new SAT.Vector(tileMap.shape[0] / 2, tileMap.shape[1] / 2);
+	const leftMostGoal = goals[0].x < goals[1].x ? goals[0] : goals[1];
+	let determinerSign = -Math.sign(perpendicularDeterminant(leftMostGoal, goals[0], goals[1]));
 
 	let mapChunks = [];
 	for(const [label, points] of labeledPoints) {
-		let mapChunk = makeMapChunk(tileMap, points);
-		const determiner = perpendicularDeterminant(mapChunk.positions.centerOfMass, goals[0], goals[1]);
+		let mapChunk;
+		try {
+			mapChunk = makeMapChunk(tileMap, points);
+		} catch(e) {
+			console.log('Failed to make a chunk: ', e);
+			continue;
+		}
+		let determiner = perpendicularDeterminant(mapChunk.positions.centerOfMass, goals[0], goals[1]) * determinerSign;
+
 		if(determiner <= 0 || Math.round(determiner) <= 0) {
 			// convertMapChunkPositionsToRelative(tileMap, mapChunk);
 			mapChunks.push(mapChunk);
@@ -382,6 +483,15 @@ async function extractMapChunks(tileMap) {
 	}
 
 	return {chunkMask, mapChunks};
+}
+
+async function bufferStream(stream) {
+	return new Promise((resolve, reject) => {
+		const chunks = [];
+		stream.on('data', chunk => chunks.push(chunk));
+		stream.on('end', () => resolve(Buffer.concat(chunks)));
+		stream.on('error', err => reject(err));
+	});
 }
 
 module.exports = Masher;

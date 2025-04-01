@@ -89,7 +89,7 @@ const generate = (layout, logic, textureName="VANILLA") => {
 			pngLink = layout;
 		} else {
 			pngLink = await new Promise((resolve, reject) => {
-				tempURL = `./temp/temp${String(Math.random()).slice(2)}.png`;
+				tempURL = `temp${String(Math.random()).slice(2)}.png`;
 				fs.writeFile(tempURL, layout, 'base64', (err) => {
 					if(err) return reject(err);
 

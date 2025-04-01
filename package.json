@@ -21,6 +21,7 @@
   "author": "Electro",
   "license": "ISC",
   "dependencies": {
+    "bayes": "^1.0.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
