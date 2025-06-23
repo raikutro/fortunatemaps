@@ -98,7 +98,7 @@ const generate = (layout, logic, textureName="VANILLA") => {
 			});
 		}
 
-		let [map, mapImage] = await mapURLToArray(pngLink).catch(err => null);
+		let [map, mapImage] = await mapURLToArray(pngLink).catch(err => null) || ([null, null]);
 		if(!map) return reject("Invalid map");
 
 		let mapJSON;
