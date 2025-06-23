@@ -207,6 +207,8 @@ app.get('/preview/:mapid.jpeg', async (req, res) => {
 			return null;
 		});
 
+		if(!previewCanvas) return;
+
 		await previewCanvas.image.write(`${TEMP_FILE_PATH}/${mapID}.jpeg`, {
 			quality: 50
 		});
