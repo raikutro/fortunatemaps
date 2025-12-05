@@ -37,7 +37,8 @@ $("#settingsBtn").click(() => {
 	fetch("/settings", {
 		method: "POST",
 		headers: {
-			"Content-Type": "application/json"
+			"Content-Type": "application/json",
+			"X-CSRF-Token": getCsrfToken()
 		},
 		body: JSON.stringify({
 			discord: $("#discordSocialInput").val().trim(),
@@ -58,7 +59,8 @@ $("#sendAnnouncementBtn").click(() => {
 	fetch("/send_announcement", {
 		method: "POST",
 		headers: {
-			"Content-Type": "application/json"
+			"Content-Type": "application/json",
+			"X-CSRF-Token": getCsrfToken()
 		},
 		body: JSON.stringify({
 			announcement: prompt("Announcement:")

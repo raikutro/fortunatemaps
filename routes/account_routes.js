@@ -8,7 +8,7 @@ const ServerInfo = require('../models/ServerInfo');
 const Utils = require('../Utils');
 const SETTINGS = require('../Settings');
 
-module.exports = (app, sharedTokens) => {
+module.exports = (app, sharedTokens, requireCsrf) => {
 	const LoginMiddleware = require('../middleware/LoginMiddleware')(sharedTokens);
 
 	app.get('/register', LoginMiddleware, async (req, res) => {
@@ -50,7 +50,10 @@ module.exports = (app, sharedTokens) => {
 		}).then(a => a.json()).then(json => {
 			res.cookie(SETTINGS.SITE.COOKIE_TOKEN_NAME, json.verificationToken, {
 				path: "/",
-				expires: new Date(Date.now() + SETTINGS.SITE.LOGIN_EXPIRATION_TIME_LIMIT) // cookie will be removed after 100 days
+				expires: new Date(Date.now() + SETTINGS.SITE.LOGIN_EXPIRATION_TIME_LIMIT), // cookie will be removed after 100 days
+				httpOnly: true,
+				sameSite: 'lax',
+				secure: !SETTINGS.DEV_MODE
 			});
 			
 			res.redirect(json.url);
@@ -58,7 +61,13 @@ module.exports = (app, sharedTokens) => {
 	});
 
 	app.get('/sign_out', (req, res) => {
-		res.cookie(SETTINGS.SITE.COOKIE_TOKEN_NAME, "");
+		res.cookie(SETTINGS.SITE.COOKIE_TOKEN_NAME, "", {
+			path: "/",
+			expires: new Date(0),
+			httpOnly: true,
+			sameSite: 'lax',
+			secure: !SETTINGS.DEV_MODE
+		});
 		res.redirect("/");
 	});
 
@@ -158,7 +167,7 @@ module.exports = (app, sharedTokens) => {
 		}
 	});
 
-	app.post('/register', LoginMiddleware, async (req, res) => {
+	app.post('/register', LoginMiddleware, requireCsrf, async (req, res) => {
 		const user = await req.getProfile(true);
 
 		if(user && Utils.hasCorrectParameters(req.body, {
@@ -192,7 +201,7 @@ module.exports = (app, sharedTokens) => {
 		}
 	});
 
-	app.post('/settings', LoginMiddleware, async (req, res) => {
+	app.post('/settings', LoginMiddleware, requireCsrf, async (req, res) => {
 		const user = await req.getProfile(true);
 
 		if(user && Utils.hasCorrectParameters(req.body, {

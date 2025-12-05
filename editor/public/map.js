@@ -2,6 +2,11 @@ const URL_VARS = getUrlVars();
 
 let windowSource = null;
 
+function getCsrfToken() {
+	const cookiePair = document.cookie.split('; ').find(row => row.startsWith(((window.SETTINGS && window.SETTINGS.SITE && window.SETTINGS.SITE.CSRF_COOKIE_NAME) || 'fm_csrf') + '='));
+	return cookiePair ? decodeURIComponent(cookiePair.split('=')[1]) : '';
+}
+
 $(function() {
 	$('[data-toggle="popover"]').popover();
 	var quadrantCoords = {
@@ -2317,15 +2322,16 @@ $(function() {
 	$("#saveToFM").click( function() {
 		$("#saveToFM").prop("disabled", true);
 		console.log(versionSource);
-		fetch("/upload_map", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify({
-				layout: getPngBase64(),
-				logic: makeLogicString(),
-				unlisted: $("#unlistedCheck").prop("checked"),
+	fetch("/upload_map", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"X-CSRF-Token": getCsrfToken()
+		},
+		body: JSON.stringify({
+			layout: getPngBase64(),
+			logic: makeLogicString(),
+			unlisted: $("#unlistedCheck").prop("checked"),
 				sourceMapID: versionSource || 0
 			})
 		}).then(a => a.json()).then(data => {
@@ -2377,15 +2383,16 @@ $(function() {
 				addAlert('danger','Error: '+validStr,2000);
 				return false;
 			}
-			fetch('/testmap', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					logic: JSON.stringify(makeLogic()),
-					layout: getPngBase64(),
-					server: testServers[i].dataset.server
+	fetch('/testmap', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'X-CSRF-Token': getCsrfToken()
+		},
+		body: JSON.stringify({
+			logic: JSON.stringify(makeLogic()),
+			layout: getPngBase64(),
+			server: testServers[i].dataset.server
 				})
 			}).then(r => r.json()).then(json => {
 				if (json.url) {

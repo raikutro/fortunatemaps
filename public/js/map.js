@@ -77,7 +77,8 @@ $("#saveMapSettings").click(() => {
 	fetch("/update_map", {
 		method: "POST",
 		headers: {
-			"Content-Type": "application/json"
+			"Content-Type": "application/json",
+			"X-CSRF-Token": getCsrfToken()
 		},
 		body: JSON.stringify({
 			mapID: window.MAP_DATA.mapID,
@@ -100,7 +101,8 @@ $("#submitCommentBtn").click(() => {
 	fetch("/comment", {
 		method: "POST",
 		headers: {
-			"Content-Type": "application/json"
+			"Content-Type": "application/json",
+			"X-CSRF-Token": getCsrfToken()
 		},
 		body: JSON.stringify({
 			mapID: window.MAP_DATA.mapID,

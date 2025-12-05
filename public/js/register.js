@@ -2,7 +2,8 @@ $("#registerBtn").click(() => {
 	fetch("/register", {
 		method: "POST",
 		headers: {
-			"Content-Type": "application/json"
+			"Content-Type": "application/json",
+			"X-CSRF-Token": getCsrfToken()
 		},
 		body: JSON.stringify({
 			username: $("#usernameText").val().trim()

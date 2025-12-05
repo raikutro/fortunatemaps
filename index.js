@@ -17,9 +17,13 @@ const insane = require('insane');
 const app = express();
 const httpServer = http.Server(app);
 
+// Settings
+const SETTINGS = require('./Settings');
+
 const PORT = process.env.PORT || 80;
 const MAPTEST_URL = process.env.MAPTEST_URL || 'tagpro.koalabeast.com';
 const TEMP_FILE_PATH = './temp';
+const CSRF_COOKIE_NAME = SETTINGS.SITE.CSRF_COOKIE_NAME || 'fm_csrf';
 
 // The TagProEdit.com module.
 // The source code is now its own module.
@@ -34,9 +38,6 @@ const AccountRoutes = require('./routes/account_routes');
 
 // Basic Utility Functions
 const Utils = require('./Utils');
-
-// Settings
-const SETTINGS = require('./Settings');
 
 // Mongoose Models
 // Models cannot be initiated until DB connection.
@@ -110,7 +111,7 @@ mongoose.connect(process.env.MONGODB_URL, {
 	await loadLoginTokens();
 	await saveDatabaseStats();
 
-	AccountRoutes(app, sharedTokens);
+	AccountRoutes(app, sharedTokens, requireCsrf);
 
 	httpServer.listen(PORT, () => {
 		console.log('listening on *:' + PORT);
@@ -127,6 +128,32 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json({ limit: '2mb' }));
 app.use(cookieParser());
+
+// Ensure every client has a CSRF token cookie for double-submit checks.
+app.use((req, res, next) => {
+	if(!req.cookies[CSRF_COOKIE_NAME]) {
+		const csrfToken = crypto.randomBytes(32).toString('hex');
+		res.cookie(CSRF_COOKIE_NAME, csrfToken, {
+			path: '/',
+			maxAge: SETTINGS.SITE.LOGIN_EXPIRATION_TIME_LIMIT,
+			sameSite: 'lax',
+			secure: !SETTINGS.DEV_MODE,
+			httpOnly: false
+		});
+		req.cookies[CSRF_COOKIE_NAME] = csrfToken;
+	}
+	next();
+});
+
+const requireCsrf = (req, res, next) => {
+	const csrfCookie = req.cookies[CSRF_COOKIE_NAME];
+	const csrfHeader = req.get('x-csrf-token');
+	if(!csrfCookie || csrfCookie !== csrfHeader) {
+		return res.status(403).json({ err: "Invalid CSRF token" });
+	}
+	return next();
+};
+
 app.use('/', apiRouter);
 
 apiRouter.use(generalDBLimiter);
@@ -142,8 +169,6 @@ async function loadLoginTokens() {
 		});
 		return await loadLoginTokens();
 	}
-
-	console.log(serverInfo)
 
 	sharedTokens.login = serverInfo.loginTokens || {};
 }
@@ -602,7 +627,8 @@ apiRouter.post('/testmap', async (req, res) => {
 // Uploads a map to the server
 apiRouter.post('/upload_map', 
 	mapUploadLimiter,
-	LoginMiddleware, async (req, res) => {
+	LoginMiddleware,
+	requireCsrf, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		logic: "string",
 		layout: "string",
@@ -700,7 +726,7 @@ apiRouter.post('/upload_map',
 });
 
 // Update Map Route
-apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, async (req, res) => {
+apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, requireCsrf, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		mapID: "number",
 		mapName: "string",
@@ -769,11 +795,11 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, async (req, res
 });
 
 // Post Comment Route
-apiRouter.post('/comment', commentLimiter, LoginMiddleware, async (req, res) => {
-	if(Utils.hasCorrectParameters(req.body, {
-		mapID: "number",
-		body: "string"
-	}) && req.profileID){
+apiRouter.post('/comment', commentLimiter, LoginMiddleware, requireCsrf, async (req, res) => {
+		if(Utils.hasCorrectParameters(req.body, {
+			mapID: "number",
+			body: "string"
+		}) && req.profileID){
 		let mapEntry = await MapEntry.findOne({
 			mapID: req.body.mapID
 		});
@@ -783,13 +809,13 @@ apiRouter.post('/comment', commentLimiter, LoginMiddleware, async (req, res) => 
 		let commentingUser = await User.findById(req.profileID);
 		if(!commentingUser) return res.status(404).json({err: "User not found."}); 
 
-		mapEntry.comments.push({
-			id: Utils.makeID(),
-			parentID: "",
-			date: new Date(),
-			authorID: req.profileID,
-			body: req.body.body
-		});
+			mapEntry.comments.push({
+				id: Utils.makeID(),
+				parentID: "",
+				date: new Date(),
+				authorID: req.profileID,
+				body: insane(req.body.body || "")
+			});
 
 		await mapEntry.save();
 
@@ -800,7 +826,7 @@ apiRouter.post('/comment', commentLimiter, LoginMiddleware, async (req, res) => 
 });
 
 // Like Map Route
-apiRouter.post('/like', LoginMiddleware, async (req, res) => {
+apiRouter.post('/like', LoginMiddleware, requireCsrf, async (req, res) => {
 	if(Utils.hasCorrectParameters(req.body, {
 		mapID: "number"
 	}) && req.profileID){
@@ -828,13 +854,13 @@ apiRouter.post('/like', LoginMiddleware, async (req, res) => {
 	}
 });
 
-apiRouter.post('/send_announcement', LoginMiddleware, async (req, res) => {
+apiRouter.post('/send_announcement', LoginMiddleware, requireCsrf, async (req, res) => {
 	const userProfile = await req.getProfile();
 	const isAdmin = userProfile ? userProfile.isAdmin : false;
 
 	if(!isAdmin) return res.status(401);
 
-	announcementHTML = req.body.announcement;
+	announcementHTML = insane(req.body.announcement || "");
 
 	res.json({
 		success: true

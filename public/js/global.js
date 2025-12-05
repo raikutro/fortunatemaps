@@ -57,3 +57,11 @@ function blobToImage(blob) {
 		img.src = url
 	})
 }
+
+function getCsrfToken() {
+	const cookieName = (window.SETTINGS && window.SETTINGS.SITE && window.SETTINGS.SITE.CSRF_COOKIE_NAME) || 'fm_csrf';
+	const cookiePair = document.cookie.split('; ').find(row => row.startsWith(cookieName + '='));
+	return cookiePair ? decodeURIComponent(cookiePair.split('=')[1]) : '';
+}
+
+window.getCsrfToken = getCsrfToken;
