@@ -439,6 +439,43 @@ async function extractMapChunks(tileMap) {
 		return x === 0 ? 0 : x - 1;
 	});
 
+	const impassibleMask = TPAnalysis.createCustomTileMask(tileMap, {
+		[TPAnalysis.TILE_IDS.WALL]: 1,
+		[TPAnalysis.TILE_IDS.TLWALL]: 1,
+		[TPAnalysis.TILE_IDS.TRWALL]: 1,
+		[TPAnalysis.TILE_IDS.BLWALL]: 1,
+		[TPAnalysis.TILE_IDS.BRWALL]: 1,
+		[TPAnalysis.TILE_IDS.SPIKE]: 1,
+		[TPAnalysis.TILE_IDS.GATE]: 1,
+		[TPAnalysis.TILE_IDS.PORTAL]: 1
+	});
+
+	// find closest outside impassible tile
+	let outsideTilePoint = null;
+	for (let x = 0; x < impassibleMask.shape[0]; x++) {
+		for (let y = 0; y < impassibleMask.shape[1]; y++) {
+			if(impassibleMask.get(x, y) === 1) {
+				outsideTilePoint = new SAT.Vector(x, y);
+				break;
+			}
+		}
+		if(outsideTilePoint) break;
+	}
+	if(!outsideTilePoint) outsideTilePoint = new SAT.Vector(0, 0);
+
+	TPAnalysis.floodFill([outsideTilePoint.x, outsideTilePoint.y], {
+		color: ([ox, oy], [nx, ny]) => {
+			if(impassibleMask.get(nx, ny) === 1) {
+				impassibleMask.set(nx, ny, 2);
+				return true;
+			}
+
+			return false;
+		},
+		radius: 1,
+		diagonal: false
+	});
+
 	const morphologicalKeyElementMask = TPAnalysis.morphologicalMatrix(dialatedKeyElementMask);
 	const chunkMask = await TPAnalysis.voronoiMatrix(morphologicalKeyElementMask);
 
