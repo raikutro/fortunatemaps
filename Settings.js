@@ -99,7 +99,7 @@ const SETTINGS = {
 		}
 	},
 	CHUNK: {
-		DAILY_GENERATION_LIMIT: Number(process.env.CHUNK_DAILY_LIMIT || 32),
+		DAILY_GENERATION_LIMIT: Number(process.env.CHUNK_DAILY_LIMIT || 64),
 		MAPS_PER_REQUEST: Number(process.env.CHUNK_MAPS_PER_REQUEST || 2),
 		DEFAULT_CHUNK_MODEL_PATH: process.env.CHUNK_MODEL_PATH || path.join(__dirname, 'chunk_models', 'CHUNKv1.chunk')
 	},
