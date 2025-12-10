@@ -11,7 +11,11 @@ const createHull = require('hull');
 const { buffer } = require('node:stream/consumers');
 const savePixels = require("save-pixels");
 const SAT = require('sat');
-const { createWriteStream, writeFileSync } = require('fs');
+const fs = require('fs');
+const fsPromises = require('fs/promises');
+const path = require('path');
+const { unpack } = require('msgpackr');
+const { createWriteStream, writeFileSync } = fs;
 const { mapIDToTileMap, colorize, ndarray, matrixToHTML, spliceMatrix, TILE_IDS, TILE_COLORS, SYMMETRY } = TPAnalysis;
 
 const Masher = {};
@@ -23,51 +27,128 @@ const OPTIMIZER_SETTINGS = {
 	DEBUG_MODE: false
 };
 
-const tileMapCache = {};
-const mapChunkCache = {};
+const normalizeMapID = (mapID) => {
+	const numeric = Number(mapID);
+	return Number.isFinite(numeric) ? numeric : String(mapID);
+};
 
-Masher.mashMaps = async (mapIDs) => {
-	const mapInfos = await Promise.all(mapIDs.map(async (m) => {
-		let tileMap = tileMapCache[m];
-		if(!tileMap) {
-			tileMapCache[m] = await mapIDToTileMap(m);
-			tileMap = tileMapCache[m];
-		}
+const serializeVector = (vec) => vec ? { x: vec.x, y: vec.y } : null;
+const deserializeVector = (obj) => obj ? new SAT.Vector(obj.x, obj.y) : null;
 
-		let mapChunkData = mapChunkCache[m];
-		if(!mapChunkData) {
-			mapChunkData = await extractMapChunks(tileMap);
-			mapChunkCache[m] = mapChunkData;
-		}
+const serializeMatrix = (matrix) => ({
+	shape: matrix.shape,
+	data: Array.from(matrix.data)
+});
 
-		const { chunkMask, mapChunks, debug } = mapChunkData;
+const deserializeMatrix = (serialized) => ndarray(new Float32Array(serialized.data), serialized.shape);
 
-		return {
-			tileMap,
-			chunkMask,
-			mapChunks,
-			debug
-		};
-	}));
+const serializePolygon = (polygon) => ({
+	pos: serializeVector(polygon.pos),
+	points: polygon.points.map(serializeVector)
+});
+
+const deserializePolygon = (serialized) => new SAT.Polygon(
+	deserializeVector(serialized.pos),
+	serialized.points.map(deserializeVector)
+);
+
+const serializeMapChunk = (chunk) => ({
+	id: chunk.id,
+	type: chunk.type,
+	features: {
+		...chunk.features,
+		flagPosition: serializeVector(chunk.features.flagPosition)
+	},
+	positions: {
+		centerOfMass: serializeVector(chunk.positions.centerOfMass),
+		relCoM: serializeVector(chunk.positions.relCoM),
+		flag: serializeVector(chunk.positions.flag)
+	},
+	tiles: serializeMatrix(chunk.tiles),
+	hull: serializePolygon(chunk.hull)
+});
+
+const deserializeMapChunk = (serialized) => ({
+	...serialized,
+	features: {
+		...serialized.features,
+		flagPosition: deserializeVector(serialized.features.flagPosition)
+	},
+	positions: {
+		centerOfMass: deserializeVector(serialized.positions.centerOfMass),
+		relCoM: deserializeVector(serialized.positions.relCoM),
+		flag: deserializeVector(serialized.positions.flag)
+	},
+	tiles: deserializeMatrix(serialized.tiles),
+	hull: deserializePolygon(serialized.hull)
+});
+
+const serializeChunkModel = (entries=[]) => entries.map(entry => ({
+	mapID: entry.mapID,
+	shape: entry.shape,
+	chunkMask: serializeMatrix(entry.chunkMask),
+	mapChunks: entry.mapChunks.map(serializeMapChunk)
+}));
+
+const deserializeChunkModel = (serialized=[]) => serialized.map(entry => ({
+	mapID: entry.mapID,
+	shape: entry.shape,
+	chunkMask: deserializeMatrix(entry.chunkMask),
+	mapChunks: entry.mapChunks.map(deserializeMapChunk)
+}));
+
+const cloneChunkModel = (entries=[]) => deserializeChunkModel(serializeChunkModel(entries));
+
+const createMapInfo = (mapID, tileMap, chunkData) => ({
+	mapID: normalizeMapID(mapID),
+	shape: tileMap.shape,
+	chunkMask: chunkData.chunkMask,
+	mapChunks: chunkData.mapChunks
+});
+
+async function buildMapInfoFromMapID(mapID) {
+	const tileMap = await mapIDToTileMap(mapID);
+	const chunkData = await extractMapChunks(tileMap);
+	return createMapInfo(mapID, tileMap, chunkData);
+}
+
+async function loadChunkModel(modelPath) {
+	const resolvedPath = path.isAbsolute(modelPath) ? modelPath : path.join(process.cwd(), modelPath);
+	const buffer = await fsPromises.readFile(resolvedPath);
+	const serialized = unpack(buffer);
+	return deserializeChunkModel(serialized);
+}
+
+Masher.mashMaps = async (chunkModelInput, options={}) => {
+	const mashOptions = {
+		preview: true,
+		returnAssets: false,
+		mapName: options.mapName || 'CHUNK v1 Map',
+		author: options.author || 'CHUNK',
+		...options
+	};
+
+	const mapInfos = Array.isArray(chunkModelInput) ? cloneChunkModel(chunkModelInput) : [];
+	if(!mapInfos.length) throw new Error("No chunk model data available for mashMaps.");
 
 	const allChunks = mapInfos.map(mI => mI.mapChunks).flat();
 	const numberOfMechs = OPTIMIZER_SETTINGS.DEFAULT_NUMBER_OF_MECHANICS;
 	shuffleArray(allChunks);
 
 	const mapSize = new SAT.Vector(...[
-		mapInfos.reduce((a, m) => a + m.tileMap.shape[0], 0),
-		mapInfos.reduce((a, m) => a + m.tileMap.shape[1], 0)
+		mapInfos.reduce((a, m) => a + m.shape[0], 0),
+		mapInfos.reduce((a, m) => a + m.shape[1], 0)
 	].map(a => a / mapInfos.length));
 	const chosenBase = allChunks.find(c => c.type === 'base');
 	const chosenMechs = allChunks.filter(c => c.type === 'mech').slice(0, numberOfMechs);
 
 	const optimizer = new MapOptimizer(mapSize, SYMMETRY.ROTATIONAL, chosenBase, chosenMechs);
-	// console.log(await optimizer.optimize());
+	console.log(await optimizer.optimize());
 
 	const optimizedMap = optimizer.rasterize();
 
-	if(OPTIMIZER_SETTINGS.DEBUG_MODE) {
-		savePixels(colorize(chosenBase.tiles, TILE_COLORS), "png").pipe(createWriteStream(`./mechs/base.png`, {
+	if(OPTIMIZER_SETTINGS.DEBUG_MODE || options.debug) {
+		savePixels(colorize(chosenBase.tiles, TILE_COLORS), "png").pipe(createWriteStream(`${__dirname}/../admin_tools/mechs/base.png`, {
 			autoClose: true,
 			flags: 'w'
 		}));
@@ -93,8 +174,8 @@ Masher.mashMaps = async (mapIDs) => {
 
 		const previewSVGs = [];
 		for (let i = 0; i < mapInfos.length; i++) {
-			const previewSVG = TPAnalysis.createBaseDocument(mapInfos[i].tileMap.shape[0], mapInfos[i].tileMap.shape[1]);
-			TPAnalysis.addMapPreviewLayer(previewSVG, mapIDs[i]);
+			const previewSVG = TPAnalysis.createBaseDocument(mapInfos[i].shape[0], mapInfos[i].shape[1]);
+			TPAnalysis.addMapPreviewLayer(previewSVG, mapInfos[i].mapID || mapIDs[i]);
 			TPAnalysis.addMatrixLayer(previewSVG, mapInfos[i].chunkMask);
 			TPAnalysis.addPolygonLayer(previewSVG, mapInfos[i].mapChunks.map(c => c.hull.translate(c.positions.centerOfMass.x, c.positions.centerOfMass.y).calcPoints.map(p => [p.x, p.y])));
 			previewSVG.css({
@@ -104,29 +185,34 @@ Masher.mashMaps = async (mapIDs) => {
 			previewSVGs.push(previewSVG);
 		}
 
-		writeFileSync('view.html', `
+		writeFileSync(__dirname + '/../admin_tools/view.html', `
 			${baseSVG.svg()}
 			${hullSVG.svg()}
 			${previewSVGs.map(p => p.svg()).join('')}
-			${matrixToHTML(testMap)}
 		`);
 	}
 
 	const mapJSON = {
-		"info":{"name":"Some Map","author":"Anonymous","gameMode":"normal"},
+		"info":{"name": mashOptions.mapName,"author": mashOptions.author,"gameMode":"normal"},
 		"switches":{},"fields":{},"portals":{},"marsballs":[],"spawnPoints":{"red":[],"blue":[]}
 	};
 	const sourcePNG = (await bufferStream(savePixels(colorize(optimizedMap, TILE_COLORS), "png"))).toString('base64');
 
-	let previewCanvas = await PreviewGenerator.generate(
+	let previewCanvas = mashOptions.preview ? await PreviewGenerator.generate(
 		sourcePNG,
 		JSON.stringify(mapJSON)
 	).catch(err => {
 		console.error("PREVIEW GENERATION ERROR:", err);
 		return null;
-	});
+	}) : null;
 
-	return previewCanvas;
+	const mashResult = {
+		previewCanvas,
+		pngBase64: sourcePNG,
+		mapJSON
+	};
+
+	return mashOptions.returnAssets ? mashResult : previewCanvas;
 };
 
 class MapOptimizer {
@@ -300,7 +386,12 @@ function makeMapChunk(tileMap, points) {
 
 	const tileCenterPoints = points.map(p => [p[0] + 0.5, p[1] + 0.5]);
 
-	const chunkHullPoints = createHull(tileCenterPoints, OPTIMIZER_SETTINGS.CHUNK_HULL_CONCAVITY).map(p => new SAT.Vector(...p));
+	const xAllSame = tileCenterPoints.every(p => p[0] === tileCenterPoints[0][0]);
+	const yAllSame = tileCenterPoints.every(p => p[1] === tileCenterPoints[0][1]);
+	const chunkHullPointsRaw = (xAllSame || yAllSame)
+		? tileCenterPoints
+		: createHull(tileCenterPoints, OPTIMIZER_SETTINGS.CHUNK_HULL_CONCAVITY);
+	const chunkHullPoints = chunkHullPointsRaw.map(p => new SAT.Vector(...p));
 	const chunkHullCentroid = new SAT.Polygon(new SAT.Vector(0, 0), chunkHullPoints).getCentroid();
 
 	const mapChunk = {
@@ -334,14 +425,6 @@ function makeMapChunk(tileMap, points) {
 	}
 
 	return mapChunk;
-}
-
-function convertMapChunkPositionsToRelative(tileMap, mapChunk) {
-	for(const [key, value] of Object.entries(mapChunk.positions)) {
-		mapChunk.positions[key] = value.clone().scale(
-			1 / tileMap.shape[0], 1 / tileMap.shape[1]
-		);
-	}
 }
 
 function shuffleArray(array) {
@@ -487,7 +570,6 @@ async function extractMapChunks(tileMap) {
 		return;
 	});
 
-	const mapCenter = new SAT.Vector(tileMap.shape[0] / 2, tileMap.shape[1] / 2);
 	const leftMostGoal = goals[0].x < goals[1].x ? goals[0] : goals[1];
 	let determinerSign = -Math.sign(perpendicularDeterminant(leftMostGoal, goals[0], goals[1]));
 
@@ -502,10 +584,7 @@ async function extractMapChunks(tileMap) {
 		}
 		let determiner = perpendicularDeterminant(mapChunk.positions.centerOfMass, goals[0], goals[1]) * determinerSign;
 
-		if(determiner <= 0 || Math.round(determiner) <= 0) {
-			// convertMapChunkPositionsToRelative(tileMap, mapChunk);
-			mapChunks.push(mapChunk);
-		}
+		if(determiner <= 0 || Math.round(determiner) <= 0) mapChunks.push(mapChunk);
 	}
 
 	const base = mapChunks.find(c => c.type === 'base');
@@ -530,5 +609,11 @@ async function bufferStream(stream) {
 		stream.on('error', err => reject(err));
 	});
 }
+
+Masher.extractMapChunks = extractMapChunks;
+Masher.buildMapInfoFromMapID = buildMapInfoFromMapID;
+Masher.serializeChunkModel = serializeChunkModel;
+Masher.deserializeChunkModel = deserializeChunkModel;
+Masher.loadChunkModel = loadChunkModel;
 
 module.exports = Masher;

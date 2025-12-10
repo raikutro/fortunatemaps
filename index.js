@@ -24,6 +24,7 @@ const PORT = process.env.PORT || 80;
 const MAPTEST_URL = process.env.MAPTEST_URL || 'tagpro.koalabeast.com';
 const TEMP_FILE_PATH = './temp';
 const CSRF_COOKIE_NAME = SETTINGS.SITE.CSRF_COOKIE_NAME || 'fm_csrf';
+const CHUNK_CONFIG = SETTINGS.CHUNK;
 
 // The TagProEdit.com module.
 // The source code is now its own module.
@@ -44,6 +45,8 @@ const Utils = require('./Utils');
 let MapEntry = null;
 let User = null;
 let ServerInfo = null;
+let serverInfoDoc = null;
+let chunkModel = null;
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
@@ -89,6 +92,7 @@ let sharedTokens = {
 };
 
 let announcementHTML = null;
+let chunkUsage = {};
 
 // Middleware
 const LoginMiddleware = require('./middleware/LoginMiddleware')(sharedTokens);
@@ -110,6 +114,10 @@ mongoose.connect(process.env.MONGODB_URL, {
 	
 	await loadLoginTokens();
 	await saveDatabaseStats();
+	await loadChunkModelOnce().catch(err => {
+		console.error("CHUNK model load error:", err);
+		chunkModel = null;
+	});
 
 	AccountRoutes(app, sharedTokens, requireCsrf);
 
@@ -165,12 +173,15 @@ async function loadLoginTokens() {
 	if(!serverInfo) {
 		console.log("No ServerInfo found, creating new ServerInfo.");
 		await ServerInfo.create({
-			loginTokens: {}
+			loginTokens: {},
+			chunkUsage: {}
 		});
 		return await loadLoginTokens();
 	}
 
+	serverInfoDoc = serverInfo;
 	sharedTokens.login = serverInfo.loginTokens || {};
+	chunkUsage = serverInfo.chunkUsage || {};
 }
 
 // Home Page
@@ -198,6 +209,19 @@ app.get('/', LoginMiddleware, async (req, res) => {
 app.get('/editor', LoginMiddleware, async (req, res) => {
 	res.render('editor', {
 		...(await Utils.templateEngineData(req))
+	});
+});
+
+app.get('/chunkv1', LoginMiddleware, async (req, res) => {
+	if(!req.profileID) return res.redirect("/");
+
+	res.render('chunk', {
+		...(await Utils.templateEngineData(req)),
+		chunkData: {
+			remaining: getChunkRemaining(req.profileID),
+			dailyLimit: CHUNK_CONFIG.DAILY_GENERATION_LIMIT,
+			perRequest: CHUNK_CONFIG.MAPS_PER_REQUEST
+		}
 	});
 });
 
@@ -489,6 +513,29 @@ apiRouter.get('/author_names/:authorid', async (req, res) => {
 			return acc;
 		}, {})
 	});
+});
+
+apiRouter.post('/chunkv1/generate', LoginMiddleware, requireCsrf, async (req, res) => {
+	if(!req.profileID) return res.status(401).json({ err: "Login required" });
+
+	const remaining = getChunkRemaining(req.profileID);
+	if(remaining < CHUNK_CONFIG.MAPS_PER_REQUEST) {
+		return res.status(400).json({ err: `You only have ${remaining} generation(s) left today.`, remaining });
+	}
+
+	try {
+		const maps = await generateChunkMaps(req.profileID);
+		await incrementChunkUsage(req.profileID, CHUNK_CONFIG.MAPS_PER_REQUEST);
+
+		return res.json({
+			maps,
+			remaining: getChunkRemaining(req.profileID),
+			dailyLimit: CHUNK_CONFIG.DAILY_GENERATION_LIMIT
+		});
+	} catch (err) {
+		console.error("CHUNK generation error:", err);
+		return res.status(500).json({ err: "Failed to generate maps." });
+	}
 });
 
 // Source PNG Image Route
@@ -887,4 +934,62 @@ async function getHighestMapID() {
 		.sort({ mapID: -1 })
 		.limit(1)
 		.then(maps => maps[0] ? maps[0].mapID : 1);
+}
+
+const getDayKey = () => new Date().toISOString().slice(0, 10);
+
+function ensureChunkUsage(userId) {
+	const dayKey = getDayKey();
+	const record = chunkUsage[userId];
+	if(!record || record.day !== dayKey) {
+		chunkUsage[userId] = { count: 0, day: dayKey };
+	}
+	return chunkUsage[userId];
+}
+
+function getChunkRemaining(userId) {
+	const record = ensureChunkUsage(userId);
+	return Math.max(CHUNK_CONFIG.DAILY_GENERATION_LIMIT - record.count, 0);
+}
+
+async function incrementChunkUsage(userId, amount) {
+	const record = ensureChunkUsage(userId);
+	record.count += amount;
+	if(serverInfoDoc) {
+		serverInfoDoc.chunkUsage = chunkUsage;
+		await serverInfoDoc.save();
+	}
+}
+
+async function generateChunkMaps(userId) {
+	if(!chunkModel) {
+		await loadChunkModelOnce();
+	}
+	if(!chunkModel) throw new Error("No CHUNK model loaded.");
+
+	const maps = [];
+
+	for(let i = 0; i < CHUNK_CONFIG.MAPS_PER_REQUEST; i++) {
+		const mashResult = await Masher.mashMaps(chunkModel, {
+			returnAssets: true,
+			preview: false,
+			mapName: `CHUNK v1 Map`,
+			author: `CHUNK`
+		});
+
+		if(!mashResult) throw new Error("Failed to generate map");
+
+		maps.push({
+			png: mashResult.pngBase64,
+			json: Buffer.from(JSON.stringify(mashResult.mapJSON)).toString('base64')
+		});
+	}
+
+	return maps;
+}
+
+async function loadChunkModelOnce() {
+	if(chunkModel) return chunkModel;
+	chunkModel = await Masher.loadChunkModel(SETTINGS.CHUNK.DEFAULT_CHUNK_MODEL_PATH);
+	return chunkModel;
 }

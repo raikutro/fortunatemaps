@@ -1950,7 +1950,7 @@ pixelmatch@^5.3.0:
 
 pngjs-image@^0.11.7:
   version "0.11.7"
-  resolved "https://registry.npmjs.org/pngjs-image/-/pngjs-image-0.11.7.tgz"
+  resolved "https://registry.yarnpkg.com/pngjs-image/-/pngjs-image-0.11.7.tgz#631dd59924569fc82ffebae0d5d53f85f54dab62"
   integrity sha512-JRyrmT+HXa1/gvdHpebus8TGqKa8WRgcsHz/DDalxRsMhvu6AOA99/enBFjZIPvmXVAzwKR051s80TuE1IiCpg==
   dependencies:
     iconv-lite "^0.4.8"

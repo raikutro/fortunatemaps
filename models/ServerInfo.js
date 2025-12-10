@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const ServerInfoSchema = new Schema({
-	loginTokens: {}
+	loginTokens: {},
+	chunkUsage: {}
 });
 
 const ServerInfo = mongoose.model('ServerInfo', ServerInfoSchema);
