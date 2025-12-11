@@ -1,45 +1,116 @@
 const { Jimp } = require('jimp');
-const PNGImage = require('pngjs-image');
-const ndFill = require('ndarray-fill');
-const zeros = require('zeros');
 const fetch = require('node-fetch');
 
-const Utils = require('../Utils');
-const SETTINGS = require('./map_settings');
-const fs = require('fs');
+const MAP_SETTINGS = require('./map_settings');
+const SITE_SETTINGS = require('../Settings');
 
-const TEXTURES = ["VANILLA"];
+const baseUrl = "https://static.koalabeast.com";
+const config = {
+	tileSize: MAP_SETTINGS.TILE_SIZE,
+	quadSize: MAP_SETTINGS.QUADRANT_SIZE
+};
 
-let TILES = {};
+// Mapping for floor/feature tiles (except boosts/portals).
+const floorTiles = {
+	"d4d4d4": { y: 4, x: 13 },
+	"808000": { y: 1, x: 13 },
+	"ff0000": { y: 1, x: 14 },
+	"0000ff": { y: 1, x: 15 },
+	"373737": { y: 0, x: 12 },
+	"202020": { y: 0, x: 13 },
+	"b90000": { y: 5, x: 14 },
+	"190094": { y: 5, x: 15 },
+	"dcbaba": { y: 4, x: 14 },
+	"bbb8dd": { y: 4, x: 15 },
+	"dcdcba": { y: 5, x: 13 },
+	"00ff00": { y: 4, x: 12 },
+	"b97a57": { y: 6, x: 13 },
+	"ff8000": { y: 1, x: 12 },
+	"007500_empty": { y: 3, x: 12 },
+	"007500_green": { y: 3, x: 13 },
+	"007500_red":   { y: 3, x: 14 },
+	"007500_blue":  { y: 3, x: 15 },
+	"8080ff":       { y: 7, x: 14 },
+	"656500":       { y: 6, x: 14 },
+};
 
-let assetsLoaded = false;
+const wallTypes = MAP_SETTINGS.WALL_TYPES;
+const quadrantCoords = MAP_SETTINGS.QUADRANT_COORDS;
 
-const loadImage = (path) => Jimp.read(path);
+const imagesCache = new Map();
+const cloneCache = {};
+const blackTile = new Jimp({ width: config.tileSize, height: config.tileSize, color: 0x000000ff });
 
-(async () => {
-	let promises = TEXTURES.map(name => {
-		return new Promise(async (resolve, reject) => {
-			TILES[name] = {};
-			TILES[name].GENERAL = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/tiles.png`);
-			TILES[name].PORTALS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/portal.png`);
-			TILES[name].BOOSTS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/speedpad.png`);
-			TILES[name].REDBOOSTS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/speedpadred.png`);
-			TILES[name].BLUEBOOSTS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/speedpadblue.png`);
-			TILES[name].REDPORTALS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/portalred.png`);
-			TILES[name].BLUEPORTALS = await loadImage(`${__dirname}/../assets/textures/${name.toLowerCase()}/portalblue.png`);
+const normalizeTextureName = (name="") => String(name || "").toLowerCase();
 
-			resolve();
-		});
-	});
+const resolveTexturePack = (textureName="") => {
+	const normalized = normalizeTextureName(textureName);
+	const textures = SITE_SETTINGS.TEXTURES || [];
+	const defaultTexture = normalizeTextureName(SITE_SETTINGS.DEFAULT_PREVIEW_TEXTURE_PACK);
 
-	Promise.all(promises).then(() => {
-		assetsLoaded = true;
-	});
-})();
+	return textures.find(tp => normalizeTextureName(tp.url) === normalized || normalizeTextureName(tp.name) === normalized) ||
+		textures.find(tp => normalizeTextureName(tp.url) === defaultTexture) ||
+		textures[0];
+};
 
-let cloneCache = {};
+const loadImage = async (url) => {
+	const resolvedUrl = url.startsWith("/") ? baseUrl + url : url;
+	return Jimp.read(resolvedUrl);
+};
 
-const makeCacheKey = (cacheSpace, sx, sy, sWidth, sHeight, dWidth, dHeight) => `${cacheSpace}|${sx}|${sy}|${sWidth}|${sHeight}|${dWidth}|${dHeight}`;
+const ensureTextureImages = async (textureName) => {
+	const pack = resolveTexturePack(textureName);
+	if (!pack) throw new Error("No texture packs available for preview generation.");
+
+	if (imagesCache.has(pack.url)) {
+		return imagesCache.get(pack.url);
+	}
+
+	const images = {
+		tile: await loadImage(pack.tiles),
+		speedpad: await loadImage(pack.speedpad),
+		speedpadRed: await loadImage(pack.speedpadRed),
+		speedpadBlue: await loadImage(pack.speedpadBlue),
+		portal: await loadImage(pack.portal),
+		portalRed: await loadImage(pack.portalRed),
+		portalBlue: await loadImage(pack.portalBlue)
+	};
+
+	imagesCache.set(pack.url, images);
+	return images;
+};
+
+const decodeLayoutToImage = async (layout) => {
+	if (typeof layout !== "string") throw new Error("Invalid layout data.");
+
+	// Remote URL
+	if (layout.includes("://")) return Jimp.read(layout);
+
+	// Base64 PNG data
+	try {
+		const buffer = Buffer.from(layout, "base64");
+		return await Jimp.read(buffer);
+	} catch (err) {
+		// Fall through to attempting local/path loading
+	}
+
+	// Local/path-based
+	return Jimp.read(layout);
+};
+
+const loadMapLogic = async (logic) => {
+	try {
+		return JSON.parse(logic);
+	} catch (e) {
+		// Attempt to fetch from URL if JSON parse fails.
+		try {
+			const res = await fetch(logic);
+			return await res.json();
+		} catch (err) {
+			return null;
+		}
+	}
+};
 
 class MapCanvas {
 	constructor(width, height) {
@@ -55,15 +126,13 @@ class MapCanvas {
 	}
 
 	drawImage(src, sx, sy, sWidth, sHeight, dx, dy, dWidth=null, dHeight=null, cacheSpace="") {
-		// console.log(src);
-		let cacheKey = makeCacheKey(cacheSpace, sx, sy, sWidth, sHeight, dWidth, dHeight);
+		const cacheKey = `${cacheSpace}|${sx}|${sy}|${sWidth}|${sHeight}|${dWidth}|${dHeight}`;
 		if(!cloneCache[cacheKey]) {
-			let clonedSrc = src.clone();
+			const clonedSrc = src.clone();
 			clonedSrc.crop({ x: sx, y: sy, w: sWidth, h: sHeight});
 			if(dWidth !== null && dWidth !== 0 && dHeight !== 0) clonedSrc.resize({ w: dWidth, h: dHeight });
 			cloneCache[cacheKey] = clonedSrc;
 		}
-		// this.image.blit({ src: clonedSrc, x: dx, y: dy });
 		this.image.composite(cloneCache[cacheKey], dx, dy);
 	}
 
@@ -76,257 +145,24 @@ function rgbToHex(r, g, b) {
 	return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
-const generate = (layout, logic, textureName="VANILLA") => {
-	return new Promise(async (resolve, reject) => {
-		await waitForLoadedAssets();
-
-		let pngLink;
-		let tempURL = null;
-
-		if(!TEXTURES.includes(textureName)) textureName = "VANILLA";
-
-		if(layout.includes("://")) {
-			pngLink = layout;
-		} else {
-			pngLink = await new Promise((resolve, reject) => {
-				tempURL = `temp${String(Math.random()).slice(2)}.png`;
-				fs.writeFile(tempURL, layout, 'base64', (err) => {
-					if(err) return reject(err);
-
-					resolve(tempURL);
-				});
-			});
-		}
-
-		let [map, mapImage] = await mapURLToArray(pngLink).catch(err => null) || ([null, null]);
-		if(!map) return reject("Invalid map");
-
-		let mapJSON;
-
-		if(tempURL !== null) {
-			let deletedFile = await new Promise((resolve, reject) => {
-				fs.unlink(tempURL, err => {
-					if(err) return reject(err);
-
-					resolve(true);
-				});
-			}).catch(err => {
-				return null;
-			});
-		}
-
-		try {
-			mapJSON = JSON.parse(logic);
-		} catch(e) {
-			mapJSON = await mapURLToJSON(logic).catch(err => null);
-		}
-
-		if(!mapJSON) return reject('Invalid map json');
-
-		const canvas = new MapCanvas(
-			(map.shape[0] * SETTINGS.TILE_SIZE) || SETTINGS.TILE_SIZE,
-			(map.shape[1] * SETTINGS.TILE_SIZE) || SETTINGS.TILE_SIZE
-		);
-		const drawTile = (tile, x, y, space="") => {
-			canvas.drawImage(
-				tile,
-				0, 0,
-				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-				x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
-				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-				space
-			);
-		};
-
-		const wallMap = [];
-		for (let y = 0; y < map.shape[1]; y++) {
-			wallMap[y] = [];
-			for (let x = 0; x < map.shape[0]; x++) {
-				const hex = mapImage.getColor(x, y).toString(16).padEnd('0', 6).slice(0, 6);
-				wallMap[y][x] = (SETTINGS.WALL_TYPES.hasOwnProperty(hex) ? SETTINGS.WALL_TYPES[hex].wallSolids : 0);
-			}
-		}
-
-		for (let y = 0; y < map.shape[1]; y++) {
-			for (let x = 0; x < map.shape[0]; x++) {
-				let tileType = map.get(x, y);
-
-				let neighborObj = {
-					UP: y !== 0 && SETTINGS.IS_WALL(map.get(x, y - 1)),
-					DOWN: y !== map.shape[1] && SETTINGS.IS_WALL(map.get(x, y + 1)),
-					LEFT: x !== 0 && SETTINGS.IS_WALL(map.get(x - 1, y)),
-					RIGHT: x !== map.shape[0] && SETTINGS.IS_WALL(map.get(x + 1, y))
-				};
-
-				if(tileType !== SETTINGS.TILE_IDS.BACKGROUND) {
-					canvas.drawImage(
-						TILES[textureName].GENERAL,
-						SETTINGS.TILE_COORDINATES.FLOOR.x * SETTINGS.TILE_SIZE,
-						SETTINGS.TILE_COORDINATES.FLOOR.y * SETTINGS.TILE_SIZE,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-						x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
-					);
-				}
-
-				if(SETTINGS.IS_WALL(tileType)) {
-					drawWall(canvas, x, y, SETTINGS.TILE_NAMES[tileType], neighborObj);
-				} else if(SETTINGS.TILE_COORDINATES[SETTINGS.TILE_NAMES[tileType]]) {
-					canvas.drawImage(
-						TILES[textureName].GENERAL,
-						SETTINGS.TILE_COORDINATES[SETTINGS.TILE_NAMES[tileType]].x * SETTINGS.TILE_SIZE,
-						SETTINGS.TILE_COORDINATES[SETTINGS.TILE_NAMES[tileType]].y * SETTINGS.TILE_SIZE,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-						x * SETTINGS.TILE_SIZE, y * SETTINGS.TILE_SIZE,
-						SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-						'G'
-					);
-				} else if(tileType === SETTINGS.TILE_IDS.BOOST) {
-					drawTile(TILES[textureName].BOOSTS, x, y, SETTINGS.TILE_IDS.BOOST);
-				} else if(tileType === SETTINGS.TILE_IDS.REDBOOST) {
-					drawTile(TILES[textureName].REDBOOSTS, x, y, SETTINGS.TILE_IDS.REDBOOST);
-				} else if(tileType === SETTINGS.TILE_IDS.BLUEBOOST) {
-					drawTile(TILES[textureName].BLUEBOOSTS, x, y, SETTINGS.TILE_IDS.BLUEBOOST);
-				} else if(tileType === SETTINGS.TILE_IDS.PORTAL) {
-					drawTile(TILES[textureName].PORTALS, x, y, SETTINGS.TILE_IDS.PORTAL);
-				} else if(tileType === SETTINGS.TILE_IDS.REDPORTAL) {
-					drawTile(TILES[textureName].REDPORTALS, x, y, SETTINGS.TILE_IDS.REDPORTAL);
-				} else if(tileType === SETTINGS.TILE_IDS.BLUEPORTAL) {
-					drawTile(TILES[textureName].BLUEPORTALS, x, y, SETTINGS.TILE_IDS.BLUEPORTAL);
-				}
-			}
-		}
-
-		fillStates(canvas, mapJSON);
-
-		resolve(canvas);
-	});
-};
-
-const generateThumbnail = async (previewCanvas, { thumbnailSize=400 }={}) => {
-	let newWidth;
-	let newHeight;
-	if(previewCanvas.width < previewCanvas.height) {
-		let ratio = previewCanvas.width / previewCanvas.height;
-		newWidth = thumbnailSize * ratio;
-		newHeight = thumbnailSize;
+function getFloorTile(key, images) {
+	if (key === "ffff00") {
+		return { image: images.speedpad, y: 0, x: 0 };
+	} else if (key === "ff7373") {
+		return { image: images.speedpadRed, y: 0, x: 0 };
+	} else if (key === "7373ff") {
+		return { image: images.speedpadBlue, y: 0, x: 0 };
+	} else if (key === "cac000") {
+		return { image: images.portal, x: 0, y: 0 };
+	} else if (key === "cc3300") {
+		return { image: images.portalRed, x: 0, y: 0 };
+	} else if (key === "0066cc") {
+		return { image: images.portalBlue, x: 0, y: 0 };
+	} else if (floorTiles.hasOwnProperty(key)) {
+		return { image: images.tile, x: floorTiles[key].x, y: floorTiles[key].y };
 	} else {
-		let ratio = previewCanvas.height / previewCanvas.width;
-		newWidth = thumbnailSize;
-		newHeight = thumbnailSize * ratio;
+		return null;
 	}
-
-	newWidth = Math.floor(newWidth);
-	newHeight = Math.floor(newHeight);
-
-	// Create the thumbnail canvas
-	const thumbnailCanvas = new MapCanvas(0,0);
-	thumbnailCanvas.image = previewCanvas.image.clone();
-	thumbnailCanvas.image.resize({w: newWidth, h: newHeight});
-
-	return thumbnailCanvas;
-};
-
-function mapURLToArray(mapURL){
-	return new Promise((resolve, reject) => {
-		let mapPNGLink = mapURL;
-		PNGImage.readImage(mapPNGLink, (err, image) => {
-			if(err) return reject(err);
-
-			let array = mapImageToArray(image);
-
-			if(!array) return reject("Couldn't resolve map data.");
-
-			resolve([array, image]);
-		});
-	});
-}
-
-function mapURLToJSON(mapURL){
-	return new Promise((resolve, reject) => {
-		let mapJSONLink = mapURL;
-		fetch(mapJSONLink).then(a => a.json()).then(resolve).catch(reject);
-	})
-}
-
-function mapImageToArray(image) {
-	if(!image) return false;
-	let width = image.getWidth();
-	let height = image.getHeight();
-
-	let shape = [width, height].map(n => Math.max(Math.min(256, n), 1));
-
-	let buffer = zeros(shape, "array");
-
-	for (let y = 0; y < height; y++) {
-		for (let x = 0; x < width; x++) {
-			let tileType = SETTINGS.TILE_COLORS.findIndex(a => {
-				let tileRGB = Utils.hexToRGB(image.getColor(x, y));
-				return a.red === tileRGB[0] && a.green === tileRGB[1] && a.blue === tileRGB[2];
-			});
-			if(tileType === -1) {
-				tileType = SETTINGS.TILE_IDS.BACKGROUND;
-			}
-
-			buffer.set(x, y, tileType);
-		}
-	}
-
-	return buffer;
-}
-
-function fillStates(canvas, mapJSON, textureName="VANILLA"){
-	if(mapJSON.fields) Object.keys(mapJSON.fields).forEach(key => {
-		let position = key.split(",");
-		position = {
-			x: position[0],
-			y: position[1]
-		};
-
-		let defaultState = mapJSON.fields[key].defaultState === "on" ? "green" : mapJSON.fields[key].defaultState;
-		let gateCoords = SETTINGS.TILE_COORDINATES[defaultState.toUpperCase() + "GATE"];
-
-		if(gateCoords){
-			canvas.drawImage(
-				TILES[textureName].GENERAL,
-				gateCoords.x * SETTINGS.TILE_SIZE, gateCoords.y * SETTINGS.TILE_SIZE,
-				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-				position.x * SETTINGS.TILE_SIZE, position.y * SETTINGS.TILE_SIZE,
-				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-				'G'
-			);
-		}
-	});
-
-	if(mapJSON.portals) Object.keys(mapJSON.portals).forEach(key => {
-		let position = key.split(",");
-		position = {
-			x: position[0],
-			y: position[1]
-		};
-
-		// draw deactivated portal on portals with no destination
-		if(!mapJSON.portals[key].destination) {
-			canvas.drawImage(
-				TILES[textureName].PORTALS,
-				160, 0,
-				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE,
-				position.x * SETTINGS.TILE_SIZE, position.y * SETTINGS.TILE_SIZE,
-				SETTINGS.TILE_SIZE, SETTINGS.TILE_SIZE
-			);
-		}
-	});
-
-	if(Array.isArray(mapJSON.marsballs)) mapJSON.marsballs.forEach(marsball => {
-		canvas.drawImage(
-			TILES[textureName].GENERAL,
-			480, 360,
-			SETTINGS.TILE_SIZE * 2, SETTINGS.TILE_SIZE * 2,
-			(marsball.x * SETTINGS.TILE_SIZE) - (SETTINGS.TILE_SIZE / 2),
-			(marsball.y * SETTINGS.TILE_SIZE) - (SETTINGS.TILE_SIZE / 2),
-			SETTINGS.TILE_SIZE * 2, SETTINGS.TILE_SIZE * 2
-		);
-	});
 }
 
 function wallSolidsAt(wallMap, col, row) {
@@ -334,7 +170,7 @@ function wallSolidsAt(wallMap, col, row) {
 	return wallMap[row][col];
 }
 
-function drawWallTile(canvas, wallMap, col, row, textureName="VANILLA") {
+function drawWallTile(canvas, wallMap, col, row, images) {
 	const solids = wallMap[row][col];
 	if (!solids) return;
 	for (let q = 0; q < 4; q++) {
@@ -362,65 +198,223 @@ function drawWallTile(canvas, wallMap, col, row, textureName="VANILLA") {
 			solidStart = (startDirection - ccwSteps + 12) % 8;
 		}
 		const key = `${q}${solidStart}${solidEnd}${hasChip ? "d" : ""}`;
-		const coords = SETTINGS.QUADRANT_COORDS[key] || [5.5, 5.5];
-		let destX = col * SETTINGS.TILE_SIZE;
-		let destY = row * SETTINGS.TILE_SIZE;
-		if (q === 0) destX += SETTINGS.QUADRANT_SIZE;
-		else if (q === 1) { destX += SETTINGS.QUADRANT_SIZE; destY += SETTINGS.QUADRANT_SIZE; }
-		else if (q === 2) destY += SETTINGS.QUADRANT_SIZE;
+		const coords = quadrantCoords[key] || [5.5, 5.5];
+		let destX = col * config.tileSize;
+		let destY = row * config.tileSize;
+		if (q === 0) destX += config.quadSize;
+		else if (q === 1) { destX += config.quadSize; destY += config.quadSize; }
+		else if (q === 2) destY += config.quadSize;
 		const srcX = coords[0] * 40;
 		const srcY = coords[1] * 40;
-		canvas.drawImage(TILES[textureName].GENERAL, srcX, srcY, SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE,
-					  destX, destY, SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE, 'W');
-	}
-}
-
-function drawWall(canvas, x, y, type, neighbors, textureName="VANILLA") {
-	if(type === "WALL") type = "FULL";
-
-	for (let i = 0; i < 4; i++) {
-		// console.log(SETTINGS.WALL_DRAW_ORDER[i], SETTINGS.WALL_COORDINATES.FULL[i]);
 		canvas.drawImage(
-			TILES[textureName].GENERAL,
-			SETTINGS.WALL_COORDINATES[type][i][0],
-			SETTINGS.WALL_COORDINATES[type][i][1],
-			SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE,
-			(x * SETTINGS.TILE_SIZE) + SETTINGS.WALL_DRAW_ORDER[i][0],
-			(y * SETTINGS.TILE_SIZE) + SETTINGS.WALL_DRAW_ORDER[i][1],
-			SETTINGS.QUADRANT_SIZE, SETTINGS.QUADRANT_SIZE,
+			images.tile,
+			srcX,
+			srcY,
+			config.quadSize,
+			config.quadSize,
+			destX,
+			destY,
+			config.quadSize,
+			config.quadSize,
 			'W'
 		);
 	}
+}
 
-	Object.keys(neighbors).forEach(key => {
-		if(neighbors[key]) {
+function buildWallMap(image) {
+	const width = image.bitmap.width;
+	const height = image.bitmap.height;
+	const { data } = image.bitmap;
+	const wallMap = [];
+
+	for (let y = 0; y < height; y++) {
+		wallMap[y] = [];
+		for (let x = 0; x < width; x++) {
+			const idx = (y * width + x) * 4;
+			const r = data[idx];
+			const g = data[idx + 1];
+			const b = data[idx + 2];
+			const a = data[idx + 3];
+			const hex = rgbToHex(r, g, b).toLowerCase();
+			wallMap[y][x] = (a === 0) ? 0 : (wallTypes.hasOwnProperty(hex) ? wallTypes[hex].wallSolids : 0);
+		}
+	}
+
+	return wallMap;
+}
+
+function drawDefaultFloor(canvas, defaultFloorTile, width, height) {
+	if (!defaultFloorTile) return;
+	const sx = defaultFloorTile.x * config.tileSize;
+	const sy = defaultFloorTile.y * config.tileSize;
+	for (let y = 0; y < height; y++) {
+		for (let x = 0; x < width; x++) {
 			canvas.drawImage(
-				TILES[textureName].GENERAL,
-				SETTINGS.WALL_CONNECTIONS[type][key][0],
-				SETTINGS.WALL_CONNECTIONS[type][key][1],
-				SETTINGS.WALL_CONNECTIONS[type][key][2],
-				SETTINGS.WALL_CONNECTIONS[type][key][3],
-				(x * SETTINGS.TILE_SIZE) + SETTINGS.WALL_CONNECTION_POSITIONS[key][0],
-				(y * SETTINGS.TILE_SIZE) + SETTINGS.WALL_CONNECTION_POSITIONS[key][1],
-				SETTINGS.WALL_CONNECTIONS[type][key][2],
-				SETTINGS.WALL_CONNECTIONS[type][key][3],
-				'W'
+				defaultFloorTile.image,
+				sx, sy,
+				config.tileSize, config.tileSize,
+				x * config.tileSize, y * config.tileSize,
+				config.tileSize, config.tileSize,
+				'F'
+			);
+		}
+	}
+}
+
+function drawTiles(canvas, image, mapJSONData, images) {
+	const width = image.bitmap.width;
+	const height = image.bitmap.height;
+	const { data } = image.bitmap;
+
+	for (let y = 0; y < height; y++) {
+		for (let x = 0; x < width; x++) {
+			const idx = (y * width + x) * 4;
+			const r = data[idx];
+			const g = data[idx + 1];
+			const b = data[idx + 2];
+			const a = data[idx + 3];
+			if (a === 0) continue;
+			const hex = rgbToHex(r, g, b).toLowerCase();
+			if (wallTypes.hasOwnProperty(hex)) continue;
+			let tileSource = null;
+			if (hex === "007500") {
+				const fieldKey = `${x},${y}`;
+				let state = "empty";
+				if (mapJSONData && mapJSONData.fields && mapJSONData.fields[fieldKey]) {
+					let ds = mapJSONData.fields[fieldKey].defaultState;
+					if (ds === "on") {
+						state = "green";
+					} else if (ds === "off") {
+						state = "empty";
+					} else {
+						state = ds;
+					}
+				}
+				const tileKey = "007500_" + state;
+				tileSource = getFloorTile(tileKey, images);
+			} else {
+				tileSource = getFloorTile(hex, images);
+			}
+			if (tileSource) {
+				const sx = tileSource.x * config.tileSize;
+				const sy = tileSource.y * config.tileSize;
+				canvas.drawImage(
+					tileSource.image,
+					sx, sy,
+					config.tileSize, config.tileSize,
+					x * config.tileSize, y * config.tileSize,
+					config.tileSize, config.tileSize,
+					'T'
+				);
+			} else {
+				canvas.drawImage(
+					blackTile,
+					0, 0,
+					config.tileSize, config.tileSize,
+					x * config.tileSize, y * config.tileSize,
+					config.tileSize, config.tileSize,
+					'B'
+				);
+			}
+		}
+	}
+}
+
+function drawExitPortals(canvas, mapJSONData, images) {
+	if (!mapJSONData || !mapJSONData.portals) return;
+	Object.entries(mapJSONData.portals).forEach(([key, portalData]) => {
+		if (!portalData.hasOwnProperty("destination")) {
+			const [x, y] = key.split(",").map(Number);
+			const sx = 4 * config.tileSize;
+			const sy = 0 * config.tileSize;
+			canvas.drawImage(
+				images.portal,
+				sx, sy,
+				config.tileSize, config.tileSize,
+				x * config.tileSize, y * config.tileSize,
+				config.tileSize, config.tileSize,
+				'P'
 			);
 		}
 	});
 }
 
-function waitForLoadedAssets() {
-	return new Promise((resolve, reject) => {
-		let waitInterval;
-		waitInterval = setInterval(() => {
-			if(assetsLoaded) {
-				resolve();
-				clearInterval(waitInterval);
+function drawWalls(canvas, wallMap, images) {
+	for (let y = 0; y < wallMap.length; y++) {
+		for (let x = 0; x < wallMap[0].length; x++) {
+			if (wallMap[y][x] !== 0) {
+				drawWallTile(canvas, wallMap, x, y, images);
 			}
-		}, 500);
+		}
+	}
+}
+
+function drawMarsballs(canvas, mapJSONData, images) {
+	if (!mapJSONData || !mapJSONData.marsballs) return;
+	mapJSONData.marsballs.forEach(mars => {
+		const destX = mars.x * config.tileSize - config.tileSize/2;
+		const destY = mars.y * config.tileSize - config.tileSize/2;
+		canvas.drawImage(
+			images.tile,
+			12 * config.tileSize, 9 * config.tileSize, 2 * config.tileSize, 2 * config.tileSize,
+			destX, destY, 2 * config.tileSize, 2 * config.tileSize,
+			'M'
+		);
 	});
 }
+
+const generate = (layout, logic, textureName=SITE_SETTINGS.DEFAULT_PREVIEW_TEXTURE_PACK) => {
+	return new Promise(async (resolve, reject) => {
+		try {
+			const images = await ensureTextureImages(textureName);
+			const mapImage = await decodeLayoutToImage(layout);
+			if(!mapImage) return reject("Invalid map");
+
+			const mapJSON = await loadMapLogic(logic);
+			if(!mapJSON) return reject("Invalid map json");
+
+			const wallMap = buildWallMap(mapImage);
+			const canvas = new MapCanvas(
+				mapImage.bitmap.width * config.tileSize,
+				mapImage.bitmap.height * config.tileSize
+			);
+
+			const defaultFloorTile = getFloorTile("d4d4d4", images);
+			drawDefaultFloor(canvas, defaultFloorTile, mapImage.bitmap.width, mapImage.bitmap.height);
+			drawTiles(canvas, mapImage, mapJSON, images);
+			drawExitPortals(canvas, mapJSON, images);
+			drawWalls(canvas, wallMap, images);
+			drawMarsballs(canvas, mapJSON, images);
+
+			resolve(canvas);
+		} catch (err) {
+			reject(err);
+		}
+	});
+};
+
+const generateThumbnail = async (previewCanvas, { thumbnailSize=400 }={}) => {
+	let newWidth;
+	let newHeight;
+	if(previewCanvas.width < previewCanvas.height) {
+		let ratio = previewCanvas.width / previewCanvas.height;
+		newWidth = thumbnailSize * ratio;
+		newHeight = thumbnailSize;
+	} else {
+		let ratio = previewCanvas.height / previewCanvas.width;
+		newWidth = thumbnailSize;
+		newHeight = thumbnailSize * ratio;
+	}
+
+	newWidth = Math.floor(newWidth);
+	newHeight = Math.floor(newHeight);
+
+	const thumbnailCanvas = new MapCanvas(0,0);
+	thumbnailCanvas.image = previewCanvas.image.clone();
+	thumbnailCanvas.image.resize({w: newWidth, h: newHeight});
+
+	return thumbnailCanvas;
+};
 
 module.exports = {
 	generate,

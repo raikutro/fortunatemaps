@@ -47,6 +47,7 @@ let User = null;
 let ServerInfo = null;
 let serverInfoDoc = null;
 let chunkModel = null;
+let chunkMapNames = [];
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
@@ -249,7 +250,8 @@ app.get('/preview/:mapid.jpeg', async (req, res) => {
 
 		let previewCanvas = await PreviewGenerator.generate(
 			sourcePNG,
-			sourceJSON
+			sourceJSON,
+			SETTINGS.DEFAULT_PREVIEW_TEXTURE_PACK
 		).catch(err => {
 			console.error("PREVIEW GENERATION ERROR:", err);
 			res.json(SETTINGS.ERRORS.PREVIEW_GENERATION(err));
@@ -961,6 +963,26 @@ async function incrementChunkUsage(userId, amount) {
 	}
 }
 
+function loadChunkMapNames() {
+	if(chunkMapNames.length) return chunkMapNames;
+	const mapNamesPath = path.join(__dirname, 'assets', 'map_names.txt');
+	try {
+		const raw = fs.readFileSync(mapNamesPath, 'utf-8');
+		chunkMapNames = raw.split(/\r?\n/).map(n => n.trim()).filter(Boolean);
+	} catch (err) {
+		console.error("Failed to load CHUNK map names", err);
+		chunkMapNames = [];
+	}
+	return chunkMapNames;
+}
+
+function getRandomChunkMapName() {
+	const names = loadChunkMapNames();
+	if(!names.length) return null;
+	const choice = names[Math.floor(Math.random() * names.length)];
+	return choice ? choice.charAt(0).toUpperCase() + choice.slice(1) : null;
+}
+
 async function generateChunkMaps(userId) {
 	if(!chunkModel) {
 		await loadChunkModelOnce();
@@ -968,20 +990,23 @@ async function generateChunkMaps(userId) {
 	if(!chunkModel) throw new Error("No CHUNK model loaded.");
 
 	const maps = [];
+	const mapAuthor = 'CHUNKv1';
 
 	for(let i = 0; i < CHUNK_CONFIG.MAPS_PER_REQUEST; i++) {
+		const mapName = getRandomChunkMapName() || `CHUNK v1 Map ${i + 1}`;
 		const mashResult = await Masher.mashMaps(chunkModel, {
 			returnAssets: true,
 			preview: false,
-			mapName: `CHUNK v1 Map`,
-			author: `CHUNK`
+			mapName,
+			author: mapAuthor
 		});
 
 		if(!mashResult) throw new Error("Failed to generate map");
 
 		maps.push({
 			png: mashResult.pngBase64,
-			json: Buffer.from(JSON.stringify(mashResult.mapJSON)).toString('base64')
+			json: Buffer.from(JSON.stringify(mashResult.mapJSON)).toString('base64'),
+			name: mapName
 		});
 	}
 
