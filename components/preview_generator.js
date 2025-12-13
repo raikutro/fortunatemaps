@@ -147,17 +147,17 @@ function rgbToHex(r, g, b) {
 
 function getFloorTile(key, images) {
 	if (key === "ffff00") {
-		return { image: images.speedpad, y: 0, x: 0 };
+		return { image: images.speedpad, x: 0, y: 0 };
 	} else if (key === "ff7373") {
-		return { image: images.speedpadRed, y: 0, x: 0 };
+		return { image: images.speedpadRed, x: 0, y: 0 };
 	} else if (key === "7373ff") {
-		return { image: images.speedpadBlue, y: 0, x: 0 };
+		return { image: images.speedpadBlue, x: 0, y: 0 };
 	} else if (key === "cac000") {
-		return { image: images.portal, x: 0, y: 0 };
+		return { image: images.portal, x: 3, y: 0 };
 	} else if (key === "cc3300") {
-		return { image: images.portalRed, x: 0, y: 0 };
+		return { image: images.portalRed, x: 2, y: 0 };
 	} else if (key === "0066cc") {
-		return { image: images.portalBlue, x: 0, y: 0 };
+		return { image: images.portalBlue, x: 1, y: 0 };
 	} else if (floorTiles.hasOwnProperty(key)) {
 		return { image: images.tile, x: floorTiles[key].x, y: floorTiles[key].y };
 	} else {
