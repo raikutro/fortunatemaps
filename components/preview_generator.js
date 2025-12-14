@@ -147,19 +147,19 @@ function rgbToHex(r, g, b) {
 
 function getFloorTile(key, images) {
 	if (key === "ffff00") {
-		return { image: images.speedpad, y: 0, x: 0 };
+		return { image: images.speedpad, cache: 'SP', x: 0, y: 0 };
 	} else if (key === "ff7373") {
-		return { image: images.speedpadRed, y: 0, x: 0 };
+		return { image: images.speedpadRed, cache: 'SPR', x: 0, y: 0 };
 	} else if (key === "7373ff") {
-		return { image: images.speedpadBlue, y: 0, x: 0 };
+		return { image: images.speedpadBlue, cache: 'SPB', x: 0, y: 0 };
 	} else if (key === "cac000") {
-		return { image: images.portal, x: 0, y: 0 };
+		return { image: images.portal, cache: 'PL', x: 0, y: 0 };
 	} else if (key === "cc3300") {
-		return { image: images.portalRed, x: 0, y: 0 };
+		return { image: images.portalRed, cache: 'PLR', x: 0, y: 0 };
 	} else if (key === "0066cc") {
-		return { image: images.portalBlue, x: 0, y: 0 };
+		return { image: images.portalBlue, cache: 'PLB', x: 0, y: 0 };
 	} else if (floorTiles.hasOwnProperty(key)) {
-		return { image: images.tile, x: floorTiles[key].x, y: floorTiles[key].y };
+		return { image: images.tile, cache: 'T', x: floorTiles[key].x, y: floorTiles[key].y };
 	} else {
 		return null;
 	}
@@ -304,7 +304,7 @@ function drawTiles(canvas, image, mapJSONData, images) {
 					config.tileSize, config.tileSize,
 					x * config.tileSize, y * config.tileSize,
 					config.tileSize, config.tileSize,
-					'T'
+					tileSource.cache
 				);
 			} else {
 				canvas.drawImage(
