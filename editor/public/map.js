@@ -2110,7 +2110,7 @@ $(function() {
 						setTimeout(function() {$('#switchTimer').focus();}, 100);
 						$( "#switchSubmit" ).off('click').click(function() {
 							timer = parseFloat($('#switchTimer').val());
-							if(!timer) return;
+							if (isNaN(timer)) return;
 
 							var change = new UndoStep([
 								new TileState(tiles[x][y], {timer:timer})
