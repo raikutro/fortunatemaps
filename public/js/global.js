@@ -83,7 +83,7 @@ function toggleLike(mapID, btn) {
 			'x-csrf-token': getCsrfToken()
 		},
 		body: JSON.stringify({
-			mapID
+			mapID: Number(mapID)
 		})
 	})
 		.then(r => {

@@ -2,7 +2,8 @@
 	<a class="navbar-brand" href="/">
 		<img src="/assets/logo.png" width="32" height="32" alt="" loading="lazy">
 	</a>
-	<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+	<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault"
+		aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
 		<span class="navbar-toggler-icon"></span>
 	</button>
 
@@ -14,49 +15,42 @@
 			<li class="nav-item">
 				<a class="nav-link in-site" href="/browse">Browse</a>
 			</li>
-				<li class="nav-item">
-					<a class="nav-link in-site" href="/editor">Editor</a>
-				</li>
-				<li class="nav-item" <%- profileID ? "" : "style='display:none'" %>>
-					<a class="nav-link in-site" href="/chunkv1">CHUNKv1</a>
-				</li>
-				<li class="nav-item" <%- profileID ? "" : "style='display:none'" %>>
-					<a class="nav-link in-site" href="/profile/<%= profileID %>">Profile</a>
-				</li>
-			<!-- <li class="nav-item">
-				<a class="nav-link" href="https://tagpro.koalabeast.com/maps" target="_blank">Rotation</a>
-			</li> -->
-			<%# <li class="nav-item ml-auto">
-				<a class="nav-link" href="https://discord.gg/JBy3BtN" target="_blank">Discord</a>
-			</li> %>
+			<li class="nav-item">
+				<a class="nav-link in-site" href="/editor">Editor</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link in-site" href="/chunkv1">CHUNKv1</a>
+			</li>
+			<li class="nav-item" <%- profileID ? "" : "style='display:none'" %>>
+				<a class="nav-link in-site" href="/profile/<%= profileID %>">Profile</a>
+			</li>
 			<li class="nav-item">
 				<a class="nav-link" href="https://github.com/raikutro/fortunatemaps" target="_blank">GitHub</a>
 			</li>
 		</ul>
 		<form class="form-inline my-2 my-lg-0" action="javascript:void(0)" id="searchForm">
 			<div class="input-group">
-				<input class="form-control" type="text" id="searchText" placeholder="Map Name #tags @authorUsername @@authorText" aria-label="Search">
+				<input class="form-control" type="text" id="searchText"
+					placeholder="Map Name #tags @authorUsername @@authorText" aria-label="Search">
 				<div class="input-group-append">
 					<button class="btn btn-secondary" type="submit">Search</button>
 				</div>
 			</div>
 		</form>
 		<div class="account-buttons">
-			<%-
-				profileID ?
-					`<a class="settings-button" href="/settings"><i class="fas fa-cog"></i></a>
-					<a class="sign-out-button" href="/sign_out"><i class="fas fa-sign-out-alt"></i></a>` :
-					`<a class="sign-in-link" href="/sign_in">
-						<div class="sign-in-button">
-							<img src="/assets/logos/ctfauth.png"/> <span>Sign in with CTFAuth</span>
-						</div>
-					</a>`
-			%>
+			<%- profileID ? `<a class="settings-button" href="/settings"><i class="fas fa-cog"></i></a>
+				<a class="sign-out-button" href="/sign_out"><i class="fas fa-sign-out-alt"></i></a>` :
+				`<a class="sign-in-link" href="/sign_in">
+					<div class="sign-in-button">
+						<img src="/assets/logos/ctfauth.png" /> <span>Sign in with CTFAuth</span>
+					</div>
+				</a>`
+				%>
 		</div>
 	</div>
 </nav>
 
 <script>
 	const navLink = document.querySelector(`.nav-link.in-site[href*="${location.pathname.split("/")[1] || "/"}"]`);
-	if(navLink) navLink.parentElement.classList.add("active");
+	if (navLink) navLink.parentElement.classList.add("active");
 </script>

@@ -33,6 +33,8 @@ console.log("Loaded tagproedit.com editor");
 
 const PreviewGenerator = require('./components/preview_generator');
 const Masher = require('./components/masher');
+const AutoTagger = require('./components/auto_tagger');
+const HierarchicalHash = require('./components/hierarchical_hash');
 
 // Routes
 const AccountRoutes = require('./routes/account_routes');
@@ -265,12 +267,10 @@ app.get('/editor', LoginMiddleware, async (req, res) => {
 });
 
 app.get('/chunkv1', LoginMiddleware, async (req, res) => {
-	if (!req.profileID) return res.redirect("/");
-
 	res.render('chunk', {
 		...(await Utils.templateEngineData(req)),
 		chunkData: {
-			remaining: getChunkRemaining(req.profileID),
+			remaining: req.profileID ? getChunkRemaining(req.profileID) : 0,
 			dailyLimit: CHUNK_CONFIG.DAILY_GENERATION_LIMIT,
 			perRequest: CHUNK_CONFIG.MAPS_PER_REQUEST
 		}
@@ -435,7 +435,66 @@ apiRouter.get('/browse', LoginMiddleware, async (req, res) => {
 
 	// Title Search
 	if (query.title) {
-		dbQuery.name = new RegExp(Utils.cleanQuery(query.title), 'i');
+		let hashSearch = false;
+		const cleanTitle = query.title.trim();
+
+		// Check for Hex format
+		if (/^[A-Fa-f0-9+]+$/.test(cleanTitle) && cleanTitle.length > 3) {
+			try {
+				const escapedQuery = cleanTitle.replace(/\+/g, '\\+');
+				dbQuery.$or = [
+					{ name: new RegExp(Utils.cleanQuery(cleanTitle), 'i') },
+					{ hierarchicalHash: new RegExp('^' + escapedQuery) }
+				];
+				hashSearch = true;
+			} catch (e) {}
+		}
+		// Check for Base36 format (A-Z0-9+)
+		else if (/^[A-Z0-9+]+$/.test(cleanTitle) && cleanTitle.length > 3) {
+			try {
+				// Convert each part from Base36 to Hex
+				const parts = cleanTitle.split('+');
+				const hexParts = parts.map(p => {
+					if (!p) return '';
+					let hex = BigInt(parseInt(p, 36)).toString(16);
+					
+					// Function to parse BigInt from base 36 string
+					const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+					let val = 0n;
+					for (let char of p) {
+						const d = alphabet.indexOf(char);
+						if (d === -1) throw new Error("Invalid char");
+						val = val * 36n + BigInt(d);
+					}
+					return val.toString(16);
+				});
+
+				// Pad parts to their expected lengths (L1=4, L2=16, L3=64)
+				const lengths = [4, 16, 64];
+				const paddedHexParts = hexParts.map((h, i) => {
+					if (i < lengths.length) {
+						return h.padStart(lengths[i], '0');
+					}
+					return h;
+				});
+
+				const hexQuery = paddedHexParts.join('+');
+				const escapedQuery = hexQuery.replace(/\+/g, '\\+');
+
+				dbQuery.$or = [
+					{ name: new RegExp(Utils.cleanQuery(cleanTitle), 'i') },
+					{ hierarchicalHash: new RegExp('^' + escapedQuery) }
+				];
+				hashSearch = true;
+
+			} catch (e) {
+				// Base36 conversion failed
+			}
+		}
+
+		if (!hashSearch) {
+			dbQuery.name = new RegExp(Utils.cleanQuery(query.title), 'i');
+		}
 	}
 
 	// Author Search
@@ -537,7 +596,6 @@ apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 		isAdmin
 	});
 });
-
 
 // UM Map Page
 apiRouter.get('/show/:mapid', LoginMiddleware, async (req, res) => {
@@ -877,6 +935,18 @@ apiRouter.post('/upload_map',
 				// Compress Map Logic for Smaller Storage
 				const mapLogicCompressedBuffer = await Utils.Compression.compressMapLogic(mapJSON);
 
+				// Auto-Generate Tags
+				const generatedTags = await AutoTagger.generateTags(mapLayout, mapJSON);
+
+				// Generate Hierarchical Hash
+				const hierarchicalHashArray = await HierarchicalHash.get(mapLayout, SETTINGS.HIERARCHICAL_HASH.QUANTIZATION);
+				
+				const l1 = hierarchicalHashArray.slice(0, 4).map(v => v.toString(16)).join('');
+				const l2 = hierarchicalHashArray.slice(4, 20).map(v => v.toString(16)).join('');
+				const l3 = hierarchicalHashArray.slice(20, 84).map(v => v.toString(16)).join('');
+
+				const hierarchicalHash = `${l1}+${l2}+${l3}`;
+
 				// Save the MapEntry to MongoDB
 				await MapEntry.create({
 					name: mapName,
@@ -884,14 +954,15 @@ apiRouter.post('/upload_map',
 					authorName: authorName,
 					description: "No Description",
 					dateUploaded: new Date(),
-					tags: [],
+					tags: generatedTags,
 					hiddenTags: [],
 					mapID: newMapID,
 					json: mapLogicCompressedBuffer,
 					png: mapLayoutCompressedBuffer,
 					versionSource: versionSource,
 					isRemix: isRemix,
-					unlisted: req.body.unlisted
+					unlisted: req.body.unlisted,
+					hierarchicalHash: hierarchicalHash
 				});
 
 				// Send the new map ID to the client.
@@ -1041,6 +1112,68 @@ apiRouter.post('/like', LoginMiddleware, requireCsrf, async (req, res) => {
 			liked,
 			likes: mapEntry.likes.length
 		});
+	}
+});
+
+apiRouter.post('/delete_map', LoginMiddleware, requireCsrf, async (req, res) => {
+	if (Utils.hasCorrectParameters(req.body, {
+		mapID: "number"
+	}) && req.profileID) {
+		let mapEntry = await MapEntry.findOne({
+			mapID: req.body.mapID
+		});
+
+		if (!mapEntry) return res.status(404).json(SETTINGS.ERRORS.NOT_FOUND());
+
+		// Check if the user is an author or admin
+		if (!mapEntry.authorIDs.includes(req.profileID) && !req.isAdmin) {
+			return res.status(403).json({ err: "You do not have permission to delete this map." });
+		}
+
+		await MapEntry.deleteOne({ mapID: req.body.mapID });
+
+		res.json({
+			success: true
+		});
+	} else {
+		res.status(400).json({ err: "Invalid Parameters" });
+	}
+});
+
+apiRouter.post('/calculate_hash', LoginMiddleware, requireCsrf, async (req, res) => {
+	if (Utils.hasCorrectParameters(req.body, {
+		mapID: "number"
+	}) && req.profileID) {
+		let mapEntry = await MapEntry.findOne({
+			mapID: req.body.mapID
+		});
+
+		if (!mapEntry) return res.status(404).json(SETTINGS.ERRORS.NOT_FOUND());
+
+		// Check if the user is an author or admin
+		if (!mapEntry.authorIDs.includes(req.profileID) && !req.isAdmin) {
+			return res.status(403).json({ err: "You do not have permission to calculate hash for this map." });
+		}
+
+		if (mapEntry.hierarchicalHash) {
+			return res.status(400).json({ err: "Map already has a hash." });
+		}
+
+		// Calculate Hash
+		const hierarchicalHashArray = await HierarchicalHash.get(mapEntry.png, SETTINGS.HIERARCHICAL_HASH.QUANTIZATION);
+		
+		const l1 = hierarchicalHashArray.slice(0, 4).map(v => v.toString(16)).join('');
+		const l2 = hierarchicalHashArray.slice(4, 20).map(v => v.toString(16)).join('');
+		const l3 = hierarchicalHashArray.slice(20, 84).map(v => v.toString(16)).join('');
+
+		mapEntry.hierarchicalHash = `${l1}+${l2}+${l3}`;
+		await mapEntry.save();
+
+		res.json({
+			success: true
+		});
+	} else {
+		res.status(400).json({ err: "Invalid Parameters" });
 	}
 });
 

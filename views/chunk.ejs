@@ -1,31 +1,43 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<%- include('head') %>
+
+<head>
+	<%- include('head') %>
 
 		<title>CHUNK v1 Generator</title>
-	</head>
-	<body>
-		<%- include('nav'); %>
+</head>
+
+<body>
+	<%- include('nav'); %>
 
 		<main role="main" class="container">
 			<div class="mt-4 mb-3">
 				<h1>CHUNK v1</h1>
 				<p class="lead">
-					Chunk-based Heuristic Unification for Natural Kartography (CHUNK) remixes existing maps by extracting structural chunks from a curated pool and reassembling them.
+					Chunk-based Heuristic Unification for Natural Kartography (CHUNK) remixes existing maps by
+					extracting structural chunks from a curated pool and reassembling them.
 					Generate maps and upload them directly to FortunateMaps.
 				</p>
 			</div>
 
-			<div class="alert alert-info" id="chunkStatus">
-				<div><b>Daily limit:</b> <span id="chunkDailyLimit"><%- chunkData.dailyLimit %></span></div>
-				<div><b>Remaining today:</b> <span id="chunkRemaining"><%- chunkData.remaining %></span></div>
-				<div class="small text-muted">Each request uses <%- chunkData.perRequest %> generation(s) from your limit.</div>
-			</div>
+			<% if(profileID) { %>
+				<div class="alert alert-info" id="chunkStatus">
+					<div><b>Daily limit:</b> <span id="chunkDailyLimit"><%- chunkData.dailyLimit %></span></div>
+					<div><b>Remaining today:</b> <span id="chunkRemaining"><%- chunkData.remaining %></span></div>
+					<div class="small text-muted">Each request uses <%- chunkData.perRequest %> generation(s) from your
+						limit.</div>
+				</div>
+			<% } else { %>
+				<div class="alert alert-warning text-center">
+					You must be <a href="/sign_in">logged in</a> to use the CHUNKv1 generator.
+				</div>
+			<% } %>
 
-			<button class="btn btn-primary w-100 mb-3" id="generateChunkBtn">
-				Generate <%- chunkData.perRequest %> Maps
-			</button>
+			<% if(profileID) { %>
+				<button class="btn btn-primary w-100 mb-3" id="generateChunkBtn">
+					Generate <%- chunkData.perRequest %> Maps
+				</button>
+			<% } %>
 
 			<div id="chunkMessages" class="mb-3"></div>
 
@@ -41,5 +53,6 @@
 		<script type="text/javascript">window.CHUNK_DATA = <%- JSON.stringify(chunkData) %></script>
 		<%- include('bodyscripts') %>
 		<script type="text/javascript" src="/js/chunk.js"></script>
-	</body>
+</body>
+
 </html>

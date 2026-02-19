@@ -13,34 +13,35 @@
 	<%- include('nav'); %>
 
 		<main role="main" class="container">
-			<hr>
-			<p class="text-center" style="font-size: 1.25rem;">
-				<% if (announcementHTML) { %>
+			<% if (announcementHTML) { %>
+				<hr>
+				<p class="text-center" style="font-size: 1.25rem;">
 					<%- announcementHTML %>
-						<% } else { %>
-							<span></span>
-							<!-- <span class="badge bg-primary text-white" style="font-size: 2rem;">New Update!</span><br><a href="/notes/newupdate_12NOV2023.html" style="font-size: 2rem;" target="_blank">Switching Server Providers</a> -->
-							<% } %>
-			</p>
-			<hr>
-			<div class="row mb-3">
-				<div class="col-12">
-					<ul class="nav nav-tabs justify-content-center">
-						<li class="nav-item">
-							<a class="nav-link <%= sortMode === 'week' ? 'active' : '' %>" href="/?sort=week">Most
-								Upvoted (Week)</a>
-						</li>
-						<li class="nav-item">
-							<a class="nav-link <%= sortMode === 'new' ? 'active' : '' %>" href="/?sort=new">Newest</a>
-						</li>
-					</ul>
-				</div>
-			</div>
-			<div class="map-container">
-				<%- include('maplister'); %>
-			</div>
+				</p>
+				<hr>
+				<% } else { %>
+					<span></span>
+					<% } %>
+						<div class="row mb-3">
+							<div class="col-12">
+								<ul class="nav nav-tabs justify-content-center">
+									<li class="nav-item">
+										<a class="nav-link <%= sortMode === 'week' ? 'active' : '' %>"
+											href="/?sort=week">Most
+											Upvoted (Week)</a>
+									</li>
+									<li class="nav-item">
+										<a class="nav-link <%= sortMode === 'new' ? 'active' : '' %>"
+											href="/?sort=new">Newest</a>
+									</li>
+								</ul>
+							</div>
+						</div>
+						<div class="map-container">
+							<%- include('maplister'); %>
+						</div>
 
-			<%- include('pagination'); %>
+						<%- include('pagination'); %>
 		</main>
 
 		<footer class="py-3 bg-primary text-light">

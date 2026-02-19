@@ -18,8 +18,9 @@
 			</a>
 			<hr>
 			<div class="btn-group w-100" role="group" aria-label="Basic example">
-				<a type="button" class="btn btn-primary" href="/test/${map.mapID}">Test</a>
-				<a type="button" class="btn btn-primary" href="/preview/${map.mapID}.jpeg">Fullsize Preview</a>
+				<a type="button" class="btn btn-primary" href="/test/${map.mapID}" target="_blank">Test</a>
+				<a type="button" class="btn btn-primary" href="/preview/${map.mapID}.jpeg" target="_blank">Fullsize
+					Preview</a>
 				<button type="button" class="btn btn-outline-danger like-btn" data-mapid="${map.mapID}">
 					<i
 						class="${(map.likes && typeof profileID !== 'undefined' && profileID && map.likes.some(id => id.toString() === profileID.toString())) ? 'fas' : 'far'} fa-heart"></i>

@@ -97,6 +97,44 @@ $("#saveMapSettings").click(() => {
 	});
 });
 
+$("#deleteMapBtn").click(() => {
+	if(confirm("Are you sure you want to delete this map? This action cannot be undone.")) {
+		fetch("/delete_map", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-CSRF-Token": getCsrfToken()
+			},
+			body: JSON.stringify({
+				mapID: window.MAP_DATA.mapID
+			})
+		}).then(a => a.json()).then(json => {
+			if(json.err) return alert("Error: " + json.err);
+			if(!json.success) return alert("Error: Failed");
+
+			window.location.href = "/";
+		});
+	}
+});
+
+$("#calculateHashBtn").click(() => {
+	fetch("/calculate_hash", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"X-CSRF-Token": getCsrfToken()
+		},
+		body: JSON.stringify({
+			mapID: window.MAP_DATA.mapID
+		})
+	}).then(a => a.json()).then(json => {
+		if(json.err) return alert("Error: " + json.err);
+		if(!json.success) return alert("Error: Failed");
+
+		location.reload();
+	});
+});
+
 $("#submitCommentBtn").click(() => {
 	fetch("/comment", {
 		method: "POST",

@@ -37,7 +37,9 @@ const MapEntrySchema = new Schema({
 	// Map Remix Boolean
 	isRemix: {type: Boolean},
 	// If the map should not be shown in queries.
-	unlisted: {type: Boolean}
+	unlisted: {type: Boolean},
+	// Hierarchical Hash for duplicate detection
+	hierarchicalHash: {type: String}
 });
 
 MapEntrySchema.index({ mapID: -1, dateUploaded: -1 });

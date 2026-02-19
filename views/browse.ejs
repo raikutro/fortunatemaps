@@ -21,54 +21,60 @@
         <main role="main" class="container">
             <h1 class="text-center mb-4">Advanced Map Search</h1>
 
-            <form action="/browse" method="GET" class="browse-form">
-                <div class="form-row">
-                    <div class="col-md-4 mb-3">
-                        <label for="titleInput">Map Title</label>
-                        <input type="text" class="form-control" name="title" id="titleInput"
-                            placeholder="Enter map title" value="<%= searchParams.title %>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="authorInput">Author</label>
-                        <input type="text" class="form-control" name="author" id="authorInput"
-                            placeholder="Enter author name" value="<%= searchParams.author %>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="tagsInput">Tags</label>
-                        <input type="text" class="form-control" name="tags" id="tagsInput" placeholder="tag1, tag2"
-                            value="<%= searchParams.tags %>">
-                        <small class="form-text text-muted">Comma separated</small>
-                    </div>
+            <% if(!profileID) { %>
+                <div class="alert alert-warning text-center">
+                    You must be <a href="/sign_in">logged in</a> to like maps.
                 </div>
+                <% } %>
 
-                <div class="form-group">
-                    <label>Tag Search Mode:</label>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="tagMode" id="tagModeAnd" value="and"
-                            <%=(searchParams.tagMode !=='or' ) ? 'checked' : '' %>>
-                        <label class="form-check-label" for="tagModeAnd">Match ALL (AND)</label>
+                    <form action="/browse" method="GET" class="browse-form">
+                        <div class="form-row">
+                            <div class="col-md-4 mb-3">
+                                <label for="titleInput">Map Title</label>
+                                <input type="text" class="form-control" name="title" id="titleInput"
+                                    placeholder="Enter map title" value="<%= searchParams.title %>">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="authorInput">Author</label>
+                                <input type="text" class="form-control" name="author" id="authorInput"
+                                    placeholder="Enter author name" value="<%= searchParams.author %>">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="tagsInput">Tags</label>
+                                <input type="text" class="form-control" name="tags" id="tagsInput"
+                                    placeholder="tag1, tag2" value="<%= searchParams.tags %>">
+                                <small class="form-text text-muted">Comma separated</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tag Search Mode:</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="tagMode" id="tagModeAnd" value="and"
+                                    <%=(searchParams.tagMode !=='or' ) ? 'checked' : '' %>>
+                                <label class="form-check-label" for="tagModeAnd">Match ALL (AND)</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="tagMode" id="tagModeOr" value="or"
+                                    <%=(searchParams.tagMode==='or' ) ? 'checked' : '' %>>
+                                <label class="form-check-label" for="tagModeOr">Match ANY (OR)</label>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary w-100" type="submit">Search</button>
+                    </form>
+
+                    <hr>
+
+                    <div class="map-container">
+                        <% if(maps.length===0) { %>
+                            <div class="text-center text-muted">No maps found matching your criteria.</div>
+                            <% } else { %>
+                                <%- include('maplister'); %>
+                                    <% } %>
                     </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="tagMode" id="tagModeOr" value="or"
-                            <%=(searchParams.tagMode==='or' ) ? 'checked' : '' %>>
-                        <label class="form-check-label" for="tagModeOr">Match ANY (OR)</label>
-                    </div>
-                </div>
 
-                <button class="btn btn-primary w-100" type="submit">Search</button>
-            </form>
-
-            <hr>
-
-            <div class="map-container">
-                <% if(maps.length===0) { %>
-                    <div class="text-center text-muted">No maps found matching your criteria.</div>
-                    <% } else { %>
-                        <%- include('maplister'); %>
-                            <% } %>
-            </div>
-
-            <%- include('pagination'); %>
+                    <%- include('pagination'); %>
         </main>
 
         <%- include('bodyscripts') %>
