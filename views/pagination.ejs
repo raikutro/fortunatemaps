@@ -1,26 +1,35 @@
 <nav class="map-pagination-container" aria-label="Page navigation example">
 	<ul class="pagination">
-		<li class="page-item <%- page === 1 ? "disabled" : "" %>">
-			<a class="page-link" href="/search?q=<%- encodeURIComponent(query || "") + "&p=" + String(page - 1) %>" aria-label="Previous">
+		<!-- Previous -->
+		<li class="page-item <%= page === 1 ? 'disabled' : '' %>">
+			<a class="page-link" href="<%= (typeof paginationPrefix !== 'undefined'
+            ? paginationPrefix
+            : '/search?q=' + encodeURIComponent(query || '') + '&p=') + (page - 1) %>" aria-label="Previous">
 				<span aria-hidden="true">&laquo;</span>
 			</a>
 		</li>
-		<%-
-			(() => {
-				const range = Math.min(9, maxPage);
-				const lowestPageIndex = Math.min(Math.max(1, page - Math.floor(range / 2)), maxPage - range + 1);
 
-				return Array(range).fill(0).map((x, idx) => `
-					<li class="page-item ${page === lowestPageIndex + idx ? "active" : ""}">
-						<a class="page-link" href="/search?q=${encodeURIComponent(query || "")}&p=${lowestPageIndex + idx}">${lowestPageIndex + idx}</a>
+		<!-- Page Numbers -->
+		<% const range=Math.min(9, maxPage); const lowestPageIndex=Math.min( Math.max(1, page - Math.floor(range / 2)),
+			Math.max(1, maxPage - range + 1) ); %>
+
+			<% for (let idx=0; idx < range; idx++) { const currentPage=lowestPageIndex + idx; %>
+				<li class="page-item <%= page === currentPage ? 'active' : '' %>">
+					<a class="page-link" href="<%= (typeof paginationPrefix !== 'undefined'
+              ? paginationPrefix
+              : '/search?q=' + encodeURIComponent(query || '') + '&p=') + currentPage %>">
+						<%= currentPage %>
+					</a>
+				</li>
+				<% } %>
+
+					<!-- Next -->
+					<li class="page-item <%= page === maxPage ? 'disabled' : '' %>">
+						<a class="page-link" href="<%= (typeof paginationPrefix !== 'undefined'
+            ? paginationPrefix
+            : '/search?q=' + encodeURIComponent(query || '') + '&p=') + (page + 1) %>" aria-label="Next">
+							<span aria-hidden="true">&raquo;</span>
+						</a>
 					</li>
-				`).join("");
-			})();
-		%>
-		<li class="page-item">
-			<a class="page-link" href="/search?q=<%= encodeURIComponent(query || "") + "&p=" + String(page + 1) %>" aria-label="Next">
-				<span aria-hidden="true">&raquo;</span>
-			</a>
-		</li>
 	</ul>
 </nav>

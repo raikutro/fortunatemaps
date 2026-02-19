@@ -1,13 +1,13 @@
 let userLocalSettings = JSON.parse(localStorage.getItem("localSettings") || "{}");
 
-if(userLocalSettings.leftAlignedNavbar) $(".navbar").addClass("left-aligned");
+if (userLocalSettings.leftAlignedNavbar) $(".navbar").addClass("left-aligned");
 
-marked.setOptions({breaks: true});
+marked.setOptions({ breaks: true });
 
 Array.from(document.querySelectorAll('[data-compressed-layout]')).forEach(async (elem) => {
 	let compressedBlob = base64ToBlob(elem.dataset.compressedLayout);
 	let decompressedBlob = await decompressBlob(compressedBlob);
-	
+
 	let simpleObj = URL.createObjectURL(decompressedBlob);
 
 	const pngImage = await blobToImage(decompressedBlob);
@@ -28,7 +28,7 @@ Array.from(document.querySelectorAll('[data-compressed-layout]')).forEach(async 
 	}, elem.dataset.quality === 'hq' ? "image/png" : "image/jpeg", elem.dataset.quality === 'hq' ? undefined : 0.2);
 });
 
-if(location.hash.startsWith('#err=')) {
+if (location.hash.startsWith('#err=')) {
 	const errorID = atob(location.hash.replace('#err=', ''));
 	const errorMessage = window.SETTINGS.ERRORS[errorID];
 
@@ -65,3 +65,50 @@ function getCsrfToken() {
 }
 
 window.getCsrfToken = getCsrfToken;
+
+// Event delegation for Like Button
+document.addEventListener('click', function (e) {
+	const btn = e.target.closest('.like-btn');
+	if (btn) {
+		const mapID = btn.dataset.mapid;
+		toggleLike(mapID, btn);
+	}
+});
+
+function toggleLike(mapID, btn) {
+	fetch('/like', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'x-csrf-token': getCsrfToken()
+		},
+		body: JSON.stringify({
+			mapID
+		})
+	})
+		.then(r => {
+			if (r.status === 401) {
+				alert("You must be logged in to like maps.");
+				return null;
+			}
+			return r.json();
+		})
+		.then(data => {
+			if (!data) return;
+			if (data.err) return alert(data.err);
+
+			const icon = btn.querySelector('i');
+			const count = btn.querySelector('.like-count');
+
+			if (data.liked) {
+				icon.classList.remove('far');
+				icon.classList.add('fas');
+			} else {
+				icon.classList.remove('fas');
+				icon.classList.add('far');
+			}
+
+			count.innerText = data.likes;
+		})
+		.catch(err => console.error(err));
+}

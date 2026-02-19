@@ -1,26 +1,41 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<%- include('head') %>
+
+<head>
+	<%- include('head') %>
 
 		<link rel="stylesheet" type="text/css" href="/css/home.css">
 
 		<title>Fortunate Maps - Home</title>
-	</head>
-	<body>
-		<%- include('nav'); %>
+</head>
+
+<body>
+	<%- include('nav'); %>
 
 		<main role="main" class="container">
 			<hr>
 			<p class="text-center" style="font-size: 1.25rem;">
 				<% if (announcementHTML) { %>
 					<%- announcementHTML %>
-				<% } else { %>
-					<span></span>
-					<!-- <span class="badge bg-primary text-white" style="font-size: 2rem;">New Update!</span><br><a href="/notes/newupdate_12NOV2023.html" style="font-size: 2rem;" target="_blank">Switching Server Providers</a> -->
-				<% } %>
+						<% } else { %>
+							<span></span>
+							<!-- <span class="badge bg-primary text-white" style="font-size: 2rem;">New Update!</span><br><a href="/notes/newupdate_12NOV2023.html" style="font-size: 2rem;" target="_blank">Switching Server Providers</a> -->
+							<% } %>
 			</p>
 			<hr>
+			<div class="row mb-3">
+				<div class="col-12">
+					<ul class="nav nav-tabs justify-content-center">
+						<li class="nav-item">
+							<a class="nav-link <%= sortMode === 'week' ? 'active' : '' %>" href="/?sort=week">Most
+								Upvoted (Week)</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link <%= sortMode === 'new' ? 'active' : '' %>" href="/?sort=new">Newest</a>
+						</li>
+					</ul>
+				</div>
+			</div>
 			<div class="map-container">
 				<%- include('maplister'); %>
 			</div>
@@ -35,5 +50,6 @@
 		</footer>
 
 		<%- include('bodyscripts') %>
-	</body>
+</body>
+
 </html>

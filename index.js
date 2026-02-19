@@ -104,7 +104,7 @@ console.log(SETTINGS.DEV_MODE ? "RUNNING IN DEVELOPER MODE" : "RUNNING IN PRODUC
 mongoose.set('debug', false);
 mongoose.set('strictQuery', true);
 mongoose.connect(process.env.MONGODB_URL, {
-	
+
 }).then(async () => {
 	console.log("Connected to MongoDB");
 
@@ -112,7 +112,7 @@ mongoose.connect(process.env.MONGODB_URL, {
 	MapEntry = require('./models/MapEntry');
 	User = require('./models/User');
 	ServerInfo = require('./models/ServerInfo');
-	
+
 	await loadLoginTokens();
 	await saveDatabaseStats();
 	await loadChunkModelOnce().catch(err => {
@@ -127,7 +127,7 @@ mongoose.connect(process.env.MONGODB_URL, {
 	});
 }).catch(err => console.error(err));
 
-if(process.env._ && process.env._.includes("heroku")) {
+if (process.env._ && process.env._.includes("heroku")) {
 	console.log("HEROKU DETECTED");
 	app.enable('trust proxy');
 }
@@ -140,7 +140,7 @@ app.use(cookieParser());
 
 // Ensure every client has a CSRF token cookie for double-submit checks.
 app.use((req, res, next) => {
-	if(!req.cookies[CSRF_COOKIE_NAME]) {
+	if (!req.cookies[CSRF_COOKIE_NAME]) {
 		const csrfToken = crypto.randomBytes(32).toString('hex');
 		res.cookie(CSRF_COOKIE_NAME, csrfToken, {
 			path: '/',
@@ -157,7 +157,7 @@ app.use((req, res, next) => {
 const requireCsrf = (req, res, next) => {
 	const csrfCookie = req.cookies[CSRF_COOKIE_NAME];
 	const csrfHeader = req.get('x-csrf-token');
-	if(!csrfCookie || csrfCookie !== csrfHeader) {
+	if (!csrfCookie || csrfCookie !== csrfHeader) {
 		return res.status(403).json({ err: "Invalid CSRF token" });
 	}
 	return next();
@@ -171,7 +171,7 @@ apiRouter.use(generalDBLimiter);
 async function loadLoginTokens() {
 	const serverInfo = await ServerInfo.findOne({});
 
-	if(!serverInfo) {
+	if (!serverInfo) {
 		console.log("No ServerInfo found, creating new ServerInfo.");
 		await ServerInfo.create({
 			loginTokens: {},
@@ -186,23 +186,74 @@ async function loadLoginTokens() {
 }
 
 // Home Page
+// Home Page
 app.get('/', LoginMiddleware, async (req, res) => {
-	let maps = await MapEntry.find({ unlisted: false }).limit(SETTINGS.SITE.MAPS_PER_PAGE).sort({ mapID: -1 });
+	const sortMode = req.query.sort || 'week'; // 'week' or 'new'
+	const page = Math.max(Number(req.query.p) || 1, 1);
+	const skipNum = (page - 1) * SETTINGS.SITE.MAPS_PER_PAGE;
 
-	maps = maps.map(d => {
-		let doc = d.toObject();
-		doc.png = doc.png.toString('base64');
-		doc.json = doc.json.toString('base64');
+	let maps = [];
+
+	if (sortMode === 'week') {
+		const oneWeekAgo = new Date();
+		oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+		maps = await MapEntry.aggregate([
+			{ $match: { unlisted: false, dateUploaded: { $gte: oneWeekAgo } } },
+			{
+				$addFields: {
+					likesCount: { $size: { $ifNull: ["$likes", []] } }
+				}
+			},
+			{ $sort: { likesCount: -1, dateUploaded: -1 } },
+			{ $skip: skipNum },
+			{ $limit: SETTINGS.SITE.MAPS_PER_PAGE }
+		]);
+
+		// Populate author names if needed, but they seem to be strings in MapEntry?
+		// MapEntry schema has authorName as String, so we don't need to populate.
+		// However, aggregate returns plain objects, not Mongoose documents.
+
+		// If < 20 maps found for week, maybe we should backfill? 
+		// For now, let's just stick to the plan.
+	} else {
+		// Newest
+		maps = await MapEntry.find({ unlisted: false })
+			.sort({ mapID: -1 })
+			.skip(skipNum)
+			.limit(SETTINGS.SITE.MAPS_PER_PAGE);
+
+		maps = maps.map(d => d.toObject());
+	}
+
+	maps = maps.map(doc => {
+		if (doc.png) {
+			if (Buffer.isBuffer(doc.png)) {
+				doc.png = doc.png.toString('base64');
+			} else if (doc.png.buffer && Buffer.isBuffer(doc.png.buffer)) {
+				doc.png = doc.png.buffer.toString('base64');
+			}
+		}
+
+		if (doc.json) {
+			if (Buffer.isBuffer(doc.json)) {
+				doc.json = doc.json.toString('base64');
+			} else if (doc.json.buffer && Buffer.isBuffer(doc.json.buffer)) {
+				doc.json = doc.json.buffer.toString('base64');
+			}
+		}
 		return doc;
 	});
 
 	res.render('index', {
 		...(await Utils.templateEngineData(req)),
 		query: "",
-		page: 1,
+		page: page,
 		maps,
+		sortMode,
+		paginationPrefix: `/?sort=${sortMode}&p=`,
 		announcementHTML,
-		maxPage: DATABASE_STATS.getMaxPage()
+		maxPage: DATABASE_STATS.getMaxPage() // Pagination might be inaccurate for 'week' sort, but acceptable for now.
 	});
 });
 
@@ -214,7 +265,7 @@ app.get('/editor', LoginMiddleware, async (req, res) => {
 });
 
 app.get('/chunkv1', LoginMiddleware, async (req, res) => {
-	if(!req.profileID) return res.redirect("/");
+	if (!req.profileID) return res.redirect("/");
 
 	res.render('chunk', {
 		...(await Utils.templateEngineData(req)),
@@ -231,17 +282,17 @@ let generatingPreviewsTracker = {};
 // Preview Image Route
 app.get('/preview/:mapid.jpeg', async (req, res) => {
 	const mapID = Number(req.params.mapid);
-	if(!mapID) return res.send("Invalid Map ID");
+	if (!mapID) return res.send("Invalid Map ID");
 
 	// Check if map exists in TEMP_FILE_PATH folder. if it does, send the file, if it doesn't, generate the file preview and send it.
-	if(!fs.existsSync(`${TEMP_FILE_PATH}/${mapID}.jpeg`)) {
+	if (!fs.existsSync(`${TEMP_FILE_PATH}/${mapID}.jpeg`)) {
 		let mapEntry = await MapEntry.findOne({
 			mapID
 		}, "png json");
 
-		if(!mapEntry) return res.redirect("/");
+		if (!mapEntry) return res.redirect("/");
 
-		if(generatingPreviewsTracker[mapID] || Object.keys(generatingPreviewsTracker).length > 5) return res.redirect(`/png/${mapID}.png`);
+		if (generatingPreviewsTracker[mapID] || Object.keys(generatingPreviewsTracker).length > 5) return res.redirect(`/png/${mapID}.png`);
 
 		generatingPreviewsTracker[mapID] = true;
 
@@ -258,7 +309,7 @@ app.get('/preview/:mapid.jpeg', async (req, res) => {
 			return null;
 		});
 
-		if(!previewCanvas) return;
+		if (!previewCanvas) return;
 
 		await previewCanvas.image.write(`${TEMP_FILE_PATH}/${mapID}.jpeg`, {
 			quality: 50
@@ -282,7 +333,7 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	req.query.p = Math.max(Number(req.query.p) || 1, 1) - 1;
 
 	let skipNum = req.query.p * SETTINGS.SITE.MAPS_PER_PAGE;
-	if(skipNum > DATABASE_STATS.getMaxPage() * SETTINGS.SITE.MAPS_PER_PAGE) {
+	if (skipNum > DATABASE_STATS.getMaxPage() * SETTINGS.SITE.MAPS_PER_PAGE) {
 		req.query.p = DATABASE_STATS.getMaxPage();
 	}
 
@@ -302,10 +353,10 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 
 	// This monster of a statement gets all "@" queries and converts them to a list of user ids.
 	const authorQueries = (await Promise.all(rawQueries.author.map(a => new Promise(async (resolve) => {
-		let user = (await User.findOne({username: new RegExp(sanitizeQuery(a).slice(1), "i")}, "_id")) || {_id: ""};
+		let user = (await User.findOne({ username: new RegExp(sanitizeQuery(a).slice(1), "i") }, "_id")) || { _id: "" };
 		resolve(user._id);
 	})))).filter(a => a.length !== 0);
-	
+
 	// Get all the "#" queries and sanitize them.
 	const tagQueries = rawQueries.tag.map(a => new RegExp(sanitizeQuery(a).slice(1).trim(), "i"));
 
@@ -322,7 +373,7 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 
 	try {
 		req.query.q = new RegExp(req.query.q, 'i');
-	} catch(e) {
+	} catch (e) {
 		return;
 	}
 
@@ -335,9 +386,9 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	};
 
 	// Remove field queries if they don't need to be there
-	if(authorQueries.length === 0) delete finalQuery.authorIDs;
-	if(tagQueries.length === 0) delete finalQuery.tags;
-	if(authorTextQueries.length === 0) delete finalQuery.authorName;
+	if (authorQueries.length === 0) delete finalQuery.authorIDs;
+	if (tagQueries.length === 0) delete finalQuery.tags;
+	if (authorTextQueries.length === 0) delete finalQuery.authorName;
 
 	let maps = await MapEntry.find(finalQuery, "name mapID authorName png json")
 		.skip(skipNum)
@@ -364,11 +415,93 @@ apiRouter.get('/search', LoginMiddleware, async (req, res) => {
 	});
 });
 
+// Browse Page
+apiRouter.get('/browse', LoginMiddleware, async (req, res) => {
+	// Sanitize inputs
+	const query = {
+		title: (req.query.title || "").trim(),
+		author: (req.query.author || "").trim(),
+		tags: (req.query.tags || "").trim(),
+		tagMode: (req.query.tagMode === 'or') ? 'or' : 'and',
+		p: Math.max(Number(req.query.p) || 1, 1) - 1
+	};
+
+	let skipNum = query.p * SETTINGS.SITE.MAPS_PER_PAGE;
+	if (skipNum > DATABASE_STATS.getMaxPage() * SETTINGS.SITE.MAPS_PER_PAGE) {
+		query.p = DATABASE_STATS.getMaxPage();
+	}
+
+	const dbQuery = { unlisted: false };
+
+	// Title Search
+	if (query.title) {
+		dbQuery.name = new RegExp(Utils.cleanQuery(query.title), 'i');
+	}
+
+	// Author Search
+	if (query.author) {
+		// Find users matching the author name
+		const users = await User.find({ username: new RegExp(Utils.cleanQuery(query.author), "i") }, "_id");
+		const userIDs = users.map(u => u._id);
+
+		dbQuery.$or = [
+			{ authorName: new RegExp(Utils.cleanQuery(query.author), 'i') },
+			{ authorIDs: { $in: userIDs } }
+		];
+	}
+
+	// Tag Search
+	if (query.tags) {
+		// specific tags
+		const tags = query.tags.split(',').map(t => new RegExp(Utils.cleanQuery(t.trim()), "i")).filter(t => t);
+
+		if (tags.length > 0) {
+			if (query.tagMode === 'or') {
+				dbQuery.tags = { $in: tags }; // Match ANY
+			} else {
+				dbQuery.tags = { $all: tags }; // Match ALL (Default)
+			}
+		}
+	}
+
+	let maps = await MapEntry.find(dbQuery, "name mapID authorName png json")
+		.skip(skipNum)
+		.limit(SETTINGS.SITE.MAPS_PER_PAGE)
+		.sort({ mapID: -1 });
+
+	maps = maps.map(d => {
+		let doc = d.toObject();
+		doc.png = doc.png.toString('base64');
+		doc.json = doc.json.toString('base64');
+		return doc;
+	});
+
+	// Construct pagination prefix
+	const queryParams = { ...query };
+	delete queryParams.p;
+	const queryString = new URLSearchParams(queryParams).toString();
+	const paginationPrefix = `/browse?${queryString}&p=`;
+
+	res.render('browse', {
+		...(await Utils.templateEngineData(req)),
+		searchParams: query, // Renamed to avoid partial conflict
+		query: "", // Passed as empty string for pagination.ejs compatibility if needed, though paginationPrefix should override it.
+		paginationPrefix,
+		page: query.p + 1,
+		parsedQuery: { // Adapting for pagination.ejs if used, though browse.ejs uses query params
+			query: "",
+			tag: [], author: [], authorText: []
+		},
+		maps,
+		maxPage: DATABASE_STATS.getMaxPage() // This might need to be dynamic based on count, but using global stats for now as calculating count on every search is expensive
+	});
+});
+
 // Map Page
 apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 	const mapID = Number(req.params.mapid);
-	if(!mapID) return res.redirect("/");
-	
+	if (!mapID) return res.redirect("/");
+
 	let mapEntry = await MapEntry.findOne({
 		mapID: String(mapID)
 	}).catch(err => {
@@ -376,7 +509,7 @@ apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 		// res.send("Invalid Map ID");
 	});
 
-	if(!mapEntry) return res.redirect("/");
+	if (!mapEntry) return res.redirect("/");
 
 	const userProfile = await req.getProfile();
 	const isAdmin = userProfile ? userProfile.isAdmin : false;
@@ -409,8 +542,8 @@ apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 // UM Map Page
 apiRouter.get('/show/:mapid', LoginMiddleware, async (req, res) => {
 	const mapID = Number(req.params.mapid);
-	if(!mapID) return res.redirect("/");
-	
+	if (!mapID) return res.redirect("/");
+
 	let mapEntry = await MapEntry.findOne({
 		authorIDs: { $size: 0 },
 		description: { "$regex": `-- Original U-M ID: ${String(mapID).slice(0, 8)} --` }
@@ -418,15 +551,15 @@ apiRouter.get('/show/:mapid', LoginMiddleware, async (req, res) => {
 		return null;
 	});
 
-	if(!mapEntry) return res.redirect("/");
+	if (!mapEntry) return res.redirect("/");
 
 	res.redirect("/map/" + mapEntry.mapID);
 });
 
 apiRouter.get('/static/previews/:mapid.png', LoginMiddleware, async (req, res) => {
 	const mapID = Number(req.params.mapid);
-	if(!mapID) return res.redirect("/assets/logo.png");
-	
+	if (!mapID) return res.redirect("/assets/logo.png");
+
 	let mapEntry = await MapEntry.findOne({
 		authorIDs: { $size: 0 },
 		description: { "$regex": `-- Original U-M ID: ${String(mapID).slice(0, 8)} --` }
@@ -434,7 +567,7 @@ apiRouter.get('/static/previews/:mapid.png', LoginMiddleware, async (req, res) =
 		return null;
 	});
 
-	if(!mapEntry) return res.redirect("/assets/logo.png");
+	if (!mapEntry) return res.redirect("/assets/logo.png");
 
 	res.redirect(`/preview/${mapEntry.mapID}.jpeg`);
 });
@@ -442,20 +575,20 @@ apiRouter.get('/static/previews/:mapid.png', LoginMiddleware, async (req, res) =
 // Map Data Route, returns data about the map and if requested by the client: its other versions and/or remixes.
 apiRouter.get('/map_data/:mapid', async (req, res) => {
 	const mapID = Number(req.params.mapid);
-	if(!mapID) return res.json(SETTINGS.ERRORS.INVALID_MAP_ID());
+	if (!mapID) return res.json(SETTINGS.ERRORS.INVALID_MAP_ID());
 
 	let mapEntry = await MapEntry.findOne({
 		mapID: mapID
 	});
 
-	if(!mapEntry) return res.json({
+	if (!mapEntry) return res.json({
 		err: "Couldn't find that map."
 	});
 
 	let mapVersions = null;
 	let mapRemixes = null;
 
-	if(req.query.v === "1") {
+	if (req.query.v === "1") {
 		mapVersions = await MapEntry.find({
 			versionSource: mapEntry.versionSource,
 			isRemix: false
@@ -480,30 +613,30 @@ apiRouter.get('/map_data/:mapid', async (req, res) => {
 });
 
 apiRouter.get('/author_id/:query', async (req, res) => {
-	if(!Utils.hasCorrectParameters(req.params, {
+	if (!Utils.hasCorrectParameters(req.params, {
 		query: "string"
-	})) return res.json({err: "Invalid Parameters"});
+	})) return res.json({ err: "Invalid Parameters" });
 
-	if(!Utils.isAlphanumeric(req.params.query)) return res.json({ users: [] });
+	if (!Utils.isAlphanumeric(req.params.query)) return res.json({ users: [] });
 
-	let users = await User.find({username: new RegExp(req.params.query, "i")}, "username _id");
+	let users = await User.find({ username: new RegExp(req.params.query, "i") }, "username _id");
 
 	res.json({
-		users: users.map(a => { return {id: a._id, username: a.username} })
+		users: users.map(a => { return { id: a._id, username: a.username } })
 	});
 });
 
 apiRouter.get('/author_names/:authorid', async (req, res) => {
-	if(!Utils.hasCorrectParameters(req.params, {
+	if (!Utils.hasCorrectParameters(req.params, {
 		authorid: "string"
-	})) return res.json({err: "Invalid Parameters"});
+	})) return res.json({ err: "Invalid Parameters" });
 
 	let authorIDs = req.params.authorid.split(",");
-	if(authorIDs.some(a => a.length !== 24)) return res.json({ usernames: [] });
+	if (authorIDs.some(a => a.length !== 24)) return res.json({ usernames: [] });
 
 	authorIDs = authorIDs.map(a => new mongoose.Types.ObjectId(a));
 
-	let users = await User.find({ 
+	let users = await User.find({
 		_id: {
 			$in: authorIDs
 		}
@@ -518,10 +651,10 @@ apiRouter.get('/author_names/:authorid', async (req, res) => {
 });
 
 apiRouter.post('/chunkv1/generate', LoginMiddleware, requireCsrf, async (req, res) => {
-	if(!req.profileID) return res.status(401).json({ err: "Login required" });
+	if (!req.profileID) return res.status(401).json({ err: "Login required" });
 
 	const remaining = getChunkRemaining(req.profileID);
-	if(remaining < CHUNK_CONFIG.MAPS_PER_REQUEST) {
+	if (remaining < CHUNK_CONFIG.MAPS_PER_REQUEST) {
 		return res.status(400).json({ err: `You only have ${remaining} generation(s) left today.`, remaining });
 	}
 
@@ -543,13 +676,13 @@ apiRouter.post('/chunkv1/generate', LoginMiddleware, requireCsrf, async (req, re
 // Source PNG Image Route
 apiRouter.get('/png/:mapid.png', async (req, res) => {
 	const mapID = Number(req.params.mapid);
-	if(!mapID) return res.send("Invalid Map ID");
+	if (!mapID) return res.send("Invalid Map ID");
 
 	let mapEntry = await MapEntry.findOne({
 		mapID
 	}, "png");
 
-	if(!mapEntry) return res.redirect("/");
+	if (!mapEntry) return res.redirect("/");
 
 	const sourcePNG = await Utils.Compression.decompressMapLayout(mapEntry.png);
 
@@ -564,13 +697,13 @@ app.get('/png/:mapid', (req, res) => res.redirect(`/png/${req.params.mapid}.png`
 // Source JSON Image Route
 apiRouter.get('/json/:mapid.json', async (req, res) => {
 	const mapID = Number(req.params.mapid);
-	if(!mapID) return res.send("Invalid Map ID");
+	if (!mapID) return res.send("Invalid Map ID");
 
 	let mapEntry = await MapEntry.findOne({
 		mapID
 	}, "json");
 
-	if(!mapEntry) return res.redirect("/");
+	if (!mapEntry) return res.redirect("/");
 
 	const sourceJSON = await Utils.Compression.decompressMapLogic(mapEntry.json);
 
@@ -593,13 +726,13 @@ apiRouter.get('/test/:mapid', async (req, res) => {
 
 apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 	const mapID = Number(req.params.mapid);
-	if(!mapID) return res.json(SETTINGS.ERRORS.INVALID_MAP_ID());
+	if (!mapID) return res.json(SETTINGS.ERRORS.INVALID_MAP_ID());
 
 	let mapEntry = await MapEntry.findOne({
 		mapID: mapID
 	}, "png json");
 
-	if(!mapEntry) return res.json(SETTINGS.ERRORS.NOT_FOUND("Map Entry Not Found"));
+	if (!mapEntry) return res.json(SETTINGS.ERRORS.NOT_FOUND("Map Entry Not Found"));
 
 	const layout = await Utils.Compression.decompressMapLayout(mapEntry.png);
 	const logic = JSON.stringify(await Utils.Compression.decompressMapLogic(mapEntry.json));
@@ -607,7 +740,7 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 	const form = new FormData();
 	let url = `https://${MAPTEST_URL}/groups/testmap`;
 
-	const {host, pathname} = new URL(url);
+	const { host, pathname } = new URL(url);
 
 	// console.log(layout, logic);
 
@@ -626,7 +759,7 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 		return null;
 	});
 
-	if(!testURL) return;
+	if (!testURL) return;
 
 	res.json({
 		url: testURL
@@ -634,14 +767,14 @@ apiRouter.post('/create_test_link/:mapid', async (req, res) => {
 });
 
 apiRouter.post('/testmap', async (req, res) => {
-	if(!req.body.logic) return res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL("Missing Map Logic"));
-	if(!req.body.layout) return res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL("Missing Map Layout"));
+	if (!req.body.logic) return res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL("Missing Map Logic"));
+	if (!req.body.layout) return res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL("Missing Map Layout"));
 
 	let mapJSON;
 
 	try {
 		mapJSON = JSON.stringify(JSON.parse(req.body.logic));
-	} catch(e) {
+	} catch (e) {
 		return res.json(SETTINGS.ERRORS.TEST_MAP_LINK_FAIL("Invalid Map Logic"));
 	}
 
@@ -651,11 +784,11 @@ apiRouter.post('/testmap', async (req, res) => {
 	const form = new FormData();
 	let url = `https://${MAPTEST_URL}/groups/testmap`;
 
-	const {host, pathname} = new URL(url);
+	const { host, pathname } = new URL(url);
 
 	form.append('layout', layout, { filename: 'map.png', contentType: 'application/octet-stream' });
 	form.append('logic', logic, { filename: 'map.json', contentType: 'application/octet-stream' });
-	
+
 	const testURL = await fetch(url, {
 		method: 'POST',
 		body: form,
@@ -665,7 +798,7 @@ apiRouter.post('/testmap', async (req, res) => {
 		return null;
 	});
 
-	if(!testURL) return;
+	if (!testURL) return;
 
 	res.json({
 		url: testURL
@@ -674,109 +807,109 @@ apiRouter.post('/testmap', async (req, res) => {
 
 // Upload Map Route
 // Uploads a map to the server
-apiRouter.post('/upload_map', 
+apiRouter.post('/upload_map',
 	mapUploadLimiter,
 	LoginMiddleware,
 	requireCsrf, async (req, res) => {
-	if(Utils.hasCorrectParameters(req.body, {
-		logic: "string",
-		layout: "string",
-		sourceMapID: "number",
-		unlisted: "boolean"
-	})){
-		try {
-			const mapLayout = req.body.layout;
-			const mapLogic = req.body.logic;
-			let mapJSON;
-
-			if(mapLayout.length > SETTINGS.MAPS.MAX_PNG_LENGTH) return res.json(
-				SETTINGS.ERRORS.UPLOAD_MAX_SIZE(`The PNG File in base64 form must be less than ${SETTINGS.MAPS.MAX_PNG_LENGTH} in length.`)
-			);
-
-			if(mapLogic.length > SETTINGS.MAPS.MAX_JSON_LENGTH) return res.json(
-				SETTINGS.ERRORS.UPLOAD_MAX_SIZE(`The JSON must be less than ${SETTINGS.MAPS.MAX_JSON_LENGTH} in length.`)
-			);
-
-			// Validate & parse the JSON file.
+		if (Utils.hasCorrectParameters(req.body, {
+			logic: "string",
+			layout: "string",
+			sourceMapID: "number",
+			unlisted: "boolean"
+		})) {
 			try {
-				mapJSON = JSON.parse(mapLogic);
-			} catch {
-				return res.json({
-					err: "Invalid JSON"
+				const mapLayout = req.body.layout;
+				const mapLogic = req.body.logic;
+				let mapJSON;
+
+				if (mapLayout.length > SETTINGS.MAPS.MAX_PNG_LENGTH) return res.json(
+					SETTINGS.ERRORS.UPLOAD_MAX_SIZE(`The PNG File in base64 form must be less than ${SETTINGS.MAPS.MAX_PNG_LENGTH} in length.`)
+				);
+
+				if (mapLogic.length > SETTINGS.MAPS.MAX_JSON_LENGTH) return res.json(
+					SETTINGS.ERRORS.UPLOAD_MAX_SIZE(`The JSON must be less than ${SETTINGS.MAPS.MAX_JSON_LENGTH} in length.`)
+				);
+
+				// Validate & parse the JSON file.
+				try {
+					mapJSON = JSON.parse(mapLogic);
+				} catch {
+					return res.json({
+						err: "Invalid JSON"
+					});
+				}
+
+				// Clean body parameters
+				req.body.unlisted = req.body.unlisted;
+				req.body.sourceMapID = req.body.sourceMapID ? req.body.sourceMapID : 0;
+
+				// Put users authorID inside if they're logged in.
+				let authorIDs = [];
+
+				if (req.profileID) authorIDs = [req.profileID];
+
+				// Check if this is a remix of another map.
+				let versionSourceMapEntry = 0;
+				if (req.body.sourceMapID !== 0) versionSourceMapEntry = await MapEntry.findOne({ mapID: req.body.sourceMapID });
+
+				// isRemix is true if a versionSource was given and the submitter is not an author of the original source
+				// isRemix is false if a versionSource was given and the submitter is an author of the original source
+				// isRemix is false if a versionSource was not given
+				let isRemix = versionSourceMapEntry === 0 ? false : (
+					!versionSourceMapEntry.authorIDs.includes(req.profileID)
+				);
+				// The Three Final States of isRemix and versionSource in the MapEntry:
+				// 1. isRemix = true + versionSource > 0 = Map is a remix
+				// 2. isRemix = false + versionSource === 0 = Map is original
+				// 3. isRemix = false + versionSource > 0 = Map is a new version
+
+				let newMapID = await getHighestMapID() + 1;
+				// Set the version source to the original map
+				// If it's a new map, then set its version source to it's own map ID
+				let versionSource = versionSourceMapEntry ? versionSourceMapEntry.versionSource : newMapID;
+
+				let mapName = Utils.cleanQueryableText(insane(mapJSON.info.name).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
+				let authorName = Utils.cleanQueryableText(insane(mapJSON.info.author).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH))
+
+				// Compress Map Image
+				const mapLayoutCompressedBuffer = await Utils.Compression.compressMapLayout(mapLayout);
+
+				// Compress Map Logic for Smaller Storage
+				const mapLogicCompressedBuffer = await Utils.Compression.compressMapLogic(mapJSON);
+
+				// Save the MapEntry to MongoDB
+				await MapEntry.create({
+					name: mapName,
+					authorIDs: authorIDs,
+					authorName: authorName,
+					description: "No Description",
+					dateUploaded: new Date(),
+					tags: [],
+					hiddenTags: [],
+					mapID: newMapID,
+					json: mapLogicCompressedBuffer,
+					png: mapLayoutCompressedBuffer,
+					versionSource: versionSource,
+					isRemix: isRemix,
+					unlisted: req.body.unlisted
 				});
+
+				// Send the new map ID to the client.
+				res.json({
+					id: newMapID
+				});
+			} catch (err) {
+				console.error(err);
+				res.json({ err: "An unexpected error occurred" });
 			}
-
-			// Clean body parameters
-			req.body.unlisted = req.body.unlisted;
-			req.body.sourceMapID = req.body.sourceMapID ? req.body.sourceMapID : 0;
-
-			// Put users authorID inside if they're logged in.
-			let authorIDs = [];
-
-			if(req.profileID) authorIDs = [req.profileID];
-
-			// Check if this is a remix of another map.
-			let versionSourceMapEntry = 0;
-			if(req.body.sourceMapID !== 0) versionSourceMapEntry = await MapEntry.findOne({mapID: req.body.sourceMapID});
-
-			// isRemix is true if a versionSource was given and the submitter is not an author of the original source
-			// isRemix is false if a versionSource was given and the submitter is an author of the original source
-			// isRemix is false if a versionSource was not given
-			let isRemix = versionSourceMapEntry === 0 ? false : (
-				!versionSourceMapEntry.authorIDs.includes(req.profileID)
-			);
-			// The Three Final States of isRemix and versionSource in the MapEntry:
-			// 1. isRemix = true + versionSource > 0 = Map is a remix
-			// 2. isRemix = false + versionSource === 0 = Map is original
-			// 3. isRemix = false + versionSource > 0 = Map is a new version
-
-			let newMapID = await getHighestMapID() + 1;
-			// Set the version source to the original map
-			// If it's a new map, then set its version source to it's own map ID
-			let versionSource = versionSourceMapEntry ? versionSourceMapEntry.versionSource : newMapID;
-
-			let mapName = Utils.cleanQueryableText(insane(mapJSON.info.name).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
-			let authorName = Utils.cleanQueryableText(insane(mapJSON.info.author).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH))
-
-			// Compress Map Image
-			const mapLayoutCompressedBuffer = await Utils.Compression.compressMapLayout(mapLayout);
-
-			// Compress Map Logic for Smaller Storage
-			const mapLogicCompressedBuffer = await Utils.Compression.compressMapLogic(mapJSON);
-
-			// Save the MapEntry to MongoDB
-			await MapEntry.create({
-				name: mapName,
-				authorIDs: authorIDs,
-				authorName: authorName,
-				description: "No Description",
-				dateUploaded: new Date(),
-				tags: [],
-				hiddenTags: [],
-				mapID: newMapID,
-				json: mapLogicCompressedBuffer,
-				png: mapLayoutCompressedBuffer,
-				versionSource: versionSource,
-				isRemix: isRemix,
-				unlisted: req.body.unlisted
-			});
-
-			// Send the new map ID to the client.
-			res.json({
-				id: newMapID
-			});
-		} catch(err) {
-			console.error(err);
-			res.json({ err: "An unexpected error occurred" });
+		} else {
+			res.json({ err: "Invalid Parameters" });
 		}
-	} else {
-		res.json({err: "Invalid Parameters"});
-	}
-});
+	});
 
 // Update Map Route
 apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, requireCsrf, async (req, res) => {
-	if(Utils.hasCorrectParameters(req.body, {
+	if (Utils.hasCorrectParameters(req.body, {
 		mapID: "number",
 		mapName: "string",
 		mapAuthor: "string",
@@ -791,23 +924,23 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, requireCsrf, as
 
 		const userProfile = await req.getProfile();
 
-		if(!userProfile) return res.status(404).json({err: "User not found."});
-		if(!mapEntry) return res.status(404).json({err: "Map not found."});
+		if (!userProfile) return res.status(404).json({ err: "User not found." });
+		if (!mapEntry) return res.status(404).json({ err: "Map not found." });
 
-		if(!mapEntry.authorIDs.includes(req.profileID) && !userProfile.isAdmin) return res.status(404).json({err: "User is not an author of this map."});
+		if (!mapEntry.authorIDs.includes(req.profileID) && !userProfile.isAdmin) return res.status(404).json({ err: "User is not an author of this map." });
 
 		// Sanitize inputs
 		let tagsArray = Array.from(new Set(req.body.tags));
 		let authorsArray = Array.from(req.body.authors).map(a => String(a)).slice(0, SETTINGS.SITE.MAX_AUTHORS);
 
-		if(authorsArray.length === 0 && !userProfile.isAdmin) return res.json({err: "Empty Author Array"});
-		if(authorsArray.some(a => a.length !== 24)) return res.json({err: "Invalid Author Array"});
-		if(tagsArray.length > SETTINGS.SITE.MAX_TAGS) return res.json({err: "Too many tags."});
+		if (authorsArray.length === 0 && !userProfile.isAdmin) return res.json({ err: "Empty Author Array" });
+		if (authorsArray.some(a => a.length !== 24)) return res.json({ err: "Invalid Author Array" });
+		if (tagsArray.length > SETTINGS.SITE.MAX_TAGS) return res.json({ err: "Too many tags." });
 
 		// Sanitize the tags
-		tagsArray = tagsArray.map(t => 
+		tagsArray = tagsArray.map(t =>
 			Utils.makeAlphanumeric(t)
-			.slice(0, SETTINGS.SITE.TAG_NAME_MAX_LENGTH)
+				.slice(0, SETTINGS.SITE.TAG_NAME_MAX_LENGTH)
 		);
 
 		let description = insane(req.body.description).slice(0, 500);
@@ -845,26 +978,26 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, requireCsrf, as
 
 // Post Comment Route
 apiRouter.post('/comment', commentLimiter, LoginMiddleware, requireCsrf, async (req, res) => {
-		if(Utils.hasCorrectParameters(req.body, {
-			mapID: "number",
-			body: "string"
-		}) && req.profileID){
+	if (Utils.hasCorrectParameters(req.body, {
+		mapID: "number",
+		body: "string"
+	}) && req.profileID) {
 		let mapEntry = await MapEntry.findOne({
 			mapID: req.body.mapID
 		});
 
-		if(!mapEntry) return res.status(404).json({err: "Map not found."});
+		if (!mapEntry) return res.status(404).json({ err: "Map not found." });
 
 		let commentingUser = await User.findById(req.profileID);
-		if(!commentingUser) return res.status(404).json({err: "User not found."}); 
+		if (!commentingUser) return res.status(404).json({ err: "User not found." });
 
-			mapEntry.comments.push({
-				id: Utils.makeID(),
-				parentID: "",
-				date: new Date(),
-				authorID: req.profileID,
-				body: insane(req.body.body || "")
-			});
+		mapEntry.comments.push({
+			id: Utils.makeID(),
+			parentID: "",
+			date: new Date(),
+			authorID: req.profileID,
+			body: insane(req.body.body || "")
+		});
 
 		await mapEntry.save();
 
@@ -876,29 +1009,37 @@ apiRouter.post('/comment', commentLimiter, LoginMiddleware, requireCsrf, async (
 
 // Like Map Route
 apiRouter.post('/like', LoginMiddleware, requireCsrf, async (req, res) => {
-	if(Utils.hasCorrectParameters(req.body, {
+	if (Utils.hasCorrectParameters(req.body, {
 		mapID: "number"
-	}) && req.profileID){
+	}) && req.profileID) {
 		let mapEntry = await MapEntry.findOne({
 			mapID: req.body.mapID
 		});
 
-		if(!mapEntry) return res.status(404).json({err: "Map not found."});
+		if (!mapEntry) return res.status(404).json({ err: "Map not found." });
 
 		let likingUser = await User.findById(req.profileID);
-		if(!likingUser) return res.status(404).json({err: "User not found."}); 
+		if (!likingUser) return res.status(404).json({ err: "User not found." });
 
 		// Find the users profile ID inside the maps like list
 		let profileIndex = mapEntry.likes.findIndex(pID => String(pID) === req.profileID);
+		let liked = false;
 
 		// Toggles the like status of a map
-		if(profileIndex > -1) mapEntry.likes.splice(profileIndex, 1);
-		else mapEntry.likes.push(new mongoose.Types.ObjectId(req.profileID));
+		if (profileIndex > -1) {
+			mapEntry.likes.splice(profileIndex, 1);
+			liked = false;
+		} else {
+			mapEntry.likes.push(new mongoose.Types.ObjectId(req.profileID));
+			liked = true;
+		}
 
 		await mapEntry.save();
 
 		res.json({
-			success: true
+			success: true,
+			liked,
+			likes: mapEntry.likes.length
 		});
 	}
 });
@@ -907,7 +1048,7 @@ apiRouter.post('/send_announcement', LoginMiddleware, requireCsrf, async (req, r
 	const userProfile = await req.getProfile();
 	const isAdmin = userProfile ? userProfile.isAdmin : false;
 
-	if(!isAdmin) return res.status(401);
+	if (!isAdmin) return res.status(401);
 
 	announcementHTML = insane(req.body.announcement || "");
 
@@ -943,7 +1084,7 @@ const getDayKey = () => new Date().toISOString().slice(0, 10);
 function ensureChunkUsage(userId) {
 	const dayKey = getDayKey();
 	const record = chunkUsage[userId];
-	if(!record || record.day !== dayKey) {
+	if (!record || record.day !== dayKey) {
 		chunkUsage[userId] = { count: 0, day: dayKey };
 	}
 	return chunkUsage[userId];
@@ -957,14 +1098,14 @@ function getChunkRemaining(userId) {
 async function incrementChunkUsage(userId, amount) {
 	const record = ensureChunkUsage(userId);
 	record.count += amount;
-	if(serverInfoDoc) {
+	if (serverInfoDoc) {
 		serverInfoDoc.chunkUsage = chunkUsage;
 		await serverInfoDoc.save();
 	}
 }
 
 function loadChunkMapNames() {
-	if(chunkMapNames.length) return chunkMapNames;
+	if (chunkMapNames.length) return chunkMapNames;
 	const mapNamesPath = path.join(__dirname, 'assets', 'map_names.txt');
 	try {
 		const raw = fs.readFileSync(mapNamesPath, 'utf-8');
@@ -978,21 +1119,21 @@ function loadChunkMapNames() {
 
 function getRandomChunkMapName() {
 	const names = loadChunkMapNames();
-	if(!names.length) return null;
+	if (!names.length) return null;
 	const choice = names[Math.floor(Math.random() * names.length)];
 	return choice ? choice.charAt(0).toUpperCase() + choice.slice(1) : null;
 }
 
 async function generateChunkMaps(userId) {
-	if(!chunkModel) {
+	if (!chunkModel) {
 		await loadChunkModelOnce();
 	}
-	if(!chunkModel) throw new Error("No CHUNK model loaded.");
+	if (!chunkModel) throw new Error("No CHUNK model loaded.");
 
 	const maps = [];
 	const mapAuthor = 'CHUNKv1';
 
-	for(let i = 0; i < CHUNK_CONFIG.MAPS_PER_REQUEST; i++) {
+	for (let i = 0; i < CHUNK_CONFIG.MAPS_PER_REQUEST; i++) {
 		const mapName = getRandomChunkMapName() || `CHUNK v1 Map ${i + 1}`;
 		const mashResult = await Masher.mashMaps(chunkModel, {
 			returnAssets: true,
@@ -1001,7 +1142,7 @@ async function generateChunkMaps(userId) {
 			author: mapAuthor
 		});
 
-		if(!mashResult) throw new Error("Failed to generate map");
+		if (!mashResult) throw new Error("Failed to generate map");
 
 		maps.push({
 			png: mashResult.pngBase64,
@@ -1014,7 +1155,8 @@ async function generateChunkMaps(userId) {
 }
 
 async function loadChunkModelOnce() {
-	if(chunkModel) return chunkModel;
+	if (chunkModel) return chunkModel;
 	chunkModel = await Masher.loadChunkModel(SETTINGS.CHUNK.DEFAULT_CHUNK_MODEL_PATH);
 	return chunkModel;
 }
+

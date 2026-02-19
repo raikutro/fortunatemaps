@@ -48,6 +48,7 @@ async function main() {
 			mapInfos.push(mapInfo);
 		} catch(err) {
 			console.error(`\nFailed to build map info for map ${mapID}:`, err.message || err);
+			console.log(err);
 		}
 	}
 

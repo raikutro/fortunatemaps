@@ -35,7 +35,7 @@ footer {
 }
 
 #searchForm {
-	width: 40%;
+	width: 30%;
 }
 
 #searchForm .input-group {
@@ -53,15 +53,15 @@ footer {
 	background-color: #eee;
 	border-radius: 2px;
 	padding: 8px;
-	-webkit-box-shadow: 0px 12px 7px -7px rgba(0,0,0,0.36); 
-	box-shadow: 0px 12px 7px -7px rgba(0,0,0,0.36);
+	-webkit-box-shadow: 0px 12px 7px -7px rgba(0, 0, 0, 0.36);
+	box-shadow: 0px 12px 7px -7px rgba(0, 0, 0, 0.36);
 	color: #111;
 
 	transition: all 100ms ease;
 }
 
 .sign-in-button:hover {
-	box-shadow: 0px 16px 8px -8px rgba(0,0,0,0.36);
+	box-shadow: 0px 16px 8px -8px rgba(0, 0, 0, 0.36);
 }
 
 .sign-in-button img {
@@ -122,6 +122,7 @@ footer {
 .CodeMirror-fullscreen {
 	z-index: 10 !important;
 }
+
 .editor-toolbar {
 	z-index: 100 !important;
 }
@@ -130,7 +131,8 @@ footer {
 	z-index: 10 !important;
 }
 
-.editor-toolbar.fullscreen::before, .editor-toolbar.fullscreen::after {
+.editor-toolbar.fullscreen::before,
+.editor-toolbar.fullscreen::after {
 	opacity: 0;
 }
 

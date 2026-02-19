@@ -1,35 +1,33 @@
-<%-
-	// Renders an array of MapEntry's
-	maps.map(map => { // lol
-		return `
-			<div class="card map-card">
-				<a href="/map/${map.mapID}" class="map-image-link">
-					<img
-						style=""
-						class="card-img-top"
-						alt="${map.name}"
-						data-compressed-layout="${map.png}"
-						data-compressed-logic="${map.json}"
-						src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-					/>
-				</a>
-				<div class="card-body">
-					<a href="/map/${map.mapID}" class="map-link"><p class="card-text text-center">
-						<b>${map.name
-							.replace(/</gi, "&lt;")
-							.replace(/>/gi, "&gt;")
+<%- maps.map(map=> {
+	return `
+	<div class="card map-card">
+		<a href="/map/${map.mapID}" class="map-image-link">
+			<img style="" class="card-img-top" alt="${map.name}" data-compressed-layout="${map.png}"
+				data-compressed-logic="${map.json}"
+				src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" />
+		</a>
+		<div class="card-body">
+			<a href="/map/${map.mapID}" class="map-link">
+				<p class="card-text text-center">
+					<b>${map.name
+						.replace(/</gi, "&lt;" ) .replace( />/gi, "&gt;")
 						}</b> by <b>${map.authorName
-							.replace(/</gi, "&lt;")
-							.replace(/>/gi, "&gt;")
+						.replace(/</gi, "&lt;" ) .replace( />/gi, "&gt;")
 						}</b>
-					</p></a>
-					<hr>
-					<div class="btn-group w-100" role="group" aria-label="Basic example">
-						<a type="button" class="btn btn-primary" href="/test/${map.mapID}">Test</a>
-						<a type="button" class="btn btn-primary" href="/preview/${map.mapID}.jpeg">Fullsize Preview</a>
-					</div>
-				</div>
+				</p>
+			</a>
+			<hr>
+			<div class="btn-group w-100" role="group" aria-label="Basic example">
+				<a type="button" class="btn btn-primary" href="/test/${map.mapID}">Test</a>
+				<a type="button" class="btn btn-primary" href="/preview/${map.mapID}.jpeg">Fullsize Preview</a>
+				<button type="button" class="btn btn-outline-danger like-btn" data-mapid="${map.mapID}">
+					<i
+						class="${(map.likes && typeof profileID !== 'undefined' && profileID && map.likes.some(id => id.toString() === profileID.toString())) ? 'fas' : 'far'} fa-heart"></i>
+					<span class="like-count">${map.likes ? map.likes.length : 0}</span>
+				</button>
 			</div>
-		`;
+		</div>
+	</div>
+	`;
 	}).join("");
-%>
+	%>
