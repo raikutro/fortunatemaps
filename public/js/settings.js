@@ -55,6 +55,9 @@ $("#settingsBtn").click(() => {
 });
 
 $("#sendAnnouncementBtn").click(() => {
+	const announcementText = $("#announcementInput").val().trim();
+	if (!announcementText) return alert("Please enter announcement text.");
+
 	$("#sendAnnouncementBtn").prop("disabled", true);
 	fetch("/send_announcement", {
 		method: "POST",
@@ -63,13 +66,14 @@ $("#sendAnnouncementBtn").click(() => {
 			"X-CSRF-Token": getCsrfToken()
 		},
 		body: JSON.stringify({
-			announcement: prompt("Announcement:")
+			announcement: $("#announcementInput").val().trim()
 		})
 	}).then(a =>a.json()).then(json => {
 		$("#sendAnnouncementBtn").prop("disabled", false);
 		if(json.err) return alert("Error: " + json.err);
 		if(!json.success) return alert("Error: Failed");
 
+		$("#announcementInput").val("");
 		alert("Sent!");
 	});
 });

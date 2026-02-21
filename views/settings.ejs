@@ -59,6 +59,8 @@
 				<button class="btn btn-primary w-100" id="settingsBtn">Save Settings</button>
 				<hr>
 				<%- profile.isAdmin ? `
+				<b>Announcement</b>
+				<textarea class="form-control mt-2 mb-2" id="announcementInput" placeholder="Announcement text..." rows="3"></textarea>
 				<button class="btn btn-danger w-100" id="sendAnnouncementBtn">Send Announcement</button>
 				<hr>
 				` : "" %>
