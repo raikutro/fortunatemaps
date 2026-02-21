@@ -29,20 +29,25 @@
 
                     <form action="/browse" method="GET" class="browse-form">
                         <div class="form-row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <label for="titleInput">Map Title</label>
                                 <input type="text" class="form-control" name="title" id="titleInput"
-                                    placeholder="Enter map title" value="<%= searchParams.title %>">
+                                    placeholder="Enter map title" value="<%= searchParams.title || '' %>">
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
+                                <label for="hashInput">Map Hash</label>
+                                <input type="text" class="form-control" name="hash" id="hashInput"
+                                    placeholder="Enter map hash" value="<%= searchParams.hash || '' %>">
+                            </div>
+                            <div class="col-md-3 mb-3">
                                 <label for="authorInput">Author</label>
                                 <input type="text" class="form-control" name="author" id="authorInput"
-                                    placeholder="Enter author name" value="<%= searchParams.author %>">
+                                    placeholder="Enter author name" value="<%= searchParams.author || '' %>">
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <label for="tagsInput">Tags</label>
                                 <input type="text" class="form-control" name="tags" id="tagsInput"
-                                    placeholder="tag1, tag2" value="<%= searchParams.tags %>">
+                                    placeholder="tag1, tag2" value="<%= searchParams.tags || '' %>">
                                 <small class="form-text text-muted">Comma separated</small>
                             </div>
                         </div>

@@ -13,7 +13,7 @@ const SETTINGS = {
 		MAX_JSON_LENGTH: 2 ** 20,
 	},
 	HIERARCHICAL_HASH: {
-		QUANTIZATION: 16
+		QUANTIZATION: 64
 	},
 	DEFAULT_PREVIEW_TEXTURE_PACK: "MUSCLESCUPGRADIENTS",
 	TEXTURES: textures.texturePacks,
@@ -84,6 +84,11 @@ const SETTINGS = {
 				name: "Minigame",
 				backgroundColor: "#B73AB3",
 				textColor: "#EEEEEE"
+			},
+			"TRAINABLE": {
+				name: "CHUNK Trainable",
+				backgroundColor: "#78ffd6ff",
+				textColor: "#111111"
 			},
 			"ROTATION": {
 				name: "Rotation",

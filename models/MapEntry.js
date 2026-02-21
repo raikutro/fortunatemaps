@@ -39,7 +39,7 @@ const MapEntrySchema = new Schema({
 	// If the map should not be shown in queries.
 	unlisted: {type: Boolean},
 	// Hierarchical Hash for duplicate detection
-	hierarchicalHash: {type: String}
+	hierarchicalHash: {type: Buffer}
 });
 
 MapEntrySchema.index({ mapID: -1, dateUploaded: -1 });

@@ -108,4 +108,44 @@ Utils.templateEngineData = async (req) => ({
 	profile: req.getProfile ? await req.getProfile() : null
 });
 
+// Base 4 (0123) <-> Hex (0-F) conversion helpers
+// 2 Base4 digits = 1 Hex digit
+// 00=0, 01=1, 02=2, 03=3, 10=4, 11=5, 12=6, 13=7
+// 20=8, 21=9, 22=A, 23=B, 30=C, 31=D, 32=E, 33=F
+const B4_TO_HEX = {
+	'00': '0', '01': '1', '02': '2', '03': '3',
+	'10': '4', '11': '5', '12': '6', '13': '7',
+	'20': '8', '21': '9', '22': 'A', '23': 'B',
+	'30': 'C', '31': 'D', '32': 'E', '33': 'F'
+};
+const HEX_TO_B4 = {
+	'0': '00', '1': '01', '2': '02', '3': '03',
+	'4': '10', '5': '11', '6': '12', '7': '13',
+	'8': '20', '9': '21', 'A': '22', 'B': '23',
+	'C': '30', 'D': '31', 'E': '32', 'F': '33'
+};
+
+Utils.base4ToHex = (b4Str) => {
+	if (!b4Str) return "";
+	// Ensure even length for pairing (pad start with 0 if needed? No, hash parts are fixed length usually)
+	// But if odd, maybe just pad start with 0.
+	if (b4Str.length % 2 !== 0) b4Str = '0' + b4Str;
+	
+	let hex = "";
+	for (let i = 0; i < b4Str.length; i += 2) {
+		const pair = b4Str.substr(i, 2);
+		hex += (B4_TO_HEX[pair] || "?");
+	}
+	return hex;
+};
+
+Utils.hexToBase4 = (hexStr) => {
+	if (!hexStr) return "";
+	let b4 = "";
+	for (let char of hexStr.toUpperCase()) {
+		b4 += (HEX_TO_B4[char] || "");
+	}
+	return b4;
+};
+
 module.exports = Utils;

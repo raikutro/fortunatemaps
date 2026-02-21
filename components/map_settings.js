@@ -277,6 +277,50 @@ SETTINGS.TILE_IDS = {
 	BLUEPORTAL: 26
 };
 
+// [TEAM, WALL, FLOOR, OBJECTIVE, SPEED, EXPLOSIVE, DANGEROUS, PORTAL, ROTATION, POWERUP, GATE]
+// Red is 0, Blue is 1, Neutral is 0.5
+// Wall is 1 if it's a wall tile, 0 otherwise
+// Floor is 1 if it's a floor tile, 0 otherwise
+// Objective is 1 if it's an objective, 0 otherwise
+// Speed is 1 if it's a speed tile, 0 otherwise
+// Explosive is 1 if it's an explosive, 0 otherwise
+// Dangerous is 1 if it's dangerous, 0 otherwise
+// Portal is 1 if it's a portal tile, 0 otherwise
+// Rotation is 1 if it's a rotated tile, 0 otherwise
+// Powerup is 1 if it's a powerup tile, 0 otherwise
+
+SETTINGS.VECTOR_COMPONENT_COUNT = 11;
+SETTINGS.TILE_TO_VECTORS = {
+    //                                   T    W  F  O  S  E  D  P  R  P  G
+    [SETTINGS.TILE_IDS.FLOOR]:          [0.5, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.WALL]:           [0.5, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.BACKGROUND]:     [0.5, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.REDFLAG]:        [0,   0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.BLUEFLAG]:       [1,   0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.BOMB]:           [0.5, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.SPIKE]:          [0.5, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.POWERUP]:        [0.5, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+    [SETTINGS.TILE_IDS.BOOST]:          [0.5, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.GATE]:           [0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [SETTINGS.TILE_IDS.BUTTON]:         [0.5, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+    [SETTINGS.TILE_IDS.REDBOOST]:       [0,   0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.BLUEBOOST]:      [1,   0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.REDTEAMTILE]:    [0,   0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.BLUETEAMTILE]:   [1,   0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.YELLOWTEAMTILE]: [0.5, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.TLWALL]:         [0.5, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.TRWALL]:         [0.5, 1, 0, 0, 0, 0, 0, 0, 0.25, 0, 0],
+    [SETTINGS.TILE_IDS.BLWALL]:         [0.5, 1, 0, 0, 0, 0, 0, 0, 0.5, 0, 0],
+    [SETTINGS.TILE_IDS.BRWALL]:         [0.5, 1, 0, 0, 0, 0, 0, 0, 0.75, 0, 0],
+    [SETTINGS.TILE_IDS.PORTAL]:         [0.5, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+    [SETTINGS.TILE_IDS.REDENDZONE]:     [0,   0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.BLUEENDZONE]:    [1,   0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.GRAVITYWELL]:    [0.5, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.YELLOWFLAG]:     [0.5, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [SETTINGS.TILE_IDS.REDPORTAL]:      [0,   0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+    [SETTINGS.TILE_IDS.BLUEPORTAL]:     [1,   0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+};
+
 SETTINGS.IS_WALL = id => [
 	SETTINGS.TILE_IDS.WALL,
 	SETTINGS.TILE_IDS.TLWALL,

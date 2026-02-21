@@ -34,7 +34,7 @@ console.log("Loaded tagproedit.com editor");
 const PreviewGenerator = require('./components/preview_generator');
 const Masher = require('./components/masher');
 const AutoTagger = require('./components/auto_tagger');
-const HierarchicalHash = require('./components/hierarchical_hash');
+const ModelHash = require('./components/model_hash');
 
 // Routes
 const AccountRoutes = require('./routes/account_routes');
@@ -422,6 +422,7 @@ apiRouter.get('/browse', LoginMiddleware, async (req, res) => {
 		title: (req.query.title || "").trim(),
 		author: (req.query.author || "").trim(),
 		tags: (req.query.tags || "").trim(),
+		hash: (req.query.hash || "").trim(),
 		tagMode: (req.query.tagMode === 'or') ? 'or' : 'and',
 		p: Math.max(Number(req.query.p) || 1, 1) - 1
 	};
@@ -435,65 +436,35 @@ apiRouter.get('/browse', LoginMiddleware, async (req, res) => {
 
 	// Title Search
 	if (query.title) {
-		let hashSearch = false;
-		const cleanTitle = query.title.trim();
+		dbQuery.name = new RegExp(Utils.cleanQuery(query.title), 'i');
+	}
 
-		// Check for Hex format
-		if (/^[A-Fa-f0-9+]+$/.test(cleanTitle) && cleanTitle.length > 3) {
-			try {
-				const escapedQuery = cleanTitle.replace(/\+/g, '\\+');
-				dbQuery.$or = [
-					{ name: new RegExp(Utils.cleanQuery(cleanTitle), 'i') },
-					{ hierarchicalHash: new RegExp('^' + escapedQuery) }
-				];
-				hashSearch = true;
-			} catch (e) {}
-		}
-		// Check for Base36 format (A-Z0-9+)
-		else if (/^[A-Z0-9+]+$/.test(cleanTitle) && cleanTitle.length > 3) {
-			try {
-				// Convert each part from Base36 to Hex
-				const parts = cleanTitle.split('+');
-				const hexParts = parts.map(p => {
-					if (!p) return '';
-					let hex = BigInt(parseInt(p, 36)).toString(16);
-					
-					// Function to parse BigInt from base 36 string
-					const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-					let val = 0n;
-					for (let char of p) {
-						const d = alphabet.indexOf(char);
-						if (d === -1) throw new Error("Invalid char");
-						val = val * 36n + BigInt(d);
-					}
-					return val.toString(16);
-				});
-
-				// Pad parts to their expected lengths (L1=4, L2=16, L3=64)
-				const lengths = [4, 16, 64];
-				const paddedHexParts = hexParts.map((h, i) => {
-					if (i < lengths.length) {
-						return h.padStart(lengths[i], '0');
-					}
-					return h;
-				});
-
-				const hexQuery = paddedHexParts.join('+');
-				const escapedQuery = hexQuery.replace(/\+/g, '\\+');
-
-				dbQuery.$or = [
-					{ name: new RegExp(Utils.cleanQuery(cleanTitle), 'i') },
-					{ hierarchicalHash: new RegExp('^' + escapedQuery) }
-				];
-				hashSearch = true;
-
-			} catch (e) {
-				// Base36 conversion failed
+	// Hash Search
+	if (query.hash) {
+		const hashStr = query.hash.toUpperCase();
+		try {
+			// Parse Base36 back to BigInt
+			const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+			let val = 0n;
+			for (let char of hashStr) {
+				const d = alphabet.indexOf(char);
+				if (d === -1) throw new Error("Invalid char");
+				val = val * 36n + BigInt(d);
 			}
-		}
-
-		if (!hashSearch) {
-			dbQuery.name = new RegExp(Utils.cleanQuery(query.title), 'i');
+			
+			// Convert BigInt to Hex to Buffer
+			let hex = val.toString(16);
+			if (hex.length % 2 !== 0) hex = '0' + hex;
+			
+			// Pad to 32 bytes (64 hex chars)
+			hex = hex.padStart(64, '0');
+			const buffer = Buffer.from(hex, 'hex');
+			
+			// Exact match only
+			dbQuery.hierarchicalHash = buffer;
+		} catch (e) {
+			// Invalid hash search
+			dbQuery.hierarchicalHash = null;
 		}
 	}
 
@@ -587,6 +558,17 @@ apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 
 	mapEntry.png = mapEntry.png.toString('base64');
 	mapEntry.json = mapEntry.json.toString('base64');
+	
+	if (mapEntry.hierarchicalHash) {
+		let buf = mapEntry.hierarchicalHash;
+		if (!Buffer.isBuffer(buf) && buf.buffer) buf = buf.buffer; // Handle MongoDB Binary
+		if (Buffer.isBuffer(buf)) {
+			const hex = buf.toString('hex');
+			mapEntry.hierarchicalHash = BigInt('0x' + hex).toString(36).toUpperCase();
+		} else {
+			mapEntry.hierarchicalHash = mapEntry.hierarchicalHash.toString(); // Fallback
+		}
+	}
 
 	res.render('map', {
 		...(await Utils.templateEngineData(req)),
@@ -662,6 +644,17 @@ apiRouter.get('/map_data/:mapid', async (req, res) => {
 
 	mapEntry.png = (await Utils.Compression.decompressMapLayout(Buffer.from(mapEntry.png.toString('base64'), 'base64'))).toString('base64');
 	mapEntry.json = JSON.stringify(await Utils.Compression.decompressMapLogic(Buffer.from(mapEntry.json.toString('base64'), 'base64')));
+
+	if (mapEntry.hierarchicalHash) {
+		let buf = mapEntry.hierarchicalHash;
+		if (!Buffer.isBuffer(buf) && buf.buffer) buf = buf.buffer; // Handle MongoDB Binary
+		if (Buffer.isBuffer(buf)) {
+			const hex = buf.toString('hex');
+			mapEntry.hierarchicalHash = BigInt('0x' + hex).toString(36).toUpperCase();
+		} else {
+			mapEntry.hierarchicalHash = mapEntry.hierarchicalHash.toString(); // Fallback
+		}
+	}
 
 	res.json({
 		map: mapEntry,
@@ -938,14 +931,19 @@ apiRouter.post('/upload_map',
 				// Auto-Generate Tags
 				const generatedTags = await AutoTagger.generateTags(mapLayout, mapJSON);
 
-				// Generate Hierarchical Hash
-				const hierarchicalHashArray = await HierarchicalHash.get(mapLayout, SETTINGS.HIERARCHICAL_HASH.QUANTIZATION);
+				// Generate Hash
+				const hierarchicalHashArray = await ModelHash.get(mapLayout);
 				
-				const l1 = hierarchicalHashArray.slice(0, 4).map(v => v.toString(16)).join('');
-				const l2 = hierarchicalHashArray.slice(4, 20).map(v => v.toString(16)).join('');
-				const l3 = hierarchicalHashArray.slice(20, 84).map(v => v.toString(16)).join('');
-
-				const hierarchicalHash = `${l1}+${l2}+${l3}`;
+				const hashBuffer = Buffer.alloc(32);
+				for(let i = 0; i < 32; i++) {
+					let byte = 0;
+					for(let j = 0; j < 8; j++) {
+						if(hierarchicalHashArray[i*8 + j]) {
+							byte |= (1 << (7 - j));
+						}
+					}
+					hashBuffer[i] = byte;
+				}
 
 				// Save the MapEntry to MongoDB
 				await MapEntry.create({
@@ -962,7 +960,7 @@ apiRouter.post('/upload_map',
 					versionSource: versionSource,
 					isRemix: isRemix,
 					unlisted: req.body.unlisted,
-					hierarchicalHash: hierarchicalHash
+					hierarchicalHash: hashBuffer
 				});
 
 				// Send the new map ID to the client.
@@ -1155,18 +1153,30 @@ apiRouter.post('/calculate_hash', LoginMiddleware, requireCsrf, async (req, res)
 			return res.status(403).json({ err: "You do not have permission to calculate hash for this map." });
 		}
 
-		if (mapEntry.hierarchicalHash) {
+		if (mapEntry.hierarchicalHash && !req.isAdmin) {
 			return res.status(400).json({ err: "Map already has a hash." });
 		}
 
 		// Calculate Hash
-		const hierarchicalHashArray = await HierarchicalHash.get(mapEntry.png, SETTINGS.HIERARCHICAL_HASH.QUANTIZATION);
+		// mapEntry.png is a GZIP buffer of the PNG. We must decompress it first.
+		const pngBuffer = await Utils.Compression.decompressMapLayout(mapEntry.png);
+		if (!pngBuffer) {
+			return res.status(500).json({ err: "Failed to decompress map image." });
+		}
+		const hierarchicalHashArray = await ModelHash.get(pngBuffer);
 		
-		const l1 = hierarchicalHashArray.slice(0, 4).map(v => v.toString(16)).join('');
-		const l2 = hierarchicalHashArray.slice(4, 20).map(v => v.toString(16)).join('');
-		const l3 = hierarchicalHashArray.slice(20, 84).map(v => v.toString(16)).join('');
+		const hashBuffer = Buffer.alloc(32);
+		for(let i = 0; i < 32; i++) {
+			let byte = 0;
+			for(let j = 0; j < 8; j++) {
+				if(hierarchicalHashArray[i*8 + j]) {
+					byte |= (1 << (7 - j));
+				}
+			}
+			hashBuffer[i] = byte;
+		}
 
-		mapEntry.hierarchicalHash = `${l1}+${l2}+${l3}`;
+		mapEntry.hierarchicalHash = hashBuffer;
 		await mapEntry.save();
 
 		res.json({

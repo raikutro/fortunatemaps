@@ -107,7 +107,7 @@
 										<tr>
 											<td>Hash</td>
 											<td class="text-monospace" style="word-break: break-all;">
-												<small><%- map.hierarchicalHash.split('+').map((p, i) => BigInt('0x'+p.padStart([4,16,64][i], '0')).toString(36).toUpperCase()).join('+') %></small>
+												<small><%- map.hierarchicalHash %></small>
 											</td>
 										</tr>
 										<% } %>
@@ -217,9 +217,7 @@
 					<div class="modal-footer">
 						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
 						<button type="button" class="btn btn-danger" id="deleteMapBtn">Delete Map</button>
-						<% if(!map.hierarchicalHash) { %>
-							<button type="button" class="btn btn-warning" id="calculateHashBtn">Calculate Hash</button>
-						<% } %>
+						<button type="button" class="btn btn-warning" id="calculateHashBtn">Calculate Hash</button>
 						<button type="button" class="btn btn-primary" id="saveMapSettings">Save changes</button>
 					</div>
 				</div>
