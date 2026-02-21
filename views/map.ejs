@@ -107,7 +107,61 @@
 										<tr>
 											<td>Hash</td>
 											<td class="text-monospace" style="word-break: break-all;">
-												<small><%- map.hierarchicalHash %></small>
+												<small>
+													<a href="#" data-toggle="modal" data-target="#vizHashModal" title="View VizHash">
+														<%- map.hierarchicalHash %>
+													</a>
+												</small>
+												<!-- VizHash Modal -->
+												<div class="modal fade" id="vizHashModal" tabindex="-1" role="dialog" aria-labelledby="vizHashModalLabel" aria-hidden="true">
+													<div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+														<div class="modal-content">
+															<div class="modal-header">
+																<h5 class="modal-title" id="vizHashModalLabel">VizHash</h5>
+																<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+																	<span aria-hidden="true">&times;</span>
+																</button>
+															</div>
+															<div class="modal-body d-flex justify-content-center">
+																<div style="display: grid; grid-template-columns: repeat(16, 12px); grid-template-rows: repeat(16, 12px); gap: 1px; width: fit-content;">
+																	<% 
+																		// Convert Base36 to 256-bit binary string
+																		let hexHash = '';
+																		try {
+																			// Base36 string -> BigInt -> Hex -> Buffer -> Binary String
+																			const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+																			let val = 0n;
+																			for (let char of map.hierarchicalHash) {
+																				const d = alphabet.indexOf(char);
+																				if (d !== -1) val = val * 36n + BigInt(d);
+																			}
+																			let hex = val.toString(16);
+																			if (hex.length % 2 !== 0) hex = '0' + hex;
+																			hexHash = hex.padStart(64, '0');
+																		} catch (e) {
+																			hexHash = ''.padStart(64, '0');
+																		}
+																		
+																		// Convert Hex to Binary String
+																		let binaryHash = '';
+																		for (let i = 0; i < hexHash.length; i++) {
+																			binaryHash += parseInt(hexHash[i], 16).toString(2).padStart(4, '0');
+																		}
+																		// Ensure it's 256 bits
+																		binaryHash = binaryHash.padStart(256, '0').slice(-256);
+
+																		// Render Grid
+																		for (let i = 0; i < 256; i++) {
+																			let bit = binaryHash[i];
+																			let color = bit === '1' ? '#222' : '#ddd';
+																	%>
+																		<div style="background-color: <%- color %>; width: 100%; height: 100%;"></div>
+																	<% } %>
+																</div>
+															</div>
+														</div>
+													</div>
+												</div>
 											</td>
 										</tr>
 										<% } %>
@@ -136,13 +190,21 @@
 				</div>
 			</div>
 			<hr>
-			<div class="comment-editor-container mb-2">
-				<div class="markdown-container">
-					<textarea id="commentInput"></textarea>
+			<% const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000; %>
+			<% if(map.dateUploaded && new Date(map.dateUploaded).getTime() >= oneWeekAgo) { %>
+				<div class="comment-editor-container mb-2">
+					<div class="markdown-container">
+						<textarea id="commentInput"></textarea>
+					</div>
+					<button class="btn btn-primary w-100" id="submitCommentBtn">Submit</button>
+					<hr>
 				</div>
-				<button class="btn btn-primary w-100" id="submitCommentBtn">Submit</button>
+			<% } else { %>
+				<div class="alert alert-secondary text-center mb-2">
+					Comments are disabled for maps older than 1 week.
+				</div>
 				<hr>
-			</div>
+			<% } %>
 			<div class="card mb-2">
 				<div class="card-header">
 					Comments

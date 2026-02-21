@@ -85,8 +85,8 @@ const SETTINGS = {
 				backgroundColor: "#B73AB3",
 				textColor: "#EEEEEE"
 			},
-			"TRAINABLE": {
-				name: "CHUNK Trainable",
+			"CHUNKABLE": {
+				name: "CHUNKable",
 				backgroundColor: "#78ffd6ff",
 				textColor: "#111111"
 			},

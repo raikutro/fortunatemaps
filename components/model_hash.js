@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Load hash model
-const modelPath = path.join(__dirname, '../temp/hash_model.json');
+const modelPath = path.join(__dirname, '../chunk_models/hash_model.json');
 let hashModel = null;
 try {
     hashModel = require(modelPath);

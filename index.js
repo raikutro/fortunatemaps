@@ -423,6 +423,8 @@ apiRouter.get('/browse', LoginMiddleware, async (req, res) => {
 		author: (req.query.author || "").trim(),
 		tags: (req.query.tags || "").trim(),
 		hash: (req.query.hash || "").trim(),
+		afterDate: (req.query.afterDate || "").trim(),
+		beforeDate: (req.query.beforeDate || "").trim(),
 		tagMode: (req.query.tagMode === 'or') ? 'or' : 'and',
 		p: Math.max(Number(req.query.p) || 1, 1) - 1
 	};
@@ -433,6 +435,24 @@ apiRouter.get('/browse', LoginMiddleware, async (req, res) => {
 	}
 
 	const dbQuery = { unlisted: false };
+
+	// Date Range Search
+	if (query.afterDate || query.beforeDate) {
+		dbQuery.dateUploaded = {};
+		if (query.afterDate) {
+			const start = new Date(query.afterDate);
+			if (!isNaN(start.getTime())) dbQuery.dateUploaded.$gte = start;
+		}
+		if (query.beforeDate) {
+			const end = new Date(query.beforeDate);
+			// Set exactly to the end of the selected day
+			end.setHours(23, 59, 59, 999);
+			if (!isNaN(end.getTime())) dbQuery.dateUploaded.$lte = end;
+		}
+		if (Object.keys(dbQuery.dateUploaded).length === 0) {
+			delete dbQuery.dateUploaded;
+		}
+	}
 
 	// Title Search
 	if (query.title) {
@@ -1056,6 +1076,11 @@ apiRouter.post('/comment', commentLimiter, LoginMiddleware, requireCsrf, async (
 		});
 
 		if (!mapEntry) return res.status(404).json({ err: "Map not found." });
+
+		const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+		if (mapEntry.dateUploaded && mapEntry.dateUploaded.getTime() < oneWeekAgo) {
+			return res.json({ err: "Comments are disabled for maps older than 1 week." });
+		}
 
 		let commentingUser = await User.findById(req.profileID);
 		if (!commentingUser) return res.status(404).json({ err: "User not found." });

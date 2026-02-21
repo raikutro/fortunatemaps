@@ -5,7 +5,7 @@ const Utils = require('../Utils');
 const SETTINGS = require('../Settings');
 require('dotenv').config();
 
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 100;
 
 mongoose.connect(process.env.MONGODB_URL, {
     useNewUrlParser: true,
@@ -15,28 +15,42 @@ mongoose.connect(process.env.MONGODB_URL, {
 
     try {
         const isForce = process.argv.includes('--force');
-        if (isForce) {
-            console.log("Starting FORCE update (processing all maps)...");
+        const startArgIndex = process.argv.indexOf('--start');
+        let startingID = null;
+
+        if (startArgIndex !== -1 && process.argv.length > startArgIndex + 1) {
+            startingID = parseInt(process.argv[startArgIndex + 1], 10);
+        }
+
+        if (isForce || startingID) {
+            console.log(`Starting FORCE update (processing all maps${startingID ? ` starting from ID ${startingID}` : ''})...`);
         } else {
             console.log("Starting missing hash backfill (only maps without hashes)...");
         }
 
         let totalUpdated = 0;
         let batchCount = 0;
-        let lastMapID = null;
+        let lastMapID = startingID;
 
         while (true) {
             const query = {};
 
-            if (!isForce) {
+            if (!isForce && !startingID) {
+                // Fetch maps that do not have a hash OR have an empty hash
+                // Note: hierarchicalHash type was changed to Buffer, so $exists is the main check.
                 query.$or = [
                     { hierarchicalHash: { $exists: false } },
-                    { hierarchicalHash: "" },
+                    { hierarchicalHash: null }
                 ];
             }
 
             if (lastMapID !== null) {
-                query.mapID = { $lt: lastMapID };
+                // Fetch maps smaller than or equal to lastMapID when it's the very first batch if manually specifying 
+                if (batchCount === 0 && startingID) {
+                    query.mapID = { $lte: lastMapID }; 
+                } else {
+                    query.mapID = { $lt: lastMapID };
+                }
             }
 
             // Find maps and sort by mapID descending (newest first)
@@ -52,7 +66,7 @@ mongoose.connect(process.env.MONGODB_URL, {
             lastMapID = maps[maps.length - 1].mapID;
 
             batchCount++;
-            console.log(`\nProcessing Batch #${batchCount} (${maps.length} maps)...`);
+            console.log(`\nProcessing Batch #${batchCount} (${maps.length} maps, ending at ID ${lastMapID})...`);
 
             const bulkOps = [];
 
