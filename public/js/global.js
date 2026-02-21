@@ -1,6 +1,7 @@
 let userLocalSettings = JSON.parse(localStorage.getItem("localSettings") || "{}");
 
 if (userLocalSettings.leftAlignedNavbar) $(".navbar").addClass("left-aligned");
+if (userLocalSettings.darkMode) $("body").addClass("dark-mode");
 
 marked.setOptions({ breaks: true });
 
