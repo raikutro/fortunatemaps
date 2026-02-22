@@ -188,9 +188,8 @@ async function loadLoginTokens() {
 }
 
 // Home Page
-// Home Page
 app.get('/', LoginMiddleware, async (req, res) => {
-	const sortMode = req.query.sort || 'week'; // 'week' or 'new'
+	const sortMode = req.query.sort || 'new'; // 'week' or 'new'
 	const page = Math.max(Number(req.query.p) || 1, 1);
 	const skipNum = (page - 1) * SETTINGS.SITE.MAPS_PER_PAGE;
 
