@@ -21,6 +21,7 @@
   "author": "Electro",
   "license": "ISC",
   "dependencies": {
+    "canvas": "^3.2.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",

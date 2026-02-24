@@ -20,7 +20,9 @@ const UserSchema = new Schema({
 	social: {
 		discord: {type: String},
 		reddit: {type: String}
-	}
+	},
+	// Auto-Tag maps as CHUNKable
+	autoChunkable: {type: Boolean, default: false}
 });
 
 const User = mongoose.model('User', UserSchema);

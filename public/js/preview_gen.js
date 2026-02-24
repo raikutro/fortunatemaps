@@ -473,24 +473,11 @@
 		const imageData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
 		const data = imageData.data;
 
-		let wallMap = [];
-		for (let y = 0; y < offCanvas.height; y++) {
-			wallMap[y] = [];
-			for (let x = 0; x < offCanvas.width; x++) {
-				const idx = (y * offCanvas.width + x) * 4;
-				const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
-				const hex = rgbToHex(r, g, b).toLowerCase();
-				wallMap[y][x] = (a === 0) ? 0 : (wallTypes.hasOwnProperty(hex) ? wallTypes[hex].wallSolids : 0);
-			}
-		}
-		// console.log("[FM] wallMap built:", wallMap);
-
 		const finalCanvas = document.createElement('canvas');
 		finalCanvas.width = offCanvas.width * config.tileSize;
 		finalCanvas.height = offCanvas.height * config.tileSize;
 		const finalCtx = finalCanvas.getContext('2d');
 		finalCtx.imageSmoothingEnabled = false;
-		// console.log("[FM] Final canvas created");
 
 		const defaultFloorTile = getFloorTile("d4d4d4");
 		if (defaultFloorTile) {
@@ -504,26 +491,44 @@
 			}
 		}
 
+		// 2. Build the wallmap and draw non-default floor tiles
+		let wallMap = [];
+		const fieldsData = mapJSONData && mapJSONData.fields ? mapJSONData.fields : null;
+
 		for (let y = 0; y < offCanvas.height; y++) {
+			wallMap[y] = [];
+			const rowOffset = y * offCanvas.width;
+			
 			for (let x = 0; x < offCanvas.width; x++) {
-				const idx = (y * offCanvas.width + x) * 4;
+				const idx = (rowOffset + x) * 4;
 				const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
-				if (a === 0) continue;
+
+				if (a === 0) {
+					wallMap[y][x] = 0;
+					continue;
+				}
+
 				const hex = rgbToHex(r, g, b).toLowerCase();
-				if (wallTypes.hasOwnProperty(hex)) continue;
+
+				// Build wall map
+				if (wallTypes.hasOwnProperty(hex)) {
+					wallMap[y][x] = wallTypes[hex].wallSolids;
+					continue;
+				} else {
+					wallMap[y][x] = 0;
+				}
+
+				// If it's the default floor, it's already drawn.
+				if (hex === "d4d4d4") continue;
+
+				// Otherwise draw the specialized floor tile
 				let tileSource = null;
 				if (hex === "007500") {
 					const fieldKey = `${x},${y}`;
-					let state = "empty"; // Default state remains "empty"
-					if (mapJSONData && mapJSONData.fields && mapJSONData.fields[fieldKey]) {
-						let ds = mapJSONData.fields[fieldKey].defaultState;
-						if (ds === "on") {
-							state = "green";
-						} else if (ds === "off") {
-							state = "empty"; // Change "off" to "empty"
-						} else {
-							state = ds;
-						}
+					let state = "empty";
+					if (fieldsData && fieldsData[fieldKey]) {
+						let ds = fieldsData[fieldKey].defaultState;
+						state = (ds === "on") ? "green" : (ds === "off" ? "empty" : ds);
 					}
 
 					const tileKey = "007500_" + state;
@@ -531,6 +536,7 @@
 				} else {
 					tileSource = getFloorTile(hex);
 				}
+
 				if (tileSource) {
 					const sx = tileSource.x * config.tileSize;
 					const sy = tileSource.y * config.tileSize;
@@ -552,7 +558,7 @@
 					const sy = 0 * config.tileSize; // source y: tile row 0
 					finalCtx.drawImage(images.portal, sx, sy, config.tileSize, config.tileSize,
 						x * config.tileSize, y * config.tileSize, config.tileSize, config.tileSize);
-					console.log(`[FM] Exit portal drawn at ${x},${y}`);
+					// console.log(`[FM] Exit portal drawn at ${x},${y}`);
 				}
 			});
 		}

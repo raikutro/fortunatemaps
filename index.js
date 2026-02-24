@@ -952,6 +952,13 @@ apiRouter.post('/upload_map',
 				// Auto-Generate Tags
 				const generatedTags = await AutoTagger.generateTags(mapLayout, mapJSON);
 
+				if (req.profileID) {
+					const uploader = await User.findById(req.profileID);
+					if (uploader && uploader.autoChunkable && !generatedTags.includes("CHUNKable")) {
+						generatedTags.push("CHUNKable");
+					}
+				}
+
 				// Generate Hash
 				const hierarchicalHashArray = await ModelHash.get(mapLayout);
 				

@@ -43,7 +43,8 @@ $("#settingsBtn").click(() => {
 		body: JSON.stringify({
 			discord: $("#discordSocialInput").val().trim(),
 			reddit: $("#redditSocialInput").val().trim(),
-			bio: markdownEditor.value()
+			bio: markdownEditor.value(),
+			autoChunkable: $("#autoChunkableInput").prop("checked")
 		})
 	}).then(a =>a.json()).then(json => {
 		$("#settingsBtn").prop("disabled", false);
