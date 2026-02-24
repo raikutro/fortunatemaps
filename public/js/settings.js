@@ -25,7 +25,7 @@ $(".local-setting[type='checkbox']").on("click", function(){
 $("select.local-setting").on("change", function(){
 	let value = $(this).val();
 
-	console.log(value);
+	// console.log(value);
 
 	localSettings[$(this).attr("data-setting")] = value;
 
@@ -44,7 +44,8 @@ $("#settingsBtn").click(() => {
 			discord: $("#discordSocialInput").val().trim(),
 			reddit: $("#redditSocialInput").val().trim(),
 			bio: markdownEditor.value(),
-			autoChunkable: $("#autoChunkableInput").prop("checked")
+			autoChunkable: $("#autoChunkableInput").prop("checked"),
+			profileBanner: parseInt($("#profileBannerInput").val().trim()) || 0
 		})
 	}).then(a =>a.json()).then(json => {
 		$("#settingsBtn").prop("disabled", false);

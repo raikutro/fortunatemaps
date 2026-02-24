@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<%- include('head') %>
+		<title>Fortunate Maps - Admin Dashboard</title>
+		<style>
+			.admin-container {
+				max-width: 900px;
+				margin: auto;
+			}
+			.cert-tag {
+				display: inline-block;
+				padding: 2px 6px;
+				border-radius: 4px;
+				font-size: 0.8rem;
+				font-weight: bold;
+				margin-right: 4px;
+				margin-bottom: 4px;
+			}
+		</style>
+	</head>
+	<body>
+		<%- include('nav'); %>
+
+		<main role="main" class="container admin-container mt-4">
+			<h1 class="text-center">Admin Dashboard</h1>
+			<hr>
+			
+			<div class="card mb-4">
+				<div class="card-body">
+					<h5 class="card-title">User Search</h5>
+					<form id="searchUserForm">
+						<div class="input-group">
+							<input type="text" class="form-control" id="userSearchInput" placeholder="Search by Username, TagPro Profile URL, or exact ID...">
+							<div class="input-group-append">
+								<button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Search</button>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+
+			<div class="table-responsive">
+				<table class="table table-striped table-hover" id="userResultsTable" style="display:none;">
+					<thead class="thead-dark">
+						<tr>
+							<th>ID</th>
+							<th>Username</th>
+							<th>Joined</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody id="userResultsBody">
+						<!-- Results populated here -->
+					</tbody>
+				</table>
+			</div>
+			
+			<div id="noResultsAlert" class="alert alert-info" style="display:none;">
+				No users found.
+			</div>
+		</main>
+
+		<!-- Edit User Modal -->
+		<div class="modal fade" id="editUserModal" tabindex="-1" role="dialog" aria-hidden="true">
+			<div class="modal-dialog modal-lg" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">Edit User Profile</h5>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+					<div class="modal-body">
+						<form id="editUserForm">
+							<input type="hidden" id="editUserId">
+							<div class="form-group">
+								<label for="editUsername">Username</label>
+								<input type="text" class="form-control" id="editUsername" required>
+							</div>
+							<div class="form-row">
+								<div class="form-group col-md-6">
+									<label for="editDiscord">Discord</label>
+									<input type="text" class="form-control" id="editDiscord">
+								</div>
+								<div class="form-group col-md-6">
+									<label for="editReddit">Reddit</label>
+									<input type="text" class="form-control" id="editReddit">
+								</div>
+							</div>
+							<div class="form-group">
+								<label for="editBio">Biography</label>
+								<textarea class="form-control" id="editBio" rows="3"></textarea>
+							</div>
+
+							<div class="form-check mb-2">
+								<input class="form-check-input" type="checkbox" id="editIsAdmin">
+								<label class="form-check-label font-weight-bold text-danger" for="editIsAdmin">
+									Administrator Privileges
+								</label>
+							</div>
+							<div class="form-check mb-4">
+								<input class="form-check-input" type="checkbox" id="editAutoChunkable">
+								<label class="form-check-label" for="editAutoChunkable">
+									Auto-Tag Maps as CHUNKable
+								</label>
+							</div>
+
+							<hr>
+							<h6 class="font-weight-bold">Manage Certifications</h6>
+							<div id="existingCerts" class="mb-3">
+								<!-- Rendered via JS -->
+							</div>
+							<div class="input-group mb-3">
+								<select class="form-control" id="addCertSelect">
+									<option value="" selected disabled>Select a certification to award...</option>
+									<% Object.keys(certifications).forEach(id => { %>
+										<option value="<%= id %>"><%= certifications[id].name %></option>
+									<% }); %>
+								</select>
+								<input type="text" class="form-control" id="addCertName" placeholder="Custom Name (Optional)">
+								<div class="input-group-append">
+									<button class="btn btn-outline-success" type="button" id="addCertBtn">Award</button>
+								</div>
+							</div>
+						</form>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+						<button type="button" class="btn btn-primary" id="saveUserBtn">Save Profile Changes</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			window.CERTIFICATIONS = <%- JSON.stringify(certifications) %>;
+		</script>
+		<%- include('bodyscripts'); %>
+		<script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+		<script src="/js/admin.js"></script>
+	</body>
+</html>

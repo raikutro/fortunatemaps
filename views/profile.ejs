@@ -9,13 +9,13 @@
 	</head>
 	<body>
 		<%- include('nav'); %>
-
 		<div class="banner">
-			
+			<% if (bannerMap) { %>
+				<img class="profile-banner-img" alt="Profile Banner" data-quality="hq" data-compressed-layout="<%- bannerMap.png %>" data-compressed-logic="<%- bannerMap.json %>" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" />
+			<% } %>
 		</div>
 		<main role="main" class="container">
 			<div class="banner-overlay">
-				<img class="profile-avatar" src="/assets/user.png" />
 				<h2 class="profile-username"><%- user.username %></h2>
 			</div>
 
@@ -23,7 +23,7 @@
 				<div class="col-md-6">
 					<div class="card">
 						<div class="card-body">
-							<div class="bio-text" id="bioText" markdown="<%- user.bio || `*${SETTINGS.FILLERS.BIO[Math.floor(Math.random() * SETTINGS.FILLERS.BIO.length)]}*`%>">
+							<div class="bio-text" id="bioText" markdown="<%= user.bio || `*${SETTINGS.FILLERS.BIO[Math.floor(Math.random() * SETTINGS.FILLERS.BIO.length)]}*`%>">
 							</div>
 							<hr>
 							<div class="social-container">
@@ -59,14 +59,14 @@
 						<div class="card-header">
 							Certifications
 						</div>
-						<div class="card-body">
+						<div class="card-body d-flex flex-row flex-wrap align-items-center justify-content-center">
 							<%- user.certifications.length > 0 ? user.certifications.map(certification => {
 								let certData = SETTINGS.SITE.CERTIFICATIONS[certification.certificationType];
 								return `<span
-									class="certification badge badge-primary"
+									class="certification badge badge-primary mb-2 mr-2"
 									style="background: ${certData.backgroundColor}; color: ${certData.textColor}"
 								>${certification.name || certData.name}</span>`;
-							}) : "Unfortunately, this person isn't known for anything."%>
+							}).join('') : "Unfortunately, this person isn't known for anything."%>
 						</div>
 					</div>
 					<hr>

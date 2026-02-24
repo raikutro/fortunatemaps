@@ -36,20 +36,26 @@ const SETTINGS = {
 			},
 			1: {
 				priority: 10,
-				name: "F-M Developer",
+				name: "😎 F-M Developer",
 				backgroundColor: "#69BF4A",
 				textColor: "#EEEEEE"
 			},
 			2: {
 				priority: 9,
-				name: "MTC",
+				name: "🔬 MTC",
 				backgroundColor: "#4CAF50",
 				textColor: "#EEEEEE"
 			},
 			3: {
 				priority: 8,
-				name: "TPFG",
+				name: "🛠️ TPFG",
 				backgroundColor: "#5DB4E8",
+				textColor: "#EEEEEE"
+			},
+			4: {
+				priority: 7,
+				name: "⭐ CHUNK Contributor",
+				backgroundColor: "#e4a93c",
 				textColor: "#EEEEEE"
 			}
 		},

@@ -310,7 +310,7 @@
 
 	if (savedTexture) {
 		const found = window.SETTINGS.TEXTURES.find(tp => tp.url === savedTexture);
-		console.log(currentTexturePack);
+		// console.log(currentTexturePack);
 		if (found) {
 			currentTexturePack = found;
 			// console.log("[FM] Loaded saved texture pack:", currentTexturePack.name);

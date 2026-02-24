@@ -21,9 +21,6 @@
 			<li class="nav-item">
 				<a class="nav-link in-site" href="/chunkv1">CHUNKv1</a>
 			</li>
-			<li class="nav-item" <%- profileID ? "" : "style='display:none'" %>>
-				<a class="nav-link in-site" href="/profile/<%= profileID %>">Profile</a>
-			</li>
 			<li class="nav-item">
 				<a class="nav-link" href="https://github.com/raikutro/fortunatemaps" target="_blank">GitHub</a>
 			</li>
@@ -38,7 +35,9 @@
 			</div>
 		</form>
 		<div class="account-buttons">
-			<%- profileID ? `<a class="settings-button" href="/settings"><i class="fas fa-cog"></i></a>
+			<%- profileID ? `${profile.isAdmin ? '<a class="admin-button mr-2" href="/admin" title="Admin Dashboard"><i class="fas fa-crown"></i></a>' : ''}
+				<a class="profile-button mr-2" href="/profile/${profileID}" title="My Profile"><i class="fas fa-user"></i></a>
+				<a class="settings-button" href="/settings"><i class="fas fa-cog"></i></a>
 				<a class="sign-out-button" href="/sign_out"><i class="fas fa-sign-out-alt"></i></a>` :
 				`<a class="sign-in-link" href="/sign_in">
 					<div class="sign-in-button">

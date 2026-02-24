@@ -97,8 +97,18 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 				return doc;
 			});
 
+			let bannerMap = null;
+			if (user.profileBanner) {
+				const bMap = await MapEntry.findOne({ mapID: user.profileBanner });
+				if (bMap) {
+					bannerMap = bMap.toObject();
+					bannerMap.png = bannerMap.png.toString('base64');
+					bannerMap.json = bannerMap.json.toString('base64');
+				}
+			}
+
 			let profileID = req.profileID;
-			let renderData = {...(await Utils.templateEngineData(req)), user, maps};
+			let renderData = {...(await Utils.templateEngineData(req)), user, maps, bannerMap};
 
 			if(profileID){
 				if(profileID === String(user._id)) {
@@ -207,7 +217,9 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 		if(user && Utils.hasCorrectParameters(req.body, {
 			discord: "string",
 			reddit: "string",
-			bio: "string"
+			bio: "string",
+			autoChunkable: "boolean",
+			profileBanner: "number"
 		})) {
 			req.body.discord = req.body.discord.trim().slice(0, 37);
 			req.body.reddit = req.body.reddit.replace('/u/', '').trim().slice(0, 30);
@@ -216,8 +228,16 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 			user.social.discord = req.body.discord;
 			user.social.reddit = req.body.reddit;
 			user.bio = req.body.bio;
-
+			user.autoChunkable = req.body.autoChunkable;
+			user.profileBanner = req.body.profileBanner === 0 ? null : req.body.profileBanner;
 			await user.save();
+
+			const CERT_ID = 4;
+			if (req.body.autoChunkable) {
+				await User.addCertification(user, CERT_ID);
+			} else {
+				await User.removeCertification(user, CERT_ID);
+			}
 
 			res.json({
 				success: true

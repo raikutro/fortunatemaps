@@ -64,6 +64,11 @@
 					<input type="text" class="form-control" id="redditSocialInput" value="<%- profile.social.reddit %>" maxlength="30" placeholder="Reddit Username">
 				</div>
 				<hr>
+				<b>Profile Customization</b>
+				<div class="input-group mt-2">
+					<input type="number" class="form-control" id="profileBannerInput" value="<%- profile.profileBanner || '' %>" placeholder="Profile Banner Map ID (e.g. 21)">
+				</div>
+				<hr>
 				<b>Biography</b>
 				<div class="markdown-container mt-2">
 					<textarea id="biographyInput"><%= profile.bio %></textarea>

@@ -22,9 +22,41 @@ const UserSchema = new Schema({
 		reddit: {type: String}
 	},
 	// Auto-Tag maps as CHUNKable
-	autoChunkable: {type: Boolean, default: false}
+	autoChunkable: {type: Boolean, default: false},
+	// Profile Banner Map ID
+	profileBanner: {type: Number}
 });
 
+const SETTINGS = require('../Settings');
+
 const User = mongoose.model('User', UserSchema);
+
+User.addCertification = async function(profile, certId) {
+	if (!profile.certifications) profile.certifications = [];
+	
+	const hasCert = profile.certifications.some(c => c.certificationType === certId);
+	if (!hasCert && SETTINGS.SITE.CERTIFICATIONS[certId]) {
+		profile.certifications.push({
+			certificationType: certId,
+			name: SETTINGS.SITE.CERTIFICATIONS[certId].name
+		});
+		await profile.save();
+		return true;
+	}
+	return false;
+};
+
+User.removeCertification = async function(profile, certId) {
+	if (!profile.certifications) return false;
+
+	const initialLength = profile.certifications.length;
+	profile.certifications = profile.certifications.filter(c => c.certificationType !== certId);
+	
+	if (profile.certifications.length !== initialLength) {
+		await profile.save();
+		return true;
+	}
+	return false;
+};
 
 module.exports = User;

@@ -38,6 +38,7 @@ const ModelHash = require('./components/model_hash');
 
 // Routes
 const AccountRoutes = require('./routes/account_routes');
+const AdminRoutes = require('./routes/admin_routes');
 
 // Basic Utility Functions
 const Utils = require('./Utils');
@@ -123,6 +124,7 @@ mongoose.connect(process.env.MONGODB_URL, {
 	});
 
 	AccountRoutes(app, sharedTokens, requireCsrf);
+	AdminRoutes(app, sharedTokens, requireCsrf);
 
 	httpServer.listen(PORT, () => {
 		console.log('listening on *:' + PORT);

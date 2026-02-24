@@ -553,7 +553,7 @@ $(function() {
 		down: function(x,y) {
 			this.downX = x;
 			this.downY = y;
-			console.log('down at ', x,y);
+			// console.log('down at ', x,y);
 		},
 		speculateUp: function(x,y) {
 			var coordinates = lineFn(this.downX===undefined?x:this.downX, this.downY===undefined?y:this.downY, x, y);
@@ -597,7 +597,7 @@ $(function() {
 		down: function(x,y) {
 			this.downX = x;
 			this.downY = y;
-			console.log('down at ', x,y);
+			// console.log('down at ', x,y);
 		},
 		speculateUp: function(x,y) {
 			var coordinates = rectFn(this.downX===undefined?x:this.downX, this.downY===undefined?y:this.downY, x, y, true);

@@ -6,10 +6,11 @@ module.exports = (sharedTokens) => {
 		// console.log(process.env.PROFILE_ID_OVERRIDE, sharedTokens);
 
 		req.getProfile = async (useDocument) => {
+			if(!req.profileID) req.profileID = process.env.PROFILE_ID_OVERRIDE;
 			if(!req.profileID) {
 				req.profileData = null;
 				return null;
-			} 
+			}
 
 			// Always retrieve a fresh Mongoose document from the database when specifically requested
 			if (useDocument) {
