@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Jimp } = require('jimp');
+const SETTINGS = require('../Settings');
 
 const args = process.argv.slice(2);
 const folderPath = args[0];
@@ -29,7 +30,8 @@ async function main() {
 
         // We have a 16x16 box, meaning 256 pixels. 
         // We will store an array of values for each pixel.
-        const pixelValues = Array.from({ length: 256 }, () => []);
+        const DIMENSIONS = SETTINGS.HIERARCHICAL_HASH.DIMENSIONS;
+        const pixelValues = Array.from({ length: DIMENSIONS * DIMENSIONS }, () => []);
         let processedCount = 0;
 
         for (const file of files) {
@@ -39,7 +41,7 @@ async function main() {
                 
                 // 1. Scale down to 16x16 box
                 // Using bicubic interpolation for smoother scaling
-                image.resize({ w: 16, h: 16, mode: 'bicubicInterpolation' });
+                image.resize({ w: DIMENSIONS, h: DIMENSIONS, mode: 'bicubicInterpolation' });
                 
                 // 2. Grayscale
                 image.greyscale();
@@ -72,9 +74,9 @@ async function main() {
 
         console.log(`Finished processing ${processedCount} maps. Calculating medians...`);
 
-        const thresholds = new Array(256);
+        const thresholds = new Array(DIMENSIONS * DIMENSIONS);
 
-        for (let i = 0; i < 256; i++) {
+        for (let i = 0; i < DIMENSIONS * DIMENSIONS; i++) {
             const values = pixelValues[i];
             if (values.length === 0) {
                 thresholds[i] = 0;

@@ -249,3 +249,7 @@ body.dark-mode .editor-toolbar a:hover {
 	background-color: #333;
 	border-color: #555;
 }
+
+body.dark-mode .map-description {
+	color: #eee;
+}

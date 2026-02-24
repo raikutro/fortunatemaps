@@ -475,8 +475,10 @@ apiRouter.get('/browse', LoginMiddleware, async (req, res) => {
 			let hex = val.toString(16);
 			if (hex.length % 2 !== 0) hex = '0' + hex;
 			
-			// Pad to 32 bytes (64 hex chars)
-			hex = hex.padStart(64, '0');
+			// Pad to bytes based on Dimensions
+			const DIM_SQUARED = SETTINGS.HIERARCHICAL_HASH.DIMENSIONS * SETTINGS.HIERARCHICAL_HASH.DIMENSIONS;
+			const NUM_BYTES = Math.ceil(DIM_SQUARED / 8);
+			hex = hex.padStart(NUM_BYTES * 2, '0');
 			const buffer = Buffer.from(hex, 'hex');
 			
 			// Exact match only
@@ -953,11 +955,15 @@ apiRouter.post('/upload_map',
 				// Generate Hash
 				const hierarchicalHashArray = await ModelHash.get(mapLayout);
 				
-				const hashBuffer = Buffer.alloc(32);
-				for(let i = 0; i < 32; i++) {
+				const DIM_SQUARED = SETTINGS.HIERARCHICAL_HASH.DIMENSIONS * SETTINGS.HIERARCHICAL_HASH.DIMENSIONS;
+				const NUM_BYTES = Math.ceil(DIM_SQUARED / 8);
+				
+				const hashBuffer = Buffer.alloc(NUM_BYTES);
+				for(let i = 0; i < NUM_BYTES; i++) {
 					let byte = 0;
 					for(let j = 0; j < 8; j++) {
-						if(hierarchicalHashArray[i*8 + j]) {
+						const bitIndex = i * 8 + j;
+						if(bitIndex < DIM_SQUARED && hierarchicalHashArray[bitIndex]) {
 							byte |= (1 << (7 - j));
 						}
 					}

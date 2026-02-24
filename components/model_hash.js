@@ -1,6 +1,7 @@
 const { Jimp } = require('jimp');
 const fs = require('fs');
 const path = require('path');
+const { DIMENSIONS } = require('../Settings').HIERARCHICAL_HASH;
 
 // Load hash model
 const modelPath = path.join(__dirname, '../chunk_models/hash_model.json');
@@ -37,7 +38,7 @@ const ModelHash = {
             const image = await Jimp.read(input);
             
             // 1. Scale down using Bicubic
-            image.resize({ w: 16, h: 16, mode: 'bicubicInterpolation' });
+            image.resize({ w: DIMENSIONS, h: DIMENSIONS, mode: 'bicubicInterpolation' });
 
             // 2. Grayscale
             image.greyscale();

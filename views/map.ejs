@@ -123,12 +123,18 @@
 																</button>
 															</div>
 															<div class="modal-body d-flex justify-content-center">
-																<div style="display: grid; grid-template-columns: repeat(16, 12px); grid-template-rows: repeat(16, 12px); gap: 1px; width: fit-content;">
+																<% 
+																	const dSettings = SETTINGS.HIERARCHICAL_HASH.DIMENSIONS;
+																	const DIM_SQUARED = dSettings * dSettings;
+																	const NUM_BYTES = Math.ceil(DIM_SQUARED / 8);
+																	const HEX_CHARS = NUM_BYTES * 2;
+																%>
+																<div style="display: grid; grid-template-columns: repeat(<%- dSettings %>, 12px); grid-template-rows: repeat(<%- dSettings %>, 12px); gap: 1px; width: fit-content;">
 																	<% 
-																		// Convert Base36 to 256-bit binary string
+																		// Convert Base36 to binary string
 																		let hexHash = '';
 																		try {
-																			// Base36 string -> BigInt -> Hex -> Buffer -> Binary String
+																			// Base36 string -> BigInt -> Hex -> Binary String
 																			const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 																			let val = 0n;
 																			for (let char of map.hierarchicalHash) {
@@ -137,9 +143,14 @@
 																			}
 																			let hex = val.toString(16);
 																			if (hex.length % 2 !== 0) hex = '0' + hex;
-																			hexHash = hex.padStart(64, '0');
+																			
+																			// Handle legacy map sizes dynamically
+																			let padLength = HEX_CHARS;
+																			if (hex.length > HEX_CHARS) padLength = 64;
+
+																			hexHash = hex.padStart(padLength, '0');
 																		} catch (e) {
-																			hexHash = ''.padStart(64, '0');
+																			hexHash = ''.padStart(HEX_CHARS, '0');
 																		}
 																		
 																		// Convert Hex to Binary String
@@ -147,12 +158,10 @@
 																		for (let i = 0; i < hexHash.length; i++) {
 																			binaryHash += parseInt(hexHash[i], 16).toString(2).padStart(4, '0');
 																		}
-																		// Ensure it's 256 bits
-																		binaryHash = binaryHash.padStart(256, '0').slice(-256);
 
 																		// Render Grid
-																		for (let i = 0; i < 256; i++) {
-																			let bit = binaryHash[i];
+																		for (let i = 0; i < DIM_SQUARED; i++) {
+																			let bit = binaryHash[i] || '0';
 																			let color = bit === '1' ? '#222' : '#ddd';
 																	%>
 																		<div style="background-color: <%- color %>; width: 100%; height: 100%;"></div>
