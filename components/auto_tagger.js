@@ -84,7 +84,7 @@ const AutoTagger = {
 
         // Mars Ball
         if (counts.marsBalls > 0) {
-            tags.push("MARS BALL");
+            tags.push("MARSBALL");
         }
 
         return tags;

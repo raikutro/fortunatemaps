@@ -75,8 +75,8 @@ const SETTINGS = {
 				backgroundColor: "linear-gradient(45deg, #FF9800 33%, #F0F0F0 33% 66%, #FF9800 33%)",
 				textColor: "#111111"
 			},
-			"MARS BALL": {
-				name: "Mars Ball",
+			"MARSBALL": {
+				name: "MarsBall",
 				backgroundColor: "maroon",
 				textColor: "#EEEEEE"
 			},
