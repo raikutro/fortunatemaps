@@ -69,6 +69,10 @@
 					<input type="number" class="form-control" id="profileBannerInput" value="<%- profile.profileBanner || '' %>" placeholder="Profile Banner Map ID (e.g. 21)">
 				</div>
 				<hr>
+				<b>Password Configuration</b>
+				<small class="text-muted d-block mt-1 mb-2">Password management has been moved to its own secure page.</small>
+				<a href="/reset_password" class="btn btn-secondary w-100 mt-2">Manage Password</a>
+				<hr>
 				<b>Biography</b>
 				<div class="markdown-container mt-2">
 					<textarea id="biographyInput"><%= profile.bio %></textarea>
@@ -78,7 +82,7 @@
 				<hr>
 				<%- profile.isAdmin ? `
 				<b>Announcement</b>
-				<textarea class="form-control mt-2 mb-2" id="announcementInput" placeholder="Announcement text..." rows="3"></textarea>
+				<textarea class="form-control mt-2 mb-2" id="announcementInput" placeholder="Announcement text..." rows="3">${announcementHTML || ""}</textarea>
 				<button class="btn btn-danger w-100" id="sendAnnouncementBtn">Send Announcement</button>
 				<hr>
 				` : "" %>

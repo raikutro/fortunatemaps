@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<%- include('head') %>
+		<title>Fortunate Maps - Login</title>
+		<style>
+			.login-container {
+				max-width: 400px;
+				margin: 50px auto;
+				padding: 20px;
+				background: var(--bg-color-secondary);
+				border-radius: 8px;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			}
+			.login-container h2 {
+				text-align: center;
+				margin-bottom: 20px;
+			}
+			.ctfauth-divider {
+				text-align: center;
+				margin: 20px 0;
+				position: relative;
+			}
+			.ctfauth-divider::before, .ctfauth-divider::after {
+				content: "";
+				position: absolute;
+				top: 50%;
+				width: 40%;
+				height: 1px;
+				background: var(--border-color);
+			}
+			.ctfauth-divider::before { left: 0; }
+			.ctfauth-divider::after { right: 0; }
+			
+			.ctfauth-btn {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 10px;
+				background: #1a1a1a;
+				color: white;
+				width: 100%;
+				padding: 10px;
+				border-radius: 5px;
+				text-decoration: none;
+				transition: background 0.2s;
+			}
+			
+			.ctfauth-btn:hover {
+				background: #333;
+				text-decoration: none;
+				color: white;
+			}
+
+			.ctfauth-btn img {
+				width: 20px;
+				height: 20px;
+			}
+		</style>
+	</head>
+	<body>
+		<%- include('nav'); %>
+
+		<main role="main" class="container">
+			<div class="login-container">
+				<h2>Login</h2>
+				
+				<% if (typeof error !== 'undefined' && error) { %>
+					<div class="alert alert-danger" role="alert">
+						<%= error %>
+					</div>
+				<% } %>
+
+				<form action="/login" method="POST">
+					<div class="form-group">
+						<label for="username">Username</label>
+						<input type="text" class="form-control" id="username" name="username" required>
+					</div>
+					<div class="form-group">
+						<label for="password">Password</label>
+						<input type="password" class="form-control" id="password" name="password" required>
+						<div class="text-right mt-1">
+							<a href="/reset_password" class="small">Forgot/Reset Password?</a>
+						</div>
+					</div>
+					<button type="submit" class="btn btn-primary btn-block w-100">Login</button>
+				</form>
+
+				<div class="ctfauth-divider">
+					<span class="text-muted small">OR</span>
+				</div>
+
+				<a href="/sign_in" class="ctfauth-btn">
+					<img src="/assets/logos/ctfauth.png" alt="CTFAuth" />
+					Sign in with CTFAuth
+				</a>
+				
+				<div class="text-center mt-3 small text-muted">
+					No password set? Use CTFAuth to verify your email and set a password in Settings.
+				</div>
+			</div>
+		</main>
+
+		<%- include('bodyscripts') %>
+	</body>
+</html>

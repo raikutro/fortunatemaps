@@ -24,7 +24,9 @@ const UserSchema = new Schema({
 	// Auto-Tag maps as CHUNKable
 	autoChunkable: {type: Boolean, default: false},
 	// Profile Banner Map ID
-	profileBanner: {type: Number}
+	profileBanner: {type: Number},
+	// Password Hash (Bcrypt)
+	passwordHash: {type: String}
 });
 
 const SETTINGS = require('../Settings');

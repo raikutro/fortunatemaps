@@ -17,6 +17,9 @@
 		<main role="main" class="container">
 			<div class="banner-overlay">
 				<h2 class="profile-username"><%- user.username %></h2>
+				<% if (isOwner) { %>
+					<a href="/reset_password" class="btn btn-sm btn-outline-light ml-3">Reset Password</a>
+				<% } %>
 			</div>
 
 			<div class="row" id="mainRow">
@@ -60,13 +63,14 @@
 							Certifications
 						</div>
 						<div class="card-body d-flex flex-row flex-wrap align-items-center justify-content-center">
-							<%- user.certifications.length > 0 ? user.certifications.map(certification => {
-								let certData = SETTINGS.SITE.CERTIFICATIONS[certification.certificationType];
-								return `<span
-									class="certification badge badge-primary mb-2 mr-2"
-									style="background: ${certData.backgroundColor}; color: ${certData.textColor}"
-								>${certification.name || certData.name}</span>`;
-							}).join('') : "Unfortunately, this person isn't known for anything."%>
+							<% if (user.certifications.length > 0) { %>
+								<% user.certifications.forEach(certification => { %>
+									<% let certData = SETTINGS.SITE.CERTIFICATIONS[certification.certificationType]; %>
+									<span class="certification badge badge-primary mb-2 mr-2" style="background: <%= certData.backgroundColor %>; color: <%= certData.textColor %>"><%= certification.name || certData.name %></span>
+								<% }); %>
+							<% } else { %>
+								Unfortunately, this person isn't known for anything.
+							<% } %>
 						</div>
 					</div>
 					<hr>

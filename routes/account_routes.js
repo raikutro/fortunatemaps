@@ -33,11 +33,64 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 	app.get('/settings', LoginMiddleware, async (req, res) => {
 		if(req.profileID) {
 			res.render('settings', {
-				...(await Utils.templateEngineData(req))
+				...(await Utils.templateEngineData(req)),
+				announcementHTML: global.announcementHTML || ""
 			});
 		} else {
 			res.redirect("/");
 		}
+	});
+
+	// Local Login
+	app.get('/login', async (req, res) => {
+		if (req.profileID) return res.redirect('/profile/' + req.profileID);
+		res.render('login', {
+			...(await Utils.templateEngineData(req)),
+			error: req.query.error
+		});
+	});
+
+	app.post('/login', async (req, res) => {
+		const { username, password } = req.body;
+		if (!username || !password) return res.redirect('/login?error=Missing+credentials');
+
+		const user = await User.findOne({ username: new RegExp(`^${Utils.makeAlphanumeric(username)}$`, "i") });
+		
+		if (!user) return res.redirect('/login?error=Invalid+username+or+password');
+		
+		if (!user.passwordHash) {
+			return res.redirect('/login?error=No+password+set+for+this+account.+Sign+in+with+CTFAuth+to+verify+your+email.');
+		}
+
+		const bcrypt = require('bcrypt');
+		const isMatch = await bcrypt.compare(password, user.passwordHash);
+		if (!isMatch) return res.redirect('/login?error=Invalid+username+or+password');
+
+		const crypto = require('crypto');
+		const token = crypto.randomBytes(32).toString('hex');
+
+		sharedTokens.login[token] = {
+			profileID: String(user._id),
+			tagproProfile: user.tagproProfile,
+			loginDate: Date.now()
+		};
+		saveTokens(sharedTokens.login);
+
+		res.cookie(SETTINGS.SITE.COOKIE_TOKEN_NAME, token, {
+			path: "/",
+			expires: new Date(Date.now() + SETTINGS.SITE.LOGIN_EXPIRATION_TIME_LIMIT), // cookie will be removed after 100 days
+			httpOnly: true,
+			sameSite: 'lax',
+			secure: !SETTINGS.DEV_MODE
+		});
+
+		res.redirect('/profile/' + user._id);
+	});
+
+	app.get('/reset_password', async (req, res) => {
+		res.render('reset_password', {
+			...(await Utils.templateEngineData(req))
+		});
 	});
 
 	// CTFAuth Sign in
@@ -48,6 +101,11 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 				"Authorization": "Basic " + process.env.CTF_AUTH_API_KEY
 			}
 		}).then(a => a.json()).then(json => {
+			if (req.query.redirect === '/reset_password') {
+				sharedTokens.redirects = sharedTokens.redirects || {};
+				sharedTokens.redirects[json.verificationToken] = '/reset_password';
+			}
+
 			res.cookie(SETTINGS.SITE.COOKIE_TOKEN_NAME, json.verificationToken, {
 				path: "/",
 				expires: new Date(Date.now() + SETTINGS.SITE.LOGIN_EXPIRATION_TIME_LIMIT), // cookie will be removed after 100 days
@@ -167,8 +225,18 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 
 			saveTokens(sharedTokens.login);
 
+			const baseURL = (SETTINGS.DEV_MODE ? (SETTINGS.NGROK_URL || "http://localhost") : "https://fortunatemaps.herokuapp.com");
+			let redirectURL = baseURL + "/profile/" + userAccount._id;
+
+			if (sharedTokens.redirects && sharedTokens.redirects[req.body.verificationToken]) {
+				redirectURL = baseURL + sharedTokens.redirects[req.body.verificationToken];
+				delete sharedTokens.redirects[req.body.verificationToken];
+			}
+
+			saveTokens(sharedTokens.redirects);
+
 			res.json({
-				redirectURL: (SETTINGS.DEV_MODE ? (SETTINGS.NGROK_URL || "http://localhost") : "https://fortunatemaps.herokuapp.com") + "/profile/" + userAccount._id
+				redirectURL: redirectURL
 			});
 		} else {
 			res.json({
@@ -242,6 +310,24 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 			res.json({
 				success: true
 			});
+		} else {
+			res.json(SETTINGS.ERRORS.INVALID_LOGIN_TOKEN());
+		}
+	});
+
+	app.post('/settings/password', LoginMiddleware, requireCsrf, async (req, res) => {
+		const user = await req.getProfile(true);
+
+		if (user && req.body.newPassword) {
+			const newPass = String(req.body.newPassword);
+			if (newPass.length < 8) return res.json({ err: "Password must be at least 8 characters long." });
+			if (newPass.length > 20) return res.json({ err: "Password must be under 20 characters long." });
+
+			const bcrypt = require('bcrypt');
+			user.passwordHash = await bcrypt.hash(newPass, 10);
+			await user.save();
+
+			res.json({ success: true });
 		} else {
 			res.json(SETTINGS.ERRORS.INVALID_LOGIN_TOKEN());
 		}

@@ -1,3 +1,6 @@
 [submodule "components/tp_analysis"]
 	path = components/tp_analysis
 	url = https://github.com/raikutro/tp_analysis
+[submodule "map_editor"]
+	path = map_editor
+	url = git@github.com-r:raikutro/map_editor.git

@@ -267,6 +267,12 @@ app.get('/editor', LoginMiddleware, async (req, res) => {
 	});
 });
 
+app.get('/editor-beta', LoginMiddleware, async (req, res) => {
+	res.render('editor_beta', {
+		...(await Utils.templateEngineData(req))
+	});
+});
+
 app.get('/chunkv1', LoginMiddleware, async (req, res) => {
 	res.render('chunk', {
 		...(await Utils.templateEngineData(req)),
@@ -1241,6 +1247,7 @@ apiRouter.post('/send_announcement', LoginMiddleware, requireCsrf, async (req, r
 
 // Link the map editor route
 app.use('/map_editor', TagproEditMapEditor(new express.Router(), httpServer));
+app.use('/editor-beta-src', express.static(path.join(__dirname, 'map_editor/dist')));
 app.use('/vendor/msgpackr', express.static(path.join(__dirname, 'node_modules/msgpackr/dist')));
 app.use('/', express.static(path.join(__dirname, 'public')));
 

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<%- include('head') %>
+
+		<style>
+			body, html {
+				margin: 0;
+				padding: 0;
+				height: 100%;
+				overflow: hidden;
+			}
+			#editorFrame {
+				position: absolute;
+				top: 5rem; /* navbar height + padding */
+				left: 0;
+				width: 100%;
+				height: calc(100% - 5rem);
+				border: none;
+			}
+		</style>
+
+		<title>Fortunate Maps - Editor (Beta)</title>
+	</head>
+	<body>
+		<%- include('nav'); %>
+
+		<iframe id="editorFrame" src="/editor-beta-src/index.html"></iframe>
+
+		<%- include('bodyscripts') %>
+	</body>
+</html>
