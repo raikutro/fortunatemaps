@@ -59,7 +59,7 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 		if (!user) return res.redirect('/login?error=Invalid+username+or+password');
 		
 		if (!user.passwordHash) {
-			return res.redirect('/login?error=No+password+set+for+this+account.+Sign+in+with+CTFAuth+to+verify+your+email.');
+			return res.redirect('/login?error=No+password+set+for+this+account.+Sign+in+with+CTFAuth+to+verify+your+TagPro+account.');
 		}
 
 		const bcrypt = require('bcrypt');
