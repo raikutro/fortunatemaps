@@ -17,9 +17,6 @@
 		<main role="main" class="container">
 			<div class="banner-overlay">
 				<h2 class="profile-username"><%- user.username %></h2>
-				<% if (isOwner) { %>
-					<a href="/reset_password" class="btn btn-sm btn-outline-light ml-3">Reset Password</a>
-				<% } %>
 			</div>
 
 			<div class="row" id="mainRow">
@@ -79,6 +76,9 @@
 			<hr>
 			<div class="profile-map-container">
 				<%- include('maplister'); %>
+				<div class="mt-4 d-flex justify-content-center">
+					<%- include('pagination'); %>
+				</div>
 			</div>
 		</main>
 

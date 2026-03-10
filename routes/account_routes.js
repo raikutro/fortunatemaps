@@ -87,7 +87,7 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 		res.redirect('/profile/' + user._id);
 	});
 
-	app.get('/reset_password', async (req, res) => {
+	app.get('/reset_password', LoginMiddleware, async (req, res) => {
 		res.render('reset_password', {
 			...(await Utils.templateEngineData(req))
 		});
@@ -101,6 +101,10 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 				"Authorization": "Basic " + process.env.CTF_AUTH_API_KEY
 			}
 		}).then(a => a.json()).then(json => {
+			if (!json.url) {
+				return res.redirect("/login?error=" + encodeURIComponent("CTFAuth is unavailable or misconfigured. Check your local API keys."));
+			}
+
 			if (req.query.redirect === '/reset_password') {
 				sharedTokens.redirects = sharedTokens.redirects || {};
 				sharedTokens.redirects[json.verificationToken] = '/reset_password';
@@ -115,6 +119,8 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 			});
 			
 			res.redirect(json.url);
+		}).catch(err => {
+			res.redirect("/login?error=" + encodeURIComponent("Could not connect to CTFAuth."));
 		});
 	});
 
@@ -146,7 +152,15 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 		if(user){
 			user = user.toObject();
 
-			let maps = await MapEntry.find({ authorIDs: user._id }).limit(20).sort({ dateUploaded: -1 });
+			const page = Math.max(Number(req.query.p) || 1, 1);
+			const skipNum = (page - 1) * SETTINGS.SITE.MAPS_PER_PAGE;
+			const totalMaps = await MapEntry.countDocuments({ authorIDs: user._id });
+			const maxPage = Math.max(Math.ceil(totalMaps / SETTINGS.SITE.MAPS_PER_PAGE), 1);
+
+			let maps = await MapEntry.find({ authorIDs: user._id })
+				.skip(skipNum)
+				.limit(SETTINGS.SITE.MAPS_PER_PAGE)
+				.sort({ dateUploaded: -1 });
 
 			maps = maps.map(d => {
 				let doc = d.toObject();
@@ -166,7 +180,15 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 			}
 
 			let profileID = req.profileID;
-			let renderData = {...(await Utils.templateEngineData(req)), user, maps, bannerMap};
+			let renderData = {
+				...(await Utils.templateEngineData(req)), 
+				user, 
+				maps, 
+				bannerMap,
+				page,
+				maxPage,
+				paginationPrefix: req.path + "?p="
+			};
 
 			if(profileID){
 				if(profileID === String(user._id)) {
@@ -232,8 +254,6 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 				redirectURL = baseURL + sharedTokens.redirects[req.body.verificationToken];
 				delete sharedTokens.redirects[req.body.verificationToken];
 			}
-
-			saveTokens(sharedTokens.redirects);
 
 			res.json({
 				redirectURL: redirectURL

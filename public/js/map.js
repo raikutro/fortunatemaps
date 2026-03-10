@@ -154,15 +154,61 @@ $("#submitCommentBtn").click(() => {
 	});
 });
 
+$(document).on("click", ".delete-comment-btn", function() {
+	if(confirm("Are you sure you want to delete this comment?")) {
+		const commentID = $(this).attr("data-comment-id");
+		fetch("/delete_comment", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-CSRF-Token": getCsrfToken()
+			},
+			body: JSON.stringify({
+				mapID: window.MAP_DATA.mapID,
+				commentID: commentID
+			})
+		}).then(a => a.json()).then(json => {
+			if(json.err) return alert("Error: " + json.err);
+			if(!json.success) return alert("Error: Failed");
+
+			location.reload();
+		});
+	}
+});
+
+$("#claimMapBtn").click(() => {
+	fetch("/claim_map", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"X-CSRF-Token": getCsrfToken()
+		},
+		body: JSON.stringify({
+			mapID: window.MAP_DATA.mapID
+		})
+	}).then(a => a.json()).then(json => {
+		if(json.err) return alert("Error: " + json.err);
+		if(!json.success) return alert("Error: Failed");
+
+		location.reload();
+	});
+});
+
 function updateComments() {
 	$("#commentsContainer").empty();
 	window.MAP_DATA.comments.forEach(comment => {
 		let renderedMarkdown = marked.parse(comment.body);
 		let cleanMarkdown = DOMPurify.sanitize(renderedMarkdown);
 
+		let deleteBtnHtml = "";
+		if (window.IS_ADMIN && comment.body !== "[This comment was deleted by an admin]") {
+			deleteBtnHtml = `<button class="btn btn-sm btn-danger delete-comment-btn float-right" data-comment-id="${comment.id}">Delete</button>`;
+		}
+
 		$("#commentsContainer").append(`
 			<div class="card mb-2">
 				<div class="card-body">
+					${deleteBtnHtml}
 					<div class="media comment">
 						<img class="avatar" src="/assets/user.png" class="mr-3">
 						<div class="media-body ml-3">

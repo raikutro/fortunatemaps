@@ -59,7 +59,7 @@ const SETTINGS = {
 				textColor: "#EEEEEE"
 			}
 		},
-		ADMIN_ONLY_TAGS: ["ROTATION", "RETIRED", "UMDUMP"],
+		ADMIN_ONLY_TAGS: ["ROTATION", "TRIAL", "RETIRED", "UMDUMP"],
 		TAGS: {
 			CTF: {
 				name: "CTF",
@@ -100,6 +100,11 @@ const SETTINGS = {
 				name: "Rotation",
 				backgroundColor: "linear-gradient(90deg, #33C738, #A4D270)",
 				textColor: "#EEEEEE"
+			},
+			"TRIAL": {
+				name: "Trial",
+				backgroundColor: "linear-gradient(45deg, #8bce8dff 50%, #b2c7b3ff 50%)",
+				textColor: "#111111"
 			},
 			"RETIRED": {
 				name: "Retired",

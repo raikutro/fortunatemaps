@@ -572,6 +572,7 @@ apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 
 	const userProfile = await req.getProfile();
 	const isAdmin = userProfile ? userProfile.isAdmin : false;
+	const isMTC = userProfile ? userProfile.certifications.some(c => c.certificationType === 2) : false;
 
 	let mapVersions = await MapEntry.find({
 		versionSource: mapEntry.versionSource,
@@ -604,7 +605,8 @@ apiRouter.get('/map/:mapid', LoginMiddleware, async (req, res) => {
 		map: mapEntry,
 		mapVersions,
 		mapRemixes,
-		isAdmin
+		isAdmin,
+		isMTC
 	});
 });
 
@@ -1036,7 +1038,10 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, requireCsrf, as
 		if (!userProfile) return res.status(404).json({ err: "User not found." });
 		if (!mapEntry) return res.status(404).json({ err: "Map not found." });
 
-		if (!mapEntry.authorIDs.includes(req.profileID) && !userProfile.isAdmin) return res.status(404).json({ err: "User is not an author of this map." });
+		const isMTC = userProfile.certifications.some(c => c.certificationType === 2);
+		const canEditFully = mapEntry.authorIDs.includes(req.profileID) || userProfile.isAdmin;
+
+		if (!canEditFully && !isMTC) return res.status(404).json({ err: "User is not an author of this map." });
 
 		// Sanitize inputs
 		let tagsArray = Array.from(new Set(req.body.tags));
@@ -1051,6 +1056,17 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, requireCsrf, as
 			Utils.makeAlphanumeric(t)
 				.slice(0, SETTINGS.SITE.TAG_NAME_MAX_LENGTH)
 		);
+
+		// Short-circuit for MTC members without full edit permissions
+		if (!canEditFully && isMTC) {
+			const adminTagsFiltered = tagsArray.filter(t => SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(t.toUpperCase()));
+			const standardTagsExisting = mapEntry.tags.filter(t => !SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(t.toUpperCase()));
+			
+			mapEntry.tags = [...standardTagsExisting, ...adminTagsFiltered];
+			await mapEntry.save();
+			
+			return res.json({ success: true });
+		}
 
 		let description = insane(req.body.description).slice(0, 500);
 		let mapName = Utils.cleanQueryableText(insane(req.body.mapName).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
@@ -1113,6 +1129,62 @@ apiRouter.post('/comment', commentLimiter, LoginMiddleware, requireCsrf, async (
 			body: insane(req.body.body || "")
 		});
 
+		await mapEntry.save();
+
+		res.json({
+			success: true
+		});
+	}
+});
+
+// Delete Comment Route (Admins Only)
+apiRouter.post('/delete_comment', LoginMiddleware, requireCsrf, async (req, res) => {
+	if (Utils.hasCorrectParameters(req.body, {
+		mapID: "number",
+		commentID: "string"
+	}) && req.profileID) {
+		const userProfile = await req.getProfile();
+		if (!userProfile || !userProfile.isAdmin) {
+			return res.status(403).json({ err: "Permission denied." });
+		}
+
+		let mapEntry = await MapEntry.findOne({
+			mapID: req.body.mapID
+		});
+
+		if (!mapEntry) return res.status(404).json({ err: "Map not found." });
+
+		const commentIndex = mapEntry.comments.findIndex(c => c.id === req.body.commentID);
+		if (commentIndex === -1) return res.status(404).json({ err: "Comment not found." });
+
+		mapEntry.comments[commentIndex].body = "[This comment was deleted by an admin]";
+		mapEntry.markModified('comments');
+
+		await mapEntry.save();
+
+		res.json({
+			success: true
+		});
+	}
+});
+
+apiRouter.post('/claim_map', LoginMiddleware, requireCsrf, async (req, res) => {
+	if (Utils.hasCorrectParameters(req.body, {
+		mapID: "number"
+	}) && req.profileID) {
+		let mapEntry = await MapEntry.findOne({
+			mapID: req.body.mapID
+		});
+
+		if (!mapEntry) return res.status(404).json({ err: "Map not found." });
+
+		const userProfile = await req.getProfile();
+		if (!userProfile) return res.status(404).json({ err: "User not found." });
+
+		if (mapEntry.authorIDs.length > 0) return res.status(403).json({ err: "Map is already claimed." });
+		if (mapEntry.authorName.trim().toLowerCase() !== userProfile.username.trim().toLowerCase()) return res.status(403).json({ err: "Username does not match author name." });
+
+		mapEntry.authorIDs.push(req.profileID);
 		await mapEntry.save();
 
 		res.json({
