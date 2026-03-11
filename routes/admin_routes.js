@@ -1,5 +1,6 @@
 const express = require('express');
 const User = require('../models/User');
+const ActionLog = require('../models/ActionLog');
 const Utils = require('../Utils');
 const SETTINGS = require('../Settings');
 
@@ -13,9 +14,12 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 			return res.status(403).send("Forbidden. Administrators only.");
 		}
 
+		let actionLogs = await ActionLog.find().sort({ timestamp: -1 }).limit(50).lean();
+
 		res.render('admin', {
 			...(await Utils.templateEngineData(req)),
-			certifications: SETTINGS.SITE.CERTIFICATIONS
+			certifications: SETTINGS.SITE.CERTIFICATIONS,
+			actionLogs
 		});
 	});
 
@@ -71,6 +75,7 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 			targetUser.autoChunkable = req.body.autoChunkable;
 
 			if (Array.isArray(req.body.certifications)) {
+				const oldCerts = new Set(targetUser.certifications.map(c => c.certificationType));
 				targetUser.certifications = [];
 				const seenCerts = new Set();
 				
@@ -87,6 +92,25 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 						targetUser.certifications.push({
 							certificationType: numId,
 							name: customName
+						});
+
+						if (!oldCerts.has(numId)) {
+							ActionLog.create({
+								userId: adminUser._id,
+								username: adminUser.username,
+								action: `Awarded Certification: ${customName} to User: ${targetUser.username}`
+							});
+						}
+					}
+				});
+
+				oldCerts.forEach(oldId => {
+					if(!seenCerts.has(oldId)) {
+                        let customName = SETTINGS.SITE.CERTIFICATIONS[oldId].name;
+						ActionLog.create({
+							userId: adminUser._id,
+							username: adminUser.username,
+							action: `Revoked Certification: ${customName} from User: ${targetUser.username}`
 						});
 					}
 				});

@@ -4,6 +4,7 @@ const fetch = require('node-fetch');
 const MapEntry = require('../models/MapEntry');
 const User = require('../models/User');
 const ServerInfo = require('../models/ServerInfo');
+const ActionLog = require('../models/ActionLog');
 
 const Utils = require('../Utils');
 const SETTINGS = require('../Settings');
@@ -284,6 +285,12 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 				user.username = req.body.username;
 
 				await user.save();
+
+				await ActionLog.create({
+					userId: user._id,
+					username: user.username,
+					action: "Account Created"
+				});
 
 				res.json({
 					success: true,

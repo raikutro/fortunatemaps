@@ -46,6 +46,7 @@ const Utils = require('./Utils');
 // Mongoose Models
 // Models cannot be initiated until DB connection.
 let MapEntry = null;
+let ActionLog = null;
 let User = null;
 let ServerInfo = null;
 let serverInfoDoc = null;
@@ -115,6 +116,7 @@ mongoose.connect(process.env.MONGODB_URL, {
 	MapEntry = require('./models/MapEntry');
 	User = require('./models/User');
 	ServerInfo = require('./models/ServerInfo');
+	ActionLog = require('./models/ActionLog');
 
 	await loadLoginTokens();
 	await saveDatabaseStats();
@@ -1062,6 +1064,29 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, requireCsrf, as
 			const adminTagsFiltered = tagsArray.filter(t => SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(t.toUpperCase()));
 			const standardTagsExisting = mapEntry.tags.filter(t => !SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(t.toUpperCase()));
 			
+			const oldAdminTags = new Set(mapEntry.tags.filter(t => SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(t.toUpperCase())));
+			const newAdminTags = new Set(adminTagsFiltered);
+
+			newAdminTags.forEach(t => {
+				if(!oldAdminTags.has(t)) {
+					ActionLog.create({
+						userId: userProfile._id,
+						username: userProfile.username,
+						action: `Added Admin Tag: ${t} to Map: ${mapEntry.mapID}`
+					});
+				}
+			});
+
+			oldAdminTags.forEach(t => {
+				if(!newAdminTags.has(t)) {
+					ActionLog.create({
+						userId: userProfile._id,
+						username: userProfile.username,
+						action: `Removed Admin Tag: ${t} from Map: ${mapEntry.mapID}`
+					});
+				}
+			});
+
 			mapEntry.tags = [...standardTagsExisting, ...adminTagsFiltered];
 			await mapEntry.save();
 			
@@ -1071,6 +1096,29 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, requireCsrf, as
 		let description = insane(req.body.description).slice(0, 500);
 		let mapName = Utils.cleanQueryableText(insane(req.body.mapName).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
 		let mapAuthor = Utils.cleanQueryableText(insane(req.body.mapAuthor).slice(0, SETTINGS.SITE.AUTHOR_LENGTH));
+
+		const oldAdminTags = new Set(mapEntry.tags.filter(t => SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(t.toUpperCase())));
+		const newAdminTags = new Set(tagsArray.filter(t => SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(t.toUpperCase())));
+
+		newAdminTags.forEach(t => {
+			if(!oldAdminTags.has(t)) {
+				ActionLog.create({
+					userId: userProfile._id,
+					username: userProfile.username,
+					action: `Added Admin Tag: ${t} to Map: ${mapEntry.mapID}`
+				});
+			}
+		});
+
+		oldAdminTags.forEach(t => {
+			if(!newAdminTags.has(t)) {
+				ActionLog.create({
+					userId: userProfile._id,
+					username: userProfile.username,
+					action: `Removed Admin Tag: ${t} from Map: ${mapEntry.mapID}`
+				});
+			}
+		});
 
 		mapEntry.name = mapName;
 		mapEntry.authorName = mapAuthor;
