@@ -360,6 +360,51 @@ module.exports = (app, sharedTokens, requireCsrf) => {
 		}
 	});
 
+	app.post('/api/action/manage_mtc', LoginMiddleware, requireCsrf, async (req, res) => {
+		const activeUser = await req.getProfile();
+		if(!activeUser) return res.json({ err: "User not found" });
+
+		const isMTC = activeUser.certifications.some(c => c.certificationType === 2);
+		if(!activeUser.isAdmin && !isMTC) return res.status(403).json({ err: "Forbidden" });
+
+		if(Utils.hasCorrectParameters(req.body, {
+			targetProfileId: "string",
+			certId: "number",
+			action: "string"
+		})) {
+			const targetUser = await User.findById(req.body.targetProfileId).catch(() => null);
+			if(!targetUser) return res.json({ err: "Target user not found" });
+
+			if(req.body.certId !== 2) return res.json({ err: "You only have permissions to manage MTC certifications" });
+
+			if(req.body.action === 'add') {
+				const added = await User.addCertification(targetUser, 2);
+				if(added) {
+					await ActionLog.create({
+						userId: activeUser._id,
+						username: activeUser.username,
+						action: `Awarded Certification: Map Test Committee to User: ${targetUser.username}`
+					});
+				}
+				res.json({ success: true });
+			} else if (req.body.action === 'revoke') {
+				const removed = await User.removeCertification(targetUser, 2);
+				if(removed) {
+					await ActionLog.create({
+						userId: activeUser._id,
+						username: activeUser.username,
+						action: `Revoked Certification: Map Test Committee from User: ${targetUser.username}`
+					});
+				}
+				res.json({ success: true });
+			} else {
+				res.json({ err: "Invalid action type" });
+			}
+		} else {
+			res.json({ err: "Invalid parameter format" });
+		}
+	});
+
 	// Check expiration of tokens every 10 mins
 	setInterval(function() {
 		Object.keys(sharedTokens.login).forEach(key => {

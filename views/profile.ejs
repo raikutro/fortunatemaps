@@ -71,6 +71,17 @@
 						</div>
 					</div>
 					<hr>
+					<% const isMtc = profile && profile.certifications && profile.certifications.some(c => c.certificationType === 2); %>
+					<% if (isMtc && profile._id.toString() !== user._id.toString()) { %>
+						<div class="input-group mb-3">
+							<select class="custom-select" id="profileActionSelect">
+								<option value="manage_certs">Manage MTC Certification</option>
+							</select>
+							<div class="input-group-append">
+								<button class="btn btn-primary" type="button" id="runProfileActionBtn">Run</button>
+							</div>
+						</div>
+					<% } %>
 				</div>
 			</div>
 			<hr>
@@ -83,6 +94,24 @@
 		</main>
 
 		<%- include('bodyscripts') %>
+
+		<div class="modal fade" id="manageCertsModal" tabindex="-1" role="dialog" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">Manage MTC Certification</h5>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+					<div class="modal-body text-center mt-3 mb-3">
+						<p class="mb-4">You can manually grant or revoke the MTC certification for <strong><%= user.username %></strong> below.</p>
+						<button class="btn btn-success m-2" onclick="manageMtcAction('add', '<%= user._id %>')"><i class="fas fa-plus"></i> Award MTC</button>
+						<button class="btn btn-danger m-2" onclick="manageMtcAction('revoke', '<%= user._id %>')"><i class="fas fa-minus"></i> Revoke MTC</button>
+					</div>
+				</div>
+			</div>
+		</div>
 		
 		<script type="text/javascript" src="/js/profile.js"></script>
 	</body>
