@@ -423,6 +423,7 @@ async function saveTokens(loginTokens) {
 	let serverInfo = await ServerInfo.findOne({});
 
 	serverInfo.loginTokens = loginTokens;
+	serverInfo.markModified('loginTokens');
 
 	await serverInfo.save();
 	
