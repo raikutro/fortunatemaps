@@ -87,7 +87,7 @@ $("#saveMapSettings").click(() => {
 			tags: tagInput.tags,
 			description: $("#descriptionText").val().trim(),
 			authors: authorInput.tags,
-			unlisted: $("#unlistedCheck").prop("checked")
+			unlisted: false
 		})
 	}).then(a =>a.json()).then(json => {
 		if(json.err) return alert("Error: " + json.err);

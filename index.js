@@ -64,10 +64,10 @@ const generalDBLimiter = rateLimit({
 	standardHeaders: true,
 	legacyHeaders: false,
 });
-// 20 requests per 5 minutes
+// 10 requests per 5 minutes
 const mapUploadLimiter = rateLimit({
 	windowMs: 5 * 60 * 1000,
-	max: 20,
+	max: 10,
 	standardHeaders: true,
 	legacyHeaders: false,
 });
@@ -924,7 +924,7 @@ apiRouter.post('/upload_map',
 				}
 
 				// Clean body parameters
-				req.body.unlisted = req.body.unlisted;
+				req.body.unlisted = !!req.body.unlisted;
 				req.body.sourceMapID = req.body.sourceMapID ? req.body.sourceMapID : 0;
 
 				// Put users authorID inside if they're logged in.
@@ -1003,7 +1003,7 @@ apiRouter.post('/upload_map',
 					png: mapLayoutCompressedBuffer,
 					versionSource: versionSource,
 					isRemix: isRemix,
-					unlisted: req.body.unlisted,
+					unlisted: !!req.body.unlisted,
 					hierarchicalHash: hashBuffer
 				});
 

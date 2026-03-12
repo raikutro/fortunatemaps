@@ -2331,10 +2331,10 @@ $(function() {
 		body: JSON.stringify({
 			layout: getPngBase64(),
 			logic: makeLogicString(),
-			unlisted: $("#unlistedCheck").prop("checked"),
-				sourceMapID: versionSource || 0
-			})
-		}).then(a => a.json()).then(data => {
+			unlisted: false,
+			sourceMapID: versionSource || 0
+		})
+	}).then(a => a.json()).then(data => {
 			if(data.err) {
 				console.log(data);
 				return addAlert('error',`Error: ${data.err}`, 5000);
