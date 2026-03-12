@@ -1049,8 +1049,6 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, requireCsrf, as
 		let tagsArray = Array.from(new Set(req.body.tags));
 		let authorsArray = Array.from(req.body.authors).map(a => String(a)).slice(0, SETTINGS.SITE.MAX_AUTHORS);
 
-		if (authorsArray.length === 0 && !userProfile.isAdmin) return res.json({ err: "Empty Author Array" });
-		if (authorsArray.some(a => a.length !== 24)) return res.json({ err: "Invalid Author Array" });
 		if (tagsArray.length > SETTINGS.SITE.MAX_TAGS) return res.json({ err: "Too many tags." });
 
 		// Sanitize the tags
@@ -1096,6 +1094,9 @@ apiRouter.post('/update_map', mapUpdateLimiter, LoginMiddleware, requireCsrf, as
 		let description = insane(req.body.description).slice(0, 500);
 		let mapName = Utils.cleanQueryableText(insane(req.body.mapName).slice(0, SETTINGS.SITE.MAP_NAME_LENGTH));
 		let mapAuthor = Utils.cleanQueryableText(insane(req.body.mapAuthor).slice(0, SETTINGS.SITE.AUTHOR_LENGTH));
+
+		if (authorsArray.length === 0 && !userProfile.isAdmin) return res.json({ err: "Empty Author Array" });
+		if (authorsArray.some(a => a.length !== 24)) return res.json({ err: "Invalid Author Array" });
 
 		const oldAdminTags = new Set(mapEntry.tags.filter(t => SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(t.toUpperCase())));
 		const newAdminTags = new Set(tagsArray.filter(t => SETTINGS.SITE.ADMIN_ONLY_TAGS.includes(t.toUpperCase())));
