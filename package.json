@@ -4,7 +4,7 @@
   "description": "A TagPro Map Hosting Site",
   "main": "index.js",
   "scripts": {
-    "build": "cd map_editor && yarn build",
+    "build": "yarn-recursive --skipRoot",
     "dev": "nodemon index.js",
     "start": "node index.js"
   },
