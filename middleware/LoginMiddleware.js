@@ -56,6 +56,18 @@ module.exports = (sharedTokens) => {
 			req.loginToken = tokenData;
 			req.profileID = tokenData.profileID;
 			
+			// Rolling session: Update login time and refresh cookie
+			tokenData.loginDate = Date.now();
+			if (res && res.cookie) {
+				res.cookie(SETTINGS.SITE.COOKIE_TOKEN_NAME, req.cookies[SETTINGS.SITE.COOKIE_TOKEN_NAME], {
+					path: "/",
+					expires: new Date(Date.now() + SETTINGS.SITE.LOGIN_EXPIRATION_TIME_LIMIT),
+					httpOnly: true,
+					sameSite: 'lax',
+					secure: !SETTINGS.DEV_MODE
+				});
+			}
+
 			// If cached data exists, pre-populate
 			if (tokenData.profileData) {
 				req.profileData = tokenData.profileData;

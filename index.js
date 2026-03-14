@@ -64,13 +64,28 @@ const generalDBLimiter = rateLimit({
 	standardHeaders: true,
 	legacyHeaders: false,
 });
-// 10 requests per 5 minutes
-const mapUploadLimiter = rateLimit({
+// 10 requests per 5 minutes for logged in users
+const mapUploadLimiterLoggedIn = rateLimit({
 	windowMs: 5 * 60 * 1000,
 	max: 10,
 	standardHeaders: true,
 	legacyHeaders: false,
 });
+// 5 requests per day for logged out users
+const mapUploadLimiterLoggedOut = rateLimit({
+	windowMs: 24 * 60 * 60 * 1000,
+	max: 5,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
+
+const dynamicMapUploadLimiter = (req, res, next) => {
+	if (req.profileID) {
+		return mapUploadLimiterLoggedIn(req, res, next);
+	} else {
+		return mapUploadLimiterLoggedOut(req, res, next);
+	}
+};
 // 20 requests per 2 minutes
 const mapUpdateLimiter = rateLimit({
 	windowMs: 2 * 60 * 1000,
@@ -892,8 +907,8 @@ apiRouter.post('/testmap', async (req, res) => {
 // Upload Map Route
 // Uploads a map to the server
 apiRouter.post('/upload_map',
-	mapUploadLimiter,
 	LoginMiddleware,
+	dynamicMapUploadLimiter,
 	requireCsrf, async (req, res) => {
 		if (Utils.hasCorrectParameters(req.body, {
 			logic: "string",

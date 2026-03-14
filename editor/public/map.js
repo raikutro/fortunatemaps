@@ -2331,7 +2331,7 @@ $(function() {
 		body: JSON.stringify({
 			layout: getPngBase64(),
 			logic: makeLogicString(),
-			unlisted: false,
+			unlisted: $('#unlistedCheck').is(':checked'),
 			sourceMapID: versionSource || 0
 		})
 	}).then(a => a.json()).then(data => {
