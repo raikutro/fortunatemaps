@@ -2,7 +2,7 @@
 	return `
 	<div class="card map-card">
 		<a href="/map/${map.mapID}" class="map-image-link">
-			<img style="" class="card-img-top" alt="${map.name}" data-compressed-layout="${map.png}"
+			<img class="card-img-top" alt="${map.name}" data-compressed-layout="${map.png}"
 				data-compressed-logic="${map.json}"
 				src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" />
 		</a>
@@ -22,7 +22,7 @@
 				<a type="button" class="btn btn-primary" href="/preview/${map.mapID}.jpeg" target="_blank">Preview</a>
 				<button type="button" class="btn btn-outline-danger like-btn" data-mapid="${map.mapID}">
 					<i
-						class="${(map.likes && typeof profileID !== 'undefined' && profileID && map.likes.some(id => id.toString() === profileID.toString())) ? 'fas' : 'far'} fa-heart"></i>
+						class="${(map.likes && typeof profileID !== 'undefined' && profileID && map.likes.some(id => id.toString() === profileID.toString())) ? 'bi bi-heart-fill' : 'bi bi-heart'}"></i>
 					<span class="like-count">${map.likes ? map.likes.length : 0}</span>
 				</button>
 			</div>

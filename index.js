@@ -143,6 +143,8 @@ mongoose.connect(process.env.MONGODB_URL, {
 	AccountRoutes(app, sharedTokens, requireCsrf);
 	AdminRoutes(app, sharedTokens, requireCsrf);
 
+	setInterval(saveDatabaseStats, 15000);
+
 	httpServer.listen(PORT, () => {
 		console.log('listening on *:' + PORT);
 	});
@@ -1386,8 +1388,6 @@ app.use('/map_editor', TagproEditMapEditor(new express.Router(), httpServer));
 app.use('/editor-beta-src', express.static(path.join(__dirname, 'map_editor/dist')));
 app.use('/vendor/msgpackr', express.static(path.join(__dirname, 'node_modules/msgpackr/dist')));
 app.use('/', express.static(path.join(__dirname, 'public')));
-
-setInterval(saveDatabaseStats, 15000);
 
 async function saveDatabaseStats() {
 	DATABASE_STATS = {

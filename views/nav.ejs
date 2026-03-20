@@ -38,10 +38,10 @@
 			</div>
 		</form>
 		<div class="account-buttons">
-			<%- profileID ? `${profile.isAdmin ? '<a class="admin-button mr-2" href="/admin" title="Admin Dashboard"><i class="fas fa-crown"></i></a>' : ''}
-				<a class="profile-button mr-2" href="/profile/${profileID}" title="My Profile"><i class="fas fa-user"></i></a>
-				<a class="settings-button" href="/settings"><i class="fas fa-cog"></i></a>
-				<a class="sign-out-button" href="/sign_out"><i class="fas fa-sign-out-alt"></i></a>` :
+			<%- profileID ? `${profile.isAdmin ? '<a class="admin-button mr-2" href="/admin" title="Admin Dashboard"><i class="bi bi-award-fill"></i></a>' : ''}
+				<a class="profile-button mr-2" href="/profile/${profileID}" title="My Profile"><i class="bi bi-person-fill"></i></a>
+				<a class="settings-button" href="/settings"><i class="bi bi-gear-fill"></i></a>
+				<a class="sign-out-button" href="/sign_out"><i class="bi bi-box-arrow-right"></i></a>` :
 				`<a class="sign-in-link" href="/login">
 					<div class="sign-in-button">
 						<span>Sign In</span>

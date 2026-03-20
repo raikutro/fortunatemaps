@@ -12,12 +12,12 @@ $(document).ready(function() {
         $("#userResultsBody").empty();
 
         const btn = $(this).find("button[type=submit]");
-        btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin"></i> Searching...');
+        btn.prop("disabled", true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Searching...');
 
         fetch(`/api/admin/users?q=${encodeURIComponent(q)}`)
             .then(res => res.json())
             .then(data => {
-                btn.prop("disabled", false).html('<i class="fas fa-search"></i> Search');
+                btn.prop("disabled", false).html('<i class="bi bi-search"></i> Search');
                 if (data.err) return alert(data.err);
 
                 if (data.users && data.users.length > 0) {
@@ -42,7 +42,7 @@ $(document).ready(function() {
                 }
             })
             .catch(err => {
-                btn.prop("disabled", false).html('<i class="fas fa-search"></i> Search');
+                btn.prop("disabled", false).html('<i class="bi bi-search"></i> Search');
                 alert("An error occurred while searching.");
                 console.error(err);
             });
@@ -84,7 +84,7 @@ $(document).ready(function() {
             const certData = window.CERTIFICATIONS[cert.certificationType] || { name: cert.name, backgroundColor: '#666', textColor: '#fff' };
             const tag = $(`
                 <span class="cert-tag" style="background: ${certData.backgroundColor}; color: ${certData.textColor};">
-                    ${certData.name} <i class="fas fa-times remove-cert-btn ml-1" data-certid="${cert.certificationType}" style="cursor:pointer;" title="Remove"></i>
+                    ${certData.name} <i class="bi bi-x-lg remove-cert-btn ml-1" data-certid="${cert.certificationType}" style="cursor:pointer;" title="Remove"></i>
                 </span>
             `);
             container.append(tag);
